@@ -1,26 +1,248 @@
 @import "tailwindcss";
 
+/*
+ * Express Photo and Gifts.
+ *
+ * Deep brand blue carries the loud surfaces; warm paper carries the reading
+ * ones. Amber is the shop's highlighter: it marks the action to take and the
+ * line worth remembering, and it is never a background for a whole region.
+ *
+ * Mono is reserved for marks and measurements — section marks, index numbers,
+ * prices, hours. It is never body copy.
+ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand, exactly as supplied. */
+  --blue: #001da4;
+  --gold: #ffb72a;
+  /* The blue one step brighter, for a blue action under the pointer. Named in
+     DESIGN.md as blue-lift; it lived as a literal at its one use site. */
+  --blue-lift: #0a2fd6;
+
+  /* Grounds. */
+  --leather: #001da4;
+  --leather-deep: #000f5a;
+  --card: #0b0d16;
+  --paper: #fbfaf8;
+  --paper-deep: #f2efe9;
+  --print: #ffffff;
+
+  /* Ink. Secondary tones are tinted from the ground's hue, never grey. */
+  --ink: #101013;
+  --ink-soft: #4c5070;
+  --ink-faint: #5f6480;
+  --on-leather: #ffffff;
+  --on-leather-soft: #b9c2ee;
+  --on-card-soft: #9aa0bf;
+
+  --rule-paper: rgb(16 16 19 / 0.13);
+  --rule-leather: rgb(255 255 255 / 0.22);
+  /* The card hairlines. `--rule-card` is the border around a door, `--rule-hair`
+     the heavier line on a chip or an outline control, `--rule-card-inner` the
+     line between a card's picture and its words. They were literals repeated at
+     every use site, which is how a fourth value gets typed. */
+  --rule-card: rgb(16 16 19 / 0.09);
+  --rule-hair: rgb(16 16 19 / 0.16);
+  --rule-card-inner: rgb(16 16 19 / 0.07);
+  --rule-dark: rgb(255 255 255 / 0.32);
+
+  /*
+   * The shadow vocabulary DESIGN.md names, as tokens rather than as seventeen
+   * literals. Each is tinted by the thing casting it: amber under the amber
+   * action, brand blue under the blue action and under both card kinds. There
+   * is no grey or black shadow in this world, and no elevation ladder — these
+   * five are the whole set.
+   */
+  --shadow-gold: 0 18px 38px -20px rgb(255 183 42 / 0.95);
+  --shadow-gold-hover: 0 22px 44px -20px rgb(255 183 42 / 1);
+  --shadow-blue: 0 18px 40px -22px rgb(0 29 164 / 0.9);
+  --shadow-blue-hover: 0 24px 48px -22px rgb(0 29 164 / 0.95);
+  --shadow-card: 0 22px 44px -32px rgb(0 29 164 / 0.55);
+  --shadow-card-hover: 0 30px 54px -30px rgb(0 29 164 / 0.6);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --gutter: clamp(20px, 5vw, 56px);
+  --shell: 1400px;
+  --measure: 62ch;
+  --radius: 18px;
+  --radius-sm: 12px;
+
+  --header-h: 66px;
+
+  /* What the docked order action occupies at the foot of the viewport, so
+     the last thing on the page can clear it. Phone: the full strip plus the
+     home indicator. Above 46rem: the floating pill plus its offset. */
+  --dock-h: calc(79px + env(safe-area-inset-bottom, 0px));
+
+  /* The clearance the dock keeps above the footer wordmark when it comes to
+     rest. `Motion` reads this off the computed styles rather than carrying its
+     own copy, so the rest point and the footer's padding cannot drift apart. */
+  --dock-gap: 20px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@media (min-width: 46rem) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --dock-h: calc(60px + clamp(20px, 2.6vw, 34px));
   }
 }
 
+@media (min-width: 62rem) {
+  :root {
+    --header-h: 74px;
+  }
+}
+
+/* Read aloud, never drawn. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+  border: 0;
+}
+
+[id] {
+  scroll-margin-top: calc(var(--header-h) + 28px);
+}
+
+@theme inline {
+  --color-leather: var(--leather);
+  --color-gold: var(--gold);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --font-sans: var(--font-archivo);
+  --font-mono: var(--font-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* A printed shop, not an app. There is no dark variant. */
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-archivo), system-ui, sans-serif;
+  font-synthesis-weight: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* ---- Browser surfaces -------------------------------------------------- */
+
+::selection {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+:root {
+  caret-color: var(--blue);
+  scrollbar-color: rgb(0 29 164 / 0.45) transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--paper-deep);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(0 29 164 / 0.42);
+  border: 3px solid var(--paper-deep);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--blue);
+}
+
+/* The ring is tuned to its ground: gold vanishes on paper, ink on blue. */
+:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+
+.on-dark :focus-visible,
+.on-dark:focus-visible {
+  outline-color: var(--gold);
+}
+
+.on-gold:focus-visible {
+  outline-color: var(--ink);
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+::marker {
+  color: var(--gold);
+}
+
+:where(h1, h2, h3, h4, p, figure, blockquote) {
+  margin: 0;
+}
+
+/*
+ * Reduced motion removes movement, not feedback.
+ *
+ * The blunt form of this rule also zeroes `transition-duration` globally, which
+ * takes the colour, border and shadow changes that tell a visitor a control
+ * responded along with the motion — the ring filling blue under a service card,
+ * the card's name turning, the sign-up's rule going amber on focus. Those are
+ * state, not animation, and they stay at their authored duration.
+ *
+ * What goes is every keyframe animation, and every transform that moves a thing
+ * under the pointer. The list is explicit because CSS cannot select "the
+ * transitions that carry a transform".
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .btn:hover,
+  .btn:active,
+  .svc:hover,
+  .svc:active,
+  .svc:hover .svc__art,
+  .svc:hover .svc__go,
+  .handover__link:hover svg,
+  .dock__chat:hover,
+  .dock__chat:active {
+    transform: none !important;
+  }
+
+  /* The frame's own transform is its place on the arc, which the carousel has
+     already flattened by this width; only the hover lift has to go. */
+  .frame:hover,
+  .frame:focus-visible {
+    --lift: 0px;
+  }
 }
