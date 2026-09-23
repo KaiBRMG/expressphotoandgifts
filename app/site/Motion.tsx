@@ -20,18 +20,40 @@ const useIsomorphicLayoutEffect =
  * complete, and if this never runs the page is intact, only still. Under
  * `prefers-reduced-motion` nothing here starts except the static layout.
  *
- * Five moments, in order of weight:
+ * Six moments, in order of weight:
  *   1. the cover wall — three rows of real work travelling at three speeds,
  *      the whole wall drifting as the cover scrolls past
  *   2. the cover's own entrance
  *   3. the word strips woven through the wall
  *   4. section reveals, one grammar, once each
  *   5. the catalogue wheel, geared to the page's own scroll
+ *   6. on a phone, the same wheel turned by hand
  *
  * One thing here is not motion: the dock's rest at the foot of the page runs
  * on the reduced-motion branch too, because it is what keeps the mark off the
  * wordmark rather than a flourish.
  */
+/** The page's one reveal grammar: rise and fade in, once, as each arrives. */
+function reveal(targets: string) {
+  ScrollTrigger.batch(targets, {
+    start: "top 88%",
+    once: true,
+    onEnter: (batch) =>
+      gsap.from(batch, {
+        y: 30,
+        autoAlpha: 0,
+        duration: 0.9,
+        ease: "expo.out",
+        stagger: 0.08,
+        // While an element is mid-fade it lives on its own compositing
+        // layer, and Windows renders the text on it with colour-fringed
+        // antialiasing. Dropping the inline transform/opacity the moment
+        // the tween lands hands the text back to the normal paint path.
+        clearProps: "transform,opacity,visibility",
+      }),
+  });
+}
+
 export function Motion() {
   useIsomorphicLayoutEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
@@ -253,23 +275,9 @@ export function Motion() {
 
         /* 4. Section reveals ------------------------------------------ */
 
-        ScrollTrigger.batch("[data-reveal]", {
-          start: "top 88%",
-          once: true,
-          onEnter: (batch) =>
-            gsap.from(batch, {
-              y: 30,
-              autoAlpha: 0,
-              duration: 0.9,
-              ease: "expo.out",
-              stagger: 0.08,
-              // While an element is mid-fade it lives on its own compositing
-              // layer, and Windows renders the text on it with colour-fringed
-              // antialiasing. Dropping the inline transform/opacity the moment
-              // the tween lands hands the text back to the normal paint path.
-              clearProps: "transform,opacity,visibility",
-            }),
-        });
+        // The services section is left out here and revealed on its own
+        // branch below, because on a phone it does not animate at all.
+        reveal("[data-reveal]:not(.services [data-reveal])");
 
         /* 5. The catalogue wheel ------------------------------------- */
 
@@ -326,6 +334,149 @@ export function Motion() {
         });
 
         return teardown;
+      },
+    );
+
+    /* 4b. The services section, revealed on wider screens only -------- */
+
+    // On a phone the two-up cards arrive in staggered pairs that read as
+    // jitter rather than an entrance, so there they simply sit in place.
+    mm.add(
+      "(min-width: 48rem) and (prefers-reduced-motion: no-preference)",
+      () => {
+        reveal(".services [data-reveal]");
+      },
+    );
+
+    /* 6. Turning the wheel by hand, on a phone ------------------------ */
+
+    // A row of prints travelling past a thumb invites a swipe, so on a phone a
+    // sideways drag turns the wheel too. It writes `--drag`, which the CSS adds
+    // to the scroll's `--spin`, so the two never fight over one number: the
+    // page keeps turning the wheel as it scrolls, from wherever the hand left
+    // it. Desktop never enters this branch.
+    mm.add(
+      "(max-width: 47.99rem) and (prefers-reduced-motion: no-preference)",
+      () => {
+        const carousel = document.querySelector<HTMLElement>(".carousel");
+        const viewport = carousel?.querySelector<HTMLElement>(
+          ".carousel__viewport",
+        );
+        const frames = carousel?.querySelectorAll<HTMLElement>(".frame");
+        if (!carousel || !viewport || !frames || frames.length < 2) return;
+
+        const hand = { drag: 0 };
+        let reach = 0;
+
+        // How far the wheel may turn before its last frame would leave a gap
+        // at the screen's edge: the steps from the top to the end of the row,
+        // less the steps half the screen shows, less half a frame.
+        const measure = () => {
+          const pitch = frames[1].offsetLeft - frames[0].offsetLeft;
+          const mid = (frames.length - 1) / 2;
+          reach = Math.max(0, mid - viewport.clientWidth / 2 / pitch - 0.5);
+          carousel.style.setProperty("--reach", reach.toFixed(4));
+          return pitch;
+        };
+        let pitch = measure();
+
+        const write = () =>
+          carousel.style.setProperty("--drag", hand.drag.toFixed(4));
+
+        // The drag is held to what the wheel can actually show from where the
+        // scroll has it now, so dragging past an end does not bank a turn the
+        // hand then has to undo before anything moves.
+        const bound = (drag: number) => {
+          const spin =
+            parseFloat(carousel.style.getPropertyValue("--spin")) || 0;
+          return gsap.utils.clamp(-reach - spin, reach - spin, drag);
+        };
+
+        let id: number | null = null;
+        let startX = 0;
+        let startDrag = 0;
+        let moved = false;
+        let lastX = 0;
+        let lastT = 0;
+        let velocity = 0;
+
+        const down = (e: PointerEvent) => {
+          if (e.pointerType === "mouse") return;
+          gsap.killTweensOf(hand);
+          id = e.pointerId;
+          startX = lastX = e.clientX;
+          lastT = e.timeStamp;
+          startDrag = hand.drag;
+          velocity = 0;
+          moved = false;
+        };
+
+        const move = (e: PointerEvent) => {
+          if (e.pointerId !== id) return;
+          const dx = e.clientX - startX;
+          if (!moved && Math.abs(dx) < 6) return;
+          moved = true;
+
+          const dt = e.timeStamp - lastT;
+          if (dt > 0) velocity = (e.clientX - lastX) / dt;
+          lastX = e.clientX;
+          lastT = e.timeStamp;
+
+          hand.drag = bound(startDrag + dx / pitch);
+          write();
+        };
+
+        // Let go mid-swipe and the wheel carries on a little and settles, the
+        // way a real one would, rather than stopping dead under the finger.
+        const up = (e: PointerEvent) => {
+          if (e.pointerId !== id) return;
+          id = null;
+          if (!moved) return;
+          gsap.to(hand, {
+            drag: bound(hand.drag + (velocity * 280) / pitch),
+            duration: 0.9,
+            ease: "power3.out",
+            onUpdate: write,
+          });
+        };
+
+        // The browser claimed the gesture as a vertical scroll.
+        const cancel = (e: PointerEvent) => {
+          if (e.pointerId === id) id = null;
+        };
+
+        // A swipe that ends on a frame is not a tap on it.
+        const click = (e: MouseEvent) => {
+          if (!moved) return;
+          e.preventDefault();
+          e.stopPropagation();
+          moved = false;
+        };
+
+        const resize = () => {
+          pitch = measure();
+          hand.drag = bound(hand.drag);
+          write();
+        };
+
+        viewport.addEventListener("pointerdown", down);
+        viewport.addEventListener("pointermove", move);
+        viewport.addEventListener("pointerup", up);
+        viewport.addEventListener("pointercancel", cancel);
+        viewport.addEventListener("click", click, true);
+        window.addEventListener("resize", resize);
+
+        return () => {
+          gsap.killTweensOf(hand);
+          viewport.removeEventListener("pointerdown", down);
+          viewport.removeEventListener("pointermove", move);
+          viewport.removeEventListener("pointerup", up);
+          viewport.removeEventListener("pointercancel", cancel);
+          viewport.removeEventListener("click", click, true);
+          window.removeEventListener("resize", resize);
+          carousel.style.removeProperty("--drag");
+          carousel.style.removeProperty("--reach");
+        };
       },
     );
 

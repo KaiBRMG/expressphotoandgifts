@@ -601,6 +601,24 @@
   color: var(--print);
 }
 
+/* On a phone the cards hold still: a tap leaves hover stuck on, and the lift
+   and scale then play out mid-scroll. The entrance is dropped too, in Motion. */
+@media (max-width: 47.99rem) {
+  .svc,
+  .svc__art,
+  .svc__name,
+  .svc__go {
+    transition: none;
+  }
+
+  .svc:hover,
+  .svc:active,
+  .svc:hover .svc__art,
+  .svc:hover .svc__go {
+    transform: none;
+  }
+}
+
 /* ---- The catalogue, on a wheel ----------------------------------------- */
 
 /* One row of the shop's own work pinned around a wheel far bigger than the
@@ -658,15 +676,25 @@
  * is an arc that is no longer a circle. Both are set per breakpoint rather than
  * interpolated, because an angle cannot be clamped against a viewport unit.
  *
- * `--spin` is the only thing that moves, and `Motion.tsx` is the only thing
- * that moves it. At 0 the wheel sits square, which is what the page shows if
- * that script never runs.
+ * `--spin` is what the page's scroll moves, and on a phone `--drag` is what a
+ * swipe adds to it; `Motion.tsx` is the only thing that moves either. At 0 the
+ * wheel sits square, which is what the page shows if that script never runs.
  */
 .carousel {
   --frame-w: clamp(186px, 23vw, 280px);
   --gap: clamp(16px, 2.2vw, 24px);
   --pitch: calc(var(--frame-w) + var(--gap));
   --spin: 0;
+  /* A hand-turn laid on top of the scroll's, and the furthest the two together
+     may take the wheel. Only the phone's drag branch in `Motion.tsx` sets
+     either, so everywhere else `--turn` is `--spin` exactly. */
+  --drag: 0;
+  --reach: 99;
+  --turn: clamp(
+    calc(var(--reach) * -1),
+    calc(var(--spin) + var(--drag)),
+    var(--reach)
+  );
   --step: 12deg;
   --k: 21px;
   /* A ceiling on the drop. Without it the frames furthest round the wheel sit
@@ -719,12 +747,12 @@
   display: flex;
   width: max-content;
   gap: var(--gap);
-  transform: translateX(calc(-50% + var(--spin) * var(--pitch)));
+  transform: translateX(calc(-50% + var(--turn) * var(--pitch)));
 }
 
 .frame {
   /* Where this frame sits along the arc, counted from the top in steps. */
-  --i: calc(var(--n) - var(--mid) + var(--spin));
+  --i: calc(var(--n) - var(--mid) + var(--turn));
   --lean: 1;
   --lift: 0px;
 
@@ -773,6 +801,15 @@
   --lift: -10px;
   z-index: 1;
   box-shadow: var(--shadow-card-hover);
+}
+
+/* On a phone the wheel can also be turned by hand. Vertical pans stay the
+   browser's, so the page still scrolls through the row; a sideways drag is
+   left to `Motion.tsx`, which turns the wheel with it. */
+@media (max-width: 47.99rem) and (prefers-reduced-motion: no-preference) {
+  .carousel__viewport {
+    touch-action: pan-y;
+  }
 }
 
 /* With motion reduced the wheel is the wrong object: a scroll-linked turn is
