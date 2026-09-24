@@ -10,7 +10,6 @@ import { Motion } from "./site/Motion";
 import { OrderDock } from "./site/OrderDock";
 import { ServiceCards } from "./site/ServiceCards";
 import {
-  ArrowDown,
   ArrowRight,
   Cart,
   Clock,
@@ -203,13 +202,6 @@ export default function Home() {
               {/* No buttons here. The docked pair carries the cover's two
                   actions from the first paint and never leaves, so a second
                   set in the headline would be the same two taps twice. */}
-
-              <a className="cover__cue" href="#gifting">
-                <span className="cover__cueRing">
-                  <ArrowDown size={16} />
-                </span>
-                <span className="cover__cueText">Scroll down</span>
-              </a>
             </div>
           </div>
         </section>

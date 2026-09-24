@@ -402,10 +402,10 @@
 
 /*
  * The dock is fixed to the foot of the viewport and the cover's type is bottom
- * aligned, so on a phone the gold pill was landing on top of the scroll cue and
- * cutting the words in half. Above 46rem the dock floats far enough right of
- * the cue for the two to share the line; below it the cover gives the dock its
- * own height back and the cue comes to rest above it.
+ * aligned, so on a phone the gold pill would land on top of the lede and cut
+ * the words in half. Above 46rem the dock floats far enough right of the type
+ * for the two to share the foot; below it the cover gives the dock its own
+ * height back and the lede comes to rest above it.
  */
 @media (max-width: 45.99rem) {
   .cover__inner {
@@ -435,36 +435,6 @@
   line-height: 1.55;
   color: rgb(255 255 255 / 0.9);
   text-wrap: pretty;
-}
-
-.cover__cue {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.8rem;
-  margin-top: clamp(1.6rem, 3.2vw, 2.4rem);
-  color: rgb(255 255 255 / 0.8);
-  text-decoration: none;
-  transition: color 0.25s;
-}
-
-.cover__cue:hover {
-  color: var(--gold);
-}
-
-.cover__cueRing {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border: 1px solid var(--rule-dark);
-  border-radius: 999px;
-}
-
-.cover__cueText {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 11.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 /* ---- The four services, one card each ---------------------------------- */

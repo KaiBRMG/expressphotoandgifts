@@ -9,3 +9,5 @@ In this pass, the UI design is the priority. Backend logic and functionality wil
 If you build backend logic, run /simplify after implementing.
 
 See ManTine docs: [https://mantine.dev/llms.txt]
+
+Text sizes smaller than 16px on form input fields, textareas, and select menus cause mobile Safari to automatically zoom in when tapped. Ensure that no text element is smaller than 16px on mobile.

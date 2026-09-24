@@ -203,7 +203,7 @@ export function Motion() {
         /* 2. The cover's entrance ------------------------------------- */
 
         gsap.from(
-          [".cover__title", ".cover__lede", ".cover__cue"],
+          [".cover__title", ".cover__lede"],
           {
             y: 26,
             autoAlpha: 0,
@@ -213,17 +213,6 @@ export function Motion() {
             delay: 0.12,
           },
         );
-
-        const cueRing = document.querySelector(".cover__cueRing");
-        if (cueRing) {
-          gsap.to(cueRing, {
-            y: 7,
-            duration: 1.3,
-            ease: "sine.inOut",
-            repeat: -1,
-            yoyo: true,
-          });
-        }
 
         /* 3. The word strips woven through the wall ------------------- */
 
