@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { CAROUSEL } from "./data";
+import { ArrowLeft, ArrowRight } from "./icons";
 
 /** The index that sits at the top of the arc when the wheel has not turned. */
 const MID = (CAROUSEL.length - 1) / 2;
@@ -35,10 +36,15 @@ const UNIQUE = CAROUSEL.length / 2;
  *
  * The row shows the middle of the catalogue, not all of it, and that is the
  * point: the way to everything is the link above it, not this row.
+ *
+ * On a wide screen there is no swipe, so two arrows sit either side of the row
+ * and turn the wheel one frame at a time. They are drawn `hidden` and only
+ * `Motion.tsx` reveals them, because without the script they would be two
+ * buttons that do nothing.
  */
 export function Carousel() {
   return (
-    <div className="carousel" style={{ "--mid": MID } as CSSProperties}>
+    <div className="carousel" style={{ "--mid": MID, "--count": CAROUSEL.length } as CSSProperties}>
       <div className="carousel__viewport">
         <div
           className="carousel__track"
@@ -75,6 +81,19 @@ export function Carousel() {
           })}
         </div>
       </div>
+
+      {(["prev", "next"] as const).map((dir) => (
+        <button
+          key={dir}
+          type="button"
+          className={`carousel__arrow carousel__arrow--${dir}`}
+          data-dir={dir}
+          aria-label={dir === "prev" ? "Previous products" : "Next products"}
+          hidden
+        >
+          {dir === "prev" ? <ArrowLeft size={22} /> : <ArrowRight size={22} />}
+        </button>
+      ))}
     </div>
   );
 }

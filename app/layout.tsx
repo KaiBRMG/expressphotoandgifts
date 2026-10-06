@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Archivo, Geist_Mono, Montserrat } from "next/font/google";
+import { Archivo, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SHOP } from "./site/data";
 
@@ -7,26 +7,6 @@ const archivo = Archivo({
   variable: "--font-archivo",
   subsets: ["latin"],
   display: "swap",
-});
-
-/**
- * The footer wordmark only. It is set far heavier and far tighter than
- * anything else on the page, which is the whole point of it.
- *
- * It draws exactly one word at exactly one weight, so it asks for exactly that:
- * pinning `weight` and `style` fetches a single static file instead of the
- * variable italic range, and `preload: false` keeps it out of the head, because
- * a decorative word at the very foot of the page has no business competing for
- * bandwidth with the cover the visitor is actually looking at. It arrives on
- * swap, behind Archivo, which is the correct order for it.
- */
-const montserrat = Montserrat({
-  variable: "--font-montserrat",
-  subsets: ["latin"],
-  weight: "700",
-  style: "italic",
-  display: "swap",
-  preload: false,
 });
 
 /** Carries the numerals, the section marks and the measured slots. */
@@ -38,7 +18,7 @@ const mono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: `${SHOP.name} — photo printing and personalised gifts in Scottburgh`,
+    default: `${SHOP.name} — photo printing and personalised gifts`,
     template: `%s — ${SHOP.name}`,
   },
   description:
@@ -55,7 +35,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-ZA" className={`${archivo.variable} ${mono.variable} ${montserrat.variable} h-full`}>
+    <html lang="en-ZA" className={`${archivo.variable} ${mono.variable} h-full`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

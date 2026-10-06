@@ -5,10 +5,10 @@ import Link from "next/link";
 import "./home.css";
 
 import { Carousel } from "./site/Carousel";
+import { CategoryCards } from "./site/CategoryCards";
 import { Newsletter } from "./site/Newsletter";
 import { Motion } from "./site/Motion";
 import { OrderDock } from "./site/OrderDock";
-import { ServiceCards } from "./site/ServiceCards";
 import {
   ArrowRight,
   Cart,
@@ -55,11 +55,18 @@ export const revalidate = 86400;
 const DEAD_HREF = "#";
 
 /**
+ * How many words of the running band pass between each appearance of the
+ * shop's mark. Thirteen words to a run, so the mark lands four times per run —
+ * often enough that one is always somewhere on the visible side of the wall.
+ */
+const BAND_LOGO_EVERY = 4;
+
+/**
  * The two sections of this page the header points at. Everything else in the
  * bar is a control, not a destination.
  */
 const NAV = [
-  { href: "#services", label: "Our Services" },
+  { href: "#categories", label: "Categories" },
   { href: "#find-us", label: "Find Us" },
 ];
 
@@ -85,7 +92,7 @@ export default function Home() {
         Skip to content
       </a>
 
-      <header className="header">
+      <header className="header on-dark">
         <div className="header__bar">
           <Link
             className="header__logo"
@@ -93,7 +100,7 @@ export default function Home() {
             aria-label={`${SHOP.name}, home`}
           >
             <Image
-              src="/logo/black.png"
+              src="/logo/new.png"
               alt={SHOP.name}
               /* The file's real size. It was declared 1300x300, a 4.33:1 box
                  against a 7:1 image, so the space reserved for the wordmark had
@@ -140,37 +147,56 @@ export default function Home() {
 
       <main id="main">
         {/* ---- The cover ---------------------------------------------- */}
-        <section className="cover on-dark">
-          <div className="cover__wall" aria-hidden="true">
+        <section className="cover">
+          {/* Three rows of real work and the bands woven between them. The
+              headline is one of those bands: the widest, and the only one
+              that holds still while the rows and the word strip travel past,
+              which is what marks it as the one fixed sentence. */}
+          <div className="cover__wall">
             {WALL_ROWS.map((row, r) => (
               <Fragment key={r}>
-                <div className="cover__row">
+                <div className="cover__row" aria-hidden="true">
+                  {/* Each half of the loop lays the row out twice, so one
+                      half is wider than the wall even on a 2560px screen
+                      and the travel never opens a gap at the far end. */}
                   {[0, 1].map((copy) =>
-                    row.map((print) => (
+                    [...row, ...row].map((print, i) => (
                       <Image
-                        key={`${copy}-${print.src}`}
+                        key={`${copy}-${i}-${print.src}`}
                         src={`/products/web/${print.src}.webp`}
                         alt=""
                         width={640}
                         height={640}
-                        loading={r === 0 && copy === 0 ? "eager" : "lazy"}
-                        sizes="(max-width: 48rem) 40vw, 258px"
+                        loading={r < 2 && copy === 0 && i < row.length ? "eager" : "lazy"}
+                        sizes="(max-width: 48rem) 44vw, 210px"
                       />
                     )),
                   )}
                 </div>
 
-                {/* Between each pair of rows, the running band, shrunk to a
-                    strip and laid into the wall as one more thing travelling
-                    past. It keeps its own blue ground so the words never sit
-                    straight on a white product shot, and it leans with the
-                    wall. Like the photographs it is texture, not reading. */}
-                {r < WALL_ROWS.length - 1 ? (
-                  <div className="cover__band">
+                {/* Between the first pair of rows, the running band shrunk to
+                    a strip: one more thing travelling past, on its own blue so
+                    the words never sit straight on a white product shot. Each
+                    run opens on the shop's own mark. */}
+                {r === 0 ? (
+                  <div className="cover__band" aria-hidden="true">
                     {[0, 1].map((copy) => (
                       <div className="cover__bandRun" key={copy}>
-                        {MARQUEE_WORDS.map((word) => (
+                        {MARQUEE_WORDS.map((word, w) => (
                           <span key={word} style={{ display: "contents" }}>
+                            {w % BAND_LOGO_EVERY === 0 ? (
+                              <>
+                                <Image
+                                  className="cover__bandLogo"
+                                  src="/logo/new.png"
+                                  alt=""
+                                  width={1400}
+                                  height={200}
+                                  sizes="240px"
+                                />
+                                <span className="cover__bandSlash">/</span>
+                              </>
+                            ) : null}
                             <span>{word}</span>
                             <span className="cover__bandSlash">/</span>
                           </span>
@@ -179,53 +205,41 @@ export default function Home() {
                     ))}
                   </div>
                 ) : null}
+
+                {/* Between the second pair, the headline's own band, with the
+                    lede on a slimmer one under it. No buttons: the docked pair
+                    carries the cover's two actions from the first paint. */}
+                {r === 1 ? (
+                  <div className="cover__sign">
+                    <h1 className="cover__title">
+                      <span className="cover__line">Your one-stop</span>{" "}
+                      <span className="cover__line">
+                        photo &amp;{" "}
+                        <span className="cover__gold">gift shop</span>
+                      </span>
+                    </h1>
+                    <p className="cover__lede">
+                      From personalised photo gifts to professional prints and
+                      frames — enhance your gifting experience.
+                    </p>
+                  </div>
+                ) : null}
               </Fragment>
             ))}
           </div>
 
-          <div className="cover__scrim" />
-          <div className="cover__scrim cover__scrim--foot" />
-
-          <div className="cover__inner">
-            <div className="shell">
-              <h1 className="cover__title">
-                Your one-stop
-                <br />
-                photo &amp; gift shop
-              </h1>
-              <p className="cover__lede">
-                From personalised photo gifts to professional prints and
-                frames — enhance your gifting experience.
-
-
-              </p>
-              {/* No buttons here. The docked pair carries the cover's two
-                  actions from the first paint and never leaves, so a second
-                  set in the headline would be the same two taps twice. */}
-            </div>
-          </div>
-        </section>
-
-        {/* ---- The four services, one card each ------------------------ */}
-        {/* Each card is a door: the illustration says what it looks like, the
-            heading names it, and the whole card routes to that service's page
-            under /shop. Those pages arrive with the catalogue. */}
-        <section className="section services" id="services">
-          <div className="shell">
-            <h2 className="h2 services__title" data-reveal>
-              Our Services
-            </h2>
-
-            <ServiceCards />
-          </div>
+          {/* The catalogue's top edge, drawn here at the wall's lean so its
+              blue reads as the widest band, the one the wall settles into. */}
+          <div className="cover__edge" aria-hidden="true" />
         </section>
 
         {/* ---- The catalogue, travelling past -------------------------- */}
-        {/* One row of the shop's own work, moving on its own. The heading and
-            the action sit centred over the row; the row itself runs full
-            bleed, because a catalogue that ends at the gutter reads as a
-            finite list and this one is not. */}
-        <section className="catalogue" id="catalogue">
+        {/* It follows the cover directly, its blue rising into the wall on
+            the cover's leaning edge. The heading and the action sit
+            centred over the row; the row itself runs full bleed, because a
+            catalogue that ends at the gutter reads as a finite list and this
+            one is not. */}
+        <section className="catalogue on-dark" id="catalogue">
           <div className="shell">
             <h2 className="h2 catalogue__title" data-reveal>
               Choose from our wide catalogue
@@ -243,104 +257,105 @@ export default function Home() {
           <Carousel />
         </section>
 
-        {/* ---- End-to-end gifting ------------------------------------- */}
-        {/* The closing argument before the shop, so it takes the cover's
-            display scale rather than the section headline: this is the second
-            peak in the scroll, not another paragraph. Under it the two ways an
-            order reaches its person are one ledger in the page's own ruled,
-            boxless grammar, and the courier mark sits inside the row it
-            belongs to instead of floating beside the copy. */}
-        <section className="section gifting on-dark" id="gifting">
+        {/* ---- Shop by category --------------------------------------- */}
+        {/* The whole range as eight small doors, heading centred over them the
+            way the catalogue's is. Each tile routes to its shelf under /shop;
+            those pages arrive with the catalogue. */}
+        <section className="section categories" id="categories">
           <div className="shell">
-            <div className="gifting__head">
-              <h2 className="gifting__title" data-reveal>
-                {/* The space keeps the words apart when the break is
-                    suppressed at narrow widths. */}
-                End-to-end gifting,{" "}
-                <br />
-                at your fingertips
-              </h2>
-              <p className="lede gifting__lede" data-reveal>
-                Order your gifts and we deliver them straight to you or whoever
-                you want to surprise &mdash; neatly wrapped in our personalised{" "}
-                <a className="inline-link" href={WRAPPING_HREF}>
-                  gift wrapping
-                </a>
-                .
-              </p>
-              <p className="gifting__marked" data-reveal>
-                <span className="marked">Gift giving, made easy</span>
-              </p>
-            </div>
+            <h2 className="h2 categories__title" data-reveal>
+              Shop by category
+            </h2>
 
-            <div className="handover">
-              <div className="handover__row" data-reveal>
-                <span className="handover__mark" aria-hidden="true">
-                  <Parcel size={19} />
+            <CategoryCards />
+          </div>
+        </section>
+
+        {/* ---- End-to-end gifting ------------------------------------- */}
+        {/* The page's second sign. The headline rides the same leaning blue
+            band as the cover's, with its lede on the slimmer band beneath, so
+            the page closes on the device it opened with. Under it, the
+            highlighter line and the two ways an order reaches its person,
+            side by side and split by a hairline rather than boxed. */}
+        <section className="gifting" id="gifting">
+          <div className="gifting__sign on-dark">
+            <h2 className="gifting__title">
+              <span className="gifting__line">End-to-end gifting,</span>{" "}
+              <span className="gifting__line gifting__gold">
+                at your fingertips
+              </span>
+            </h2>
+            <p className="gifting__lede">
+              Order your gifts and we deliver them straight to you or whoever
+              you want to surprise &mdash; neatly wrapped in our personalised{" "}
+              <a className="inline-link" href={WRAPPING_HREF}>
+                gift wrapping
+              </a>
+              .
+            </p>
+          </div>
+
+          <div className="shell">
+            <p className="gifting__marked" data-reveal>
+              <span className="marked">Gift giving, made easy</span>
+            </p>
+
+            <div className="ways">
+              <div className="way" data-reveal>
+                <span className="way__icon" aria-hidden="true">
+                  <Parcel size={24} />
                 </span>
-                <div className="handover__text">
-                  <h3 className="handover__name">We send it</h3>
-                  <p className="handover__blurb">
-                    Wrapped at the counter and handed to the courier for the
-                    last leg, to your door or to theirs, or a locker (if available).
-                  </p>
-                </div>
-                {/* The reserved slot on this row is the courier's own mark:
-                    the evidence behind the sentence beside it. */}
-                <div className="handover__slot handover__slot--wrap">
-                  <span className="handover__powered">Powered by</span>
-                  <Image
-                    className="handover__logo"
-                    src="/pudo_courierguy_logo.png"
-                    alt="PUDO by The Courier Guy"
-                    width={1024}
-                    height={283}
-                    sizes="(max-width: 62rem) 55vw, 240px"
+                <h3 className="way__name">We send it</h3>
+                <p className="way__blurb">
+                  Wrapped at the counter and handed to the courier for the last
+                  leg, to your door or to theirs, or a locker (if available).
+                </p>
+                {/* The courier's own mark: the evidence behind the sentence
+                    above it. */}
+                <div className="way__slot">
+                  <span className="way__powered">Powered by</span>
+                  <span
+                    className="way__logo"
+                    role="img"
+                    aria-label="PUDO by The Courier Guy"
                   />
                 </div>
               </div>
 
-              <div className="handover__row" data-reveal>
-                <span className="handover__mark" aria-hidden="true">
-                  <Pin size={19} />
+              <div className="way" data-reveal>
+                <span className="way__icon" aria-hidden="true">
+                  <Pin size={24} />
                 </span>
-                <div className="handover__text">
-                  <h3 className="handover__name">Or collect it at the shop</h3>
-                  <p className="handover__blurb">
-                    Near Scottburgh, KZN? Collect your order for free at {" "}
-                    {SHOP.street}, and look at the frame finishes in person
-                    while you&rsquo;re in.
-                  </p>
+                <h3 className="way__name">Or collect it at the shop</h3>
+                <p className="way__blurb">
+                  Near Scottburgh, KZN? Collect your order for free at{" "}
+                  {SHOP.street}, and look at the frame finishes in person while
+                  you&rsquo;re in.
+                </p>
+                <div className="way__slot">
+                  <a className="way__link" href="#find-us">
+                    Opening hours and directions
+                    <ArrowRight size={15} />
+                  </a>
                 </div>
-                <a className="handover__slot handover__link" href="#find-us">
-                  Opening hours and directions
-                  <ArrowRight size={13} />
-                </a>
               </div>
             </div>
-
-            
           </div>
         </section>
-
       </main>
 
       {/*
-        The page closes on the counter itself. Where the shop's details and the
-        footer used to be two dark surfaces back to back — the address, the
-        hours, the phone and the socials each said once in a panel and again in
-        a footer menu pointing back at that same panel — there is now one
-        surface in brand blue: where the shop is, when it is open, how to reach
-        it, the sign-up, and the name at shopfront scale.
+        The page closes on the counter itself: where the shop is, when it is
+        open, how to reach it, and the sign-up — one compact brand-blue
+        ground under the white gifting section, the same blue as the header.
 
-        It is the page's last ground, and it is blue rather than the near-black
-        DESIGN.md nominates for the close, because the section above it already
-        owns near-black: two identical grounds meeting is what made the seam
-        arbitrary in the first place.
+        The last row is the colophon, and it is sized to the dock: when the page
+        bottoms out the docked pair comes to rest on the right of that row, so
+        nothing has to move it out of the way.
       */}
       <footer className="footer on-dark" id="find-us">
         <div className="shell footer__top">
-          <h2 className="h2" data-reveal>
+          <h2 className="footer__title" data-reveal>
             Come and find us
           </h2>
 
@@ -433,36 +448,28 @@ export default function Home() {
           </div>
 
           {/* The sign-up is the only thing down here that is not a detail of
-              the shop, so it is the only thing held off by a rule. The base
-              line sits on its end rather than claiming a strip of its own. */}
+              the shop, so it is the only thing held off by a rule. On a wide
+              screen it is one row: what it is for on the left, the line to
+              write on to the right. */}
           <div className="footer__base">
-            <div className="footer__signup" data-reveal>
-              <h3 className="footer__signup-title">Sign Up</h3>
+            <div className="footer__signup-copy" data-reveal>
+              <h3 className="footer__signup-title">Sign up</h3>
               <p className="footer__signup-sub">
                 To receive updates on our latest products, easily save your
                 information for future orders, and get access to exclusive
                 member-only loyalty deals.
               </p>
+            </div>
+            <div className="footer__signup" data-reveal>
               <Newsletter />
             </div>
-
-            <p className="footer__colophon">
-              &copy;{new Date().getFullYear()}. All Rights Reserved.
-            </p>
           </div>
         </div>
 
-        {/*
-          The wordmark, set wider than the viewport on purpose and cropped by
-          the footer — the name arrives at the scale of a shopfront sign, not
-          of a logo. It is decorative: the name has been read already, so a
-          screen reader is given the one span and not the letters.
-        */}
-        <div className="footer__wordmark">
-          <span className="visually-hidden">{SHOP.name}</span>
-          <span className="footer__wordmark-line" aria-hidden="true">
-            Express
-          </span>
+        <div className="shell footer__end">
+          <p className="footer__colophon">
+            &copy;{new Date().getFullYear()}. All Rights Reserved.
+          </p>
         </div>
       </footer>
 

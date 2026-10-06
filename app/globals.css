@@ -3,47 +3,45 @@
 /*
  * Express Photo and Gifts.
  *
- * Deep brand blue carries the loud surfaces; warm paper carries the reading
- * ones. Amber is the shop's highlighter: it marks the action to take and the
- * line worth remembering, and it is never a background for a whole region.
+ * Three colours, in three roles, by the client's rule, and no others. Brand
+ * blue is primary: it owns the loud grounds whole and it is the ink — there is
+ * no black, no grey and no second blue anywhere on the page. White is
+ * secondary: every reading ground. Amber is the accent only: the action to
+ * take and the line worth remembering, never a region. Softer tones are the
+ * brand blue or white made translucent over each other, never a new value.
  *
  * Mono is reserved for marks and measurements — section marks, index numbers,
  * prices, hours. It is never body copy.
  */
 
 :root {
-  /* Brand, exactly as supplied. */
-  --blue: #001da4;
+  /* Brand, exactly as supplied (blue revised by the client to #0126ba). */
+  --blue: #0126ba;
   --gold: #ffb72a;
-  /* The blue one step brighter, for a blue action under the pointer. Named in
-     DESIGN.md as blue-lift; it lived as a literal at its one use site. */
-  --blue-lift: #0a2fd6;
 
-  /* Grounds. */
-  --leather: #001da4;
-  --leather-deep: #000f5a;
-  --card: #0b0d16;
-  --paper: #fbfaf8;
-  --paper-deep: #f2efe9;
+  /* Grounds: brand blue or white, nothing between. */
+  --leather: #0126ba;
+  --paper: #ffffff;
   --print: #ffffff;
 
-  /* Ink. Secondary tones are tinted from the ground's hue, never grey. */
-  --ink: #101013;
-  --ink-soft: #4c5070;
-  --ink-faint: #5f6480;
+  /* Ink is the brand blue itself, 10.6:1 on white. The softer steps are the
+     same blue let through to the white under it (6.6:1 and 5.3:1), and on
+     blue the soft step is white let through to the blue (7.2:1). */
+  --ink: #0126ba;
+  --ink-soft: rgb(1 38 186 / 0.8);
+  --ink-faint: rgb(1 38 186 / 0.72);
   --on-leather: #ffffff;
-  --on-leather-soft: #b9c2ee;
-  --on-card-soft: #9aa0bf;
+  --on-leather-soft: rgb(255 255 255 / 0.8);
 
-  --rule-paper: rgb(16 16 19 / 0.13);
+  --rule-paper: rgb(1 38 186 / 0.12);
   --rule-leather: rgb(255 255 255 / 0.22);
   /* The card hairlines. `--rule-card` is the border around a door, `--rule-hair`
      the heavier line on a chip or an outline control, `--rule-card-inner` the
      line between a card's picture and its words. They were literals repeated at
      every use site, which is how a fourth value gets typed. */
-  --rule-card: rgb(16 16 19 / 0.09);
-  --rule-hair: rgb(16 16 19 / 0.16);
-  --rule-card-inner: rgb(16 16 19 / 0.07);
+  --rule-card: rgb(1 38 186 / 0.1);
+  --rule-hair: rgb(1 38 186 / 0.2);
+  --rule-card-inner: rgb(1 38 186 / 0.08);
   --rule-dark: rgb(255 255 255 / 0.32);
 
   /*
@@ -55,10 +53,10 @@
    */
   --shadow-gold: 0 18px 38px -20px rgb(255 183 42 / 0.95);
   --shadow-gold-hover: 0 22px 44px -20px rgb(255 183 42 / 1);
-  --shadow-blue: 0 18px 40px -22px rgb(0 29 164 / 0.9);
-  --shadow-blue-hover: 0 24px 48px -22px rgb(0 29 164 / 0.95);
-  --shadow-card: 0 22px 44px -32px rgb(0 29 164 / 0.55);
-  --shadow-card-hover: 0 30px 54px -30px rgb(0 29 164 / 0.6);
+  --shadow-blue: 0 18px 40px -22px rgb(1 38 186 / 0.9);
+  --shadow-blue-hover: 0 24px 48px -22px rgb(1 38 186 / 0.95);
+  --shadow-card: 0 22px 44px -32px rgb(1 38 186 / 0.4);
+  --shadow-card-hover: 0 30px 54px -30px rgb(1 38 186 / 0.5);
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -74,11 +72,6 @@
      the last thing on the page can clear it. Phone: the full strip plus the
      home indicator. Above 46rem: the floating pill plus its offset. */
   --dock-h: calc(79px + env(safe-area-inset-bottom, 0px));
-
-  /* The clearance the dock keeps above the footer wordmark when it comes to
-     rest. `Motion` reads this off the computed styles rather than carrying its
-     own copy, so the rest point and the footer's padding cannot drift apart. */
-  --dock-gap: 20px;
 }
 
 @media (min-width: 46rem) {
@@ -149,7 +142,7 @@ body {
 
 :root {
   caret-color: var(--blue);
-  scrollbar-color: rgb(0 29 164 / 0.45) transparent;
+  scrollbar-color: rgb(1 38 186 / 0.45) transparent;
   scrollbar-width: thin;
 }
 
@@ -159,12 +152,12 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--paper-deep);
+  background: var(--paper);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgb(0 29 164 / 0.42);
-  border: 3px solid var(--paper-deep);
+  background: rgb(1 38 186 / 0.42);
+  border: 3px solid var(--paper);
   border-radius: 99px;
 }
 
@@ -211,8 +204,8 @@ img {
  *
  * The blunt form of this rule also zeroes `transition-duration` globally, which
  * takes the colour, border and shadow changes that tell a visitor a control
- * responded along with the motion — the ring filling blue under a service card,
- * the card's name turning, the sign-up's rule going amber on focus. Those are
+ * responded along with the motion — the category tile turning blue under the
+ * pointer, its disc going amber, the sign-up's rule going amber on focus. Those are
  * state, not animation, and they stay at their authored duration.
  *
  * What goes is every keyframe animation, and every transform that moves a thing
@@ -229,11 +222,11 @@ img {
 
   .btn:hover,
   .btn:active,
-  .svc:hover,
-  .svc:active,
-  .svc:hover .svc__art,
-  .svc:hover .svc__go,
-  .handover__link:hover svg,
+  .cat:hover,
+  .cat:active,
+  .cat:hover .cat__icon,
+  .cat:hover .cat__go,
+  .way__link:hover svg,
   .dock__chat:hover,
   .dock__chat:active {
     transform: none !important;

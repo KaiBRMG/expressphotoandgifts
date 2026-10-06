@@ -25,9 +25,9 @@ const CHAT_HREF = whatsapp("Hi! I have a question about…");
  * is a promise about where a tap lands.
  *
  * It is visible from the first paint and stays visible — the cover has no
- * buttons of its own, so this pair is the page's only standing action.
- * `Motion` moves it once, at the very foot of the page, so it comes to rest
- * under the colophon instead of crossing the wordmark.
+ * buttons of its own, so this pair is the page's only standing action. At the
+ * foot of the page it comes to rest in the footer's last row, which is sized
+ * for it.
  */
 export function OrderDock() {
   return (

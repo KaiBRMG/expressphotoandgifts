@@ -23,15 +23,11 @@ const useIsomorphicLayoutEffect =
  * Six moments, in order of weight:
  *   1. the cover wall — three rows of real work travelling at three speeds,
  *      the whole wall drifting as the cover scrolls past
- *   2. the cover's own entrance
+ *   2. the cover's own entrance: the headline band coming to rest
  *   3. the word strips woven through the wall
  *   4. section reveals, one grammar, once each
  *   5. the catalogue wheel, geared to the page's own scroll
- *   6. on a phone, the same wheel turned by hand
- *
- * One thing here is not motion: the dock's rest at the foot of the page runs
- * on the reduced-motion branch too, because it is what keeps the mark off the
- * wordmark rather than a flourish.
+ *   6. the same wheel turned by hand: a swipe on a phone, arrows on desktop
  */
 /** The page's one reveal grammar: rise and fade in, once, as each arrives. */
 function reveal(targets: string) {
@@ -54,6 +50,53 @@ function reveal(targets: string) {
   });
 }
 
+/**
+ * Shows the carousel's two arrows and hands their presses to `step` (+1 is
+ * next, -1 previous). `ends` reports whether the row is at either end, and the
+ * returned `sync` re-reads it: an arrow with nowhere to go stays in place and
+ * stays focusable, but says so with `aria-disabled` and does nothing.
+ */
+function wireArrows(
+  carousel: HTMLElement,
+  step: (dir: number) => void,
+  ends: () => { atStart: boolean; atEnd: boolean },
+) {
+  const arrows = carousel.querySelectorAll<HTMLButtonElement>(
+    ".carousel__arrow",
+  );
+  const click = (e: MouseEvent) => {
+    const button = e.currentTarget as HTMLButtonElement;
+    if (button.getAttribute("aria-disabled") === "true") return;
+    step(button.dataset.dir === "next" ? 1 : -1);
+  };
+
+  let last = "";
+  const sync = () => {
+    const { atStart, atEnd } = ends();
+    const key = `${atStart}${atEnd}`;
+    if (key === last) return;
+    last = key;
+    arrows.forEach((button) => {
+      const off = button.dataset.dir === "next" ? atEnd : atStart;
+      button.setAttribute("aria-disabled", String(off));
+    });
+  };
+
+  arrows.forEach((button) => {
+    button.hidden = false;
+    button.addEventListener("click", click);
+  });
+  sync();
+
+  const unwire = () =>
+    arrows.forEach((button) => {
+      button.hidden = true;
+      button.removeEventListener("click", click);
+      button.removeAttribute("aria-disabled");
+    });
+  return Object.assign(unwire, { sync });
+}
+
 export function Motion() {
   useIsomorphicLayoutEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
@@ -74,85 +117,6 @@ export function Motion() {
         const cleanups: (() => void)[] = [];
         const teardown = () => cleanups.forEach((fn) => fn());
 
-        /* 0. Where the dock comes to rest ----------------------------- */
-
-        /* Not decoration, so it runs on both branches. The dock is visible
-           from the first paint and stays visible; the only thing that ever
-           moves it is the end of the page, where a mark left pinned to the
-           viewport would land on top of the wordmark and cut the shop's name
-           in half.
-
-           So it unpins, at every width: from the moment the wordmark comes up
-           under it, the dock is held a fixed gap above the wordmark's top
-           edge — the ground just under the colophon — and rides the rest of
-           the scroll with the page. The footer's own bottom padding is what
-           guarantees that band is deep enough to hold it.
-
-           It is read straight off layout each frame rather than tweened, so
-           it tracks the scroll exactly and stops where the scroll stops. */
-        const dock = document.querySelector<HTMLElement>(".dock");
-        const inner = document.querySelector<HTMLElement>(".dock__inner");
-        const wordmark = document.querySelector<HTMLElement>(
-          ".footer__wordmark",
-        );
-
-        if (dock && inner && wordmark) {
-          /* Clearance between the dock's underside and the top of the word,
-             read off the token that also sets the footer's bottom padding, so
-             the rest point and the room reserved for it cannot drift apart. */
-          const GAP =
-            parseFloat(
-              getComputedStyle(document.documentElement).getPropertyValue(
-                "--dock-gap",
-              ),
-            ) || 20;
-          let y = 0;
-          let queued = false;
-
-          /* The measuring half. Reads layout, writes nothing. */
-          const measure = () => {
-            /* Measured on the inner row, not the dock: the dock's own bottom
-               padding is the phone's safe-area inset, and counting it would
-               open the gap by the height of a home indicator. The translate
-               is ours, so it comes back out of the reading. */
-            const rest = inner.getBoundingClientRect().bottom - y;
-            const limit = wordmark.getBoundingClientRect().top - GAP;
-            const next = Math.min(0, Math.round(limit - rest));
-            if (next === y) return;
-            y = next;
-            gsap.set(dock, { y });
-          };
-
-          /* Scroll fires far more often than the screen refreshes, and reading
-             a rect straight out of the handler forces layout on a frame the
-             previous write had already dirtied. Coalescing into one rAF means
-             at most one read-write pair per painted frame. */
-          const place = () => {
-            if (queued) return;
-            queued = true;
-            requestAnimationFrame(() => {
-              queued = false;
-              measure();
-            });
-          };
-
-          measure();
-          window.addEventListener("scroll", place, { passive: true });
-          window.addEventListener("resize", place);
-          /* The wordmark's place on the page settles only once the fonts and
-             the product photographs above it have landed. ScrollTrigger
-             already refreshes on both; this rides along rather than keeping a
-             second set of load listeners. */
-          ScrollTrigger.addEventListener("refresh", measure);
-
-          cleanups.push(() => {
-            window.removeEventListener("scroll", place);
-            window.removeEventListener("resize", place);
-            ScrollTrigger.removeEventListener("refresh", measure);
-            gsap.set(dock, { y: 0 });
-          });
-        }
-
         if (!motion) return teardown;
 
         /* 1. The wall ------------------------------------------------- */
@@ -165,9 +129,11 @@ export function Motion() {
            here and gated on the cover's own pass through the viewport. */
         const loops: gsap.core.Tween[] = [];
 
-        // Each row holds its set twice, so -50% lands exactly on the seam.
+        // Each row holds its loop twice, so -50% lands exactly on the seam.
+        // A loop is the row's set laid out twice, so these are double the
+        // old 58 / 74 / 46 and the prints pass at the same pace.
         const rows = gsap.utils.toArray<HTMLElement>(".cover__row");
-        const speeds = [58, 74, 46];
+        const speeds = [116, 148, 92];
 
         rows.forEach((row, i) => {
           const reverse = i % 2 === 1;
@@ -202,17 +168,29 @@ export function Motion() {
 
         /* 2. The cover's entrance ------------------------------------- */
 
-        gsap.from(
-          [".cover__title", ".cover__lede"],
-          {
-            y: 26,
-            autoAlpha: 0,
-            duration: 1,
-            ease: "expo.out",
-            stagger: 0.09,
-            delay: 0.12,
+        // The headline's band runs in along the wall's lean and stops, as if
+        // one of the travelling strips came to rest; the lede's band follows
+        // a beat later.
+        gsap.from(".cover__title, .cover__lede", {
+          xPercent: -100,
+          duration: 1.3,
+          ease: "expo.out",
+          stagger: 0.12,
+          delay: 0.15,
+        });
+
+        // On the way out the sign drifts a little less than the wall behind
+        // it, so the band lifts off the photographs as the cover leaves.
+        gsap.to(".cover__sign", {
+          y: -48,
+          ease: "none",
+          scrollTrigger: {
+            trigger: ".cover",
+            start: "top top",
+            end: "bottom top",
+            scrub: 0.6,
           },
-        );
+        });
 
         /* 3. The word strips woven through the wall ------------------- */
 
@@ -264,9 +242,23 @@ export function Motion() {
 
         /* 4. Section reveals ------------------------------------------ */
 
-        // The services section is left out here and revealed on its own
-        // branch below, because on a phone it does not animate at all.
-        reveal("[data-reveal]:not(.services [data-reveal])");
+        // The category tiles are left out here and revealed on their own
+        // branch below, because on a phone they do not animate at all.
+        reveal("[data-reveal]:not(.categories [data-reveal])");
+
+        // The gifting sign runs in along its lean as it arrives, the way the
+        // cover's does on load: the same band, the second time.
+        gsap.from(".gifting__title, .gifting__lede", {
+          xPercent: -100,
+          duration: 1.3,
+          ease: "expo.out",
+          stagger: 0.12,
+          scrollTrigger: {
+            trigger: ".gifting",
+            start: "top 78%",
+            once: true,
+          },
+        });
 
         /* 5. The catalogue wheel ------------------------------------- */
 
@@ -283,11 +275,9 @@ export function Motion() {
         const carousel = document.querySelector<HTMLElement>(".carousel");
 
         if (carousel) {
-          // How far the wheel turns each way. The ceiling is set by the row
-          // running out: a wide screen shows about three steps either side of
-          // the top, so with twelve frames and the top starting at 5.5, more
-          // than about 2.2 steps would turn the last frame past the edge and
-          // open a gap in the arc.
+          // How far the wheel turns each way as the catalogue passes. The
+          // frames wrap round, so this is a matter of pace, not of the row
+          // running out.
           const SPIN = 2.2;
           const wheel = { spin: SPIN };
           const write = () =>
@@ -326,27 +316,27 @@ export function Motion() {
       },
     );
 
-    /* 4b. The services section, revealed on wider screens only -------- */
+    /* 4b. The category tiles, revealed on wider screens only ---------- */
 
-    // On a phone the two-up cards arrive in staggered pairs that read as
+    // On a phone the two-up tiles arrive in staggered pairs that read as
     // jitter rather than an entrance, so there they simply sit in place.
     mm.add(
       "(min-width: 48rem) and (prefers-reduced-motion: no-preference)",
       () => {
-        reveal(".services [data-reveal]");
+        reveal(".categories [data-reveal]");
       },
     );
 
-    /* 6. Turning the wheel by hand, on a phone ------------------------ */
+    /* 6. Turning the wheel by hand ------------------------------------ */
 
     // A row of prints travelling past a thumb invites a swipe, so on a phone a
-    // sideways drag turns the wheel too. It writes `--drag`, which the CSS adds
-    // to the scroll's `--spin`, so the two never fight over one number: the
-    // page keeps turning the wheel as it scrolls, from wherever the hand left
-    // it. Desktop never enters this branch.
-    mm.add(
-      "(max-width: 47.99rem) and (prefers-reduced-motion: no-preference)",
-      () => {
+    // sideways drag turns the wheel too; on desktop the two arrows do the same
+    // job one frame at a time. Both write `--drag`, which the CSS adds to the
+    // scroll's `--spin`, so the hand and the page never fight over one number:
+    // the page keeps turning the wheel as it scrolls, from wherever the hand
+    // left it. The swipe ignores mouse pointers, so on desktop only the arrows
+    // turn it; below 48rem the arrows are not drawn at all.
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
         const carousel = document.querySelector<HTMLElement>(".carousel");
         const viewport = carousel?.querySelector<HTMLElement>(
           ".carousel__viewport",
@@ -355,31 +345,14 @@ export function Motion() {
         if (!carousel || !viewport || !frames || frames.length < 2) return;
 
         const hand = { drag: 0 };
-        let reach = 0;
 
-        // How far the wheel may turn before its last frame would leave a gap
-        // at the screen's edge: the steps from the top to the end of the row,
-        // less the steps half the screen shows, less half a frame.
-        const measure = () => {
-          const pitch = frames[1].offsetLeft - frames[0].offsetLeft;
-          const mid = (frames.length - 1) / 2;
-          reach = Math.max(0, mid - viewport.clientWidth / 2 / pitch - 0.5);
-          carousel.style.setProperty("--reach", reach.toFixed(4));
-          return pitch;
-        };
+        // The frames wrap round, so the wheel has no ends and the hand can
+        // turn it as far as it likes.
+        const measure = () => frames[1].offsetLeft - frames[0].offsetLeft;
         let pitch = measure();
 
         const write = () =>
           carousel.style.setProperty("--drag", hand.drag.toFixed(4));
-
-        // The drag is held to what the wheel can actually show from where the
-        // scroll has it now, so dragging past an end does not bank a turn the
-        // hand then has to undo before anything moves.
-        const bound = (drag: number) => {
-          const spin =
-            parseFloat(carousel.style.getPropertyValue("--spin")) || 0;
-          return gsap.utils.clamp(-reach - spin, reach - spin, drag);
-        };
 
         let id: number | null = null;
         let startX = 0;
@@ -411,7 +384,7 @@ export function Motion() {
           lastX = e.clientX;
           lastT = e.timeStamp;
 
-          hand.drag = bound(startDrag + dx / pitch);
+          hand.drag = startDrag + dx / pitch;
           write();
         };
 
@@ -422,7 +395,7 @@ export function Motion() {
           id = null;
           if (!moved) return;
           gsap.to(hand, {
-            drag: bound(hand.drag + (velocity * 280) / pitch),
+            drag: hand.drag + (velocity * 280) / pitch,
             duration: 0.9,
             ease: "power3.out",
             onUpdate: write,
@@ -444,9 +417,30 @@ export function Motion() {
 
         const resize = () => {
           pitch = measure();
-          hand.drag = bound(hand.drag);
-          write();
         };
+
+        // One arrow press turns the wheel to the next whole frame, so a press
+        // made mid-turn settles square rather than adding a fractional step.
+        const spinNow = () =>
+          parseFloat(carousel.style.getPropertyValue("--spin")) || 0;
+        const step = (dir: number) => {
+          const spin = spinNow();
+          const turn = spin + hand.drag;
+          const target =
+            dir > 0 ? Math.ceil(turn - 0.01) - 1 : Math.floor(turn + 0.01) + 1;
+          gsap.killTweensOf(hand);
+          gsap.to(hand, {
+            drag: target - spin,
+            duration: 0.7,
+            ease: "power3.out",
+            onUpdate: write,
+          });
+        };
+        // A wheel that wraps has no end for either arrow to reach.
+        const unwire = wireArrows(carousel, step, () => ({
+          atStart: false,
+          atEnd: false,
+        }));
 
         viewport.addEventListener("pointerdown", down);
         viewport.addEventListener("pointermove", move);
@@ -463,11 +457,40 @@ export function Motion() {
           viewport.removeEventListener("pointercancel", cancel);
           viewport.removeEventListener("click", click, true);
           window.removeEventListener("resize", resize);
+          unwire();
           carousel.style.removeProperty("--drag");
-          carousel.style.removeProperty("--reach");
         };
-      },
-    );
+    });
+
+    // With motion reduced the wheel is a plain rail that scrolls, so the
+    // arrows scroll it a frame at a time instead, with no smooth travel.
+    mm.add("(prefers-reduced-motion: reduce)", () => {
+      const carousel = document.querySelector<HTMLElement>(".carousel");
+      const viewport = carousel?.querySelector<HTMLElement>(
+        ".carousel__viewport",
+      );
+      const frames = carousel?.querySelectorAll<HTMLElement>(".frame");
+      if (!carousel || !viewport || !frames || frames.length < 2) return;
+
+      const step = (dir: number) =>
+        viewport.scrollBy({
+          left: dir * (frames[1].offsetLeft - frames[0].offsetLeft),
+        });
+      const ends = () => {
+        const max = viewport.scrollWidth - viewport.clientWidth;
+        return {
+          atStart: viewport.scrollLeft <= 1,
+          atEnd: viewport.scrollLeft >= max - 1,
+        };
+      };
+
+      const unwire = wireArrows(carousel, step, ends);
+      viewport.addEventListener("scroll", unwire.sync, { passive: true });
+      return () => {
+        viewport.removeEventListener("scroll", unwire.sync);
+        unwire();
+      };
+    });
 
     return () => mm.revert();
   }, []);

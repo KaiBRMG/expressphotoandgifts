@@ -68,7 +68,7 @@ An actual local photo and gift shop selling online, not a faceless print-on-dema
 
 | Value | Colour | Role |
 |---|---|---|
-| `#001DA4` | deep blue | primary |
+| `#0126BA` | deep blue | primary (revised by the client from `#001DA4`) |
 | `#FFB72A` | warm amber / gold | accent |
 | `#FFFFFF` | white | contrast / text |
 | `#000000` | black | contrast / text |
@@ -77,9 +77,9 @@ These values and these roles are confirmed by the user and must be used as given
 
 What is *not* fixed here: the tints, shades, and neutrals required for surfaces, borders, hover/focus/disabled states, and body copy. Those are derived work for new-work and DESIGN.md, and must extend this palette rather than replace or dilute it.
 
-Contrast constraint carried by these values: `#001DA4` is dark enough to take white text; `#FFB72A` is not, and pairs legibly only with black or the primary blue. Any amber-filled control must therefore use dark text.
+Contrast constraint carried by these values: `#0126BA` is dark enough to take white text; `#FFB72A` is not, and pairs legibly only with black or the primary blue. Any amber-filled control must therefore use dark text.
 
-**Logo: exists and is binding, but not yet in the repository.** The user will add the file to `/public`. Until it lands, work must use a clearly-marked placeholder and must not invent a logo or wordmark that could be mistaken for the real identity.
+**Logo: `/public/logo/new.png`, binding, and the only logo file.** "EXPRESS" in amber, "PHOTO & GIFTS" in white (the O of PHOTO is an amber viewfinder), so it must only sit on brand blue or another dark ground. Do not invent a wordmark or set the name in type as a stand-in for it.
 
 **Tone:** friendly and local, while remaining credible to a corporate buyer. Warm, not twee; capable, not corporate-cold.
 

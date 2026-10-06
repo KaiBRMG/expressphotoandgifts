@@ -219,63 +219,32 @@ export const COVER_PRINTS: Print[] = [
   FRAMES[1], // white frame
 ];
 
-export type Service = {
+export type Category = {
   name: string;
   /**
-   * One short line of what the service covers. Short because the four cards
-   * sit on one row on a wide screen and two-up on a phone: anything longer
-   * than a line and a half breaks that budget at the narrow end.
-   */
-  blurb: string;
-  /**
-   * The service's own page under `/shop`. These routes do not exist yet — the
+   * The category's own page under `/shop`. These routes do not exist yet — the
    * catalogue arrives in a later pass — so the cards link with prefetching off
    * and will 404 until those pages ship.
    */
   slug: string;
-  /** Prefills the WhatsApp message so the shop knows what is being asked about. */
-  ask: string;
   /**
-   * The illustration on the service's card, named by its file in
-   * `/public/illustrations`. Decorative: it restates the service the card
-   * already names, so it ships with an empty alt.
+   * The one card drawn in brand blue at rest. Specials is the shelf that
+   * changes, so it is the one worth a second look; one blue card in eight is
+   * an accent, two would be a pattern.
    */
-  art: string;
+  feature?: boolean;
 };
 
-export const SERVICES: Service[] = [
-  {
-    name: "Photo printing",
-    slug: "photo-printing",
-    blurb:
-      "ID photos, prints, enlargements and posters.",
-    ask: "Hi! I'd like to ask about photo printing.",
-    art: "1_photos",
-  },
-  {
-    name: "Print services",
-    slug: "print-services",
-    blurb:
-      "Documents, invitations and business printing.",
-    ask: "Hi! I'd like to ask about your print services.",
-    art: "2_documents",
-  },
-  {
-    name: "Framing and display",
-    slug: "framing-and-display",
-    blurb:
-      "Frames, albums, collages, and easels.",
-    ask: "Hi! I'd like to ask about framing and display.",
-    art: "3_frames",
-  },
-  {
-    name: "Personalised gifts",
-    slug: "personalised-gifts",
-    blurb:
-      "Puzzles, keyrings, mugs, snowglobes, bags.",
-    ask: "Hi! I'd like to ask about personalised gifts.",
-    art: "4_gifts",
-  },
+/** In the order the client listed them: what the shop is, then what it also stocks. */
+export const CATEGORIES: Category[] = [
+  { name: "Photos", slug: "photos" },
+  { name: "Frames", slug: "frames" },
+  { name: "Personalised Gifts", slug: "personalised-gifts" },
+  { name: "Batteries", slug: "batteries" },
+  { name: "Jewellery", slug: "jewellery" },
+  { name: "Cameras", slug: "cameras" },
+  { name: "Gift Wrapping", slug: "gift-wrapping" },
+  { name: "Specials", slug: "specials", feature: true },
 ];
 
 export const SHOP = {

@@ -32,3 +32,11 @@ related_targets: ["app/home.css","app/globals.css","app/site/Motion.tsx"]
 **MOTION:** GSAP with ScrollTrigger, orchestrated once in `app/site/Motion.tsx`, never scattered. Four moments: the three-speed cover wall plus its scrub-linked drift; the cover's entrance; the running word band; and one reveal grammar batched across sections and shelf cards. Everything animates from an already-visible default, so the page is intact and merely still if the script never runs, and `gsap.matchMedia` skips all of it under `prefers-reduced-motion`.
 
 **FINISH:** unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+
+## Hero revision (2026-10-06)
+
+Shaped and confirmed with the client in two rounds. The photo wall stays, and the catalogue now follows the cover directly. A halftone dome rising from the catalogue was built first and rejected: it filled too much of the screen and hid the wall. The shipped hero uses only the wall's own devices. The headline is the wall's widest leaning blue band, between the second and third rows, in white with "gift shop" in amber. The lede rides a slimmer band under it. The sign holds still while the rows and the word strip travel. The cover ends on a leaning brand-blue edge, `tan(4°)` of the width, that the catalogue continues. The band runs in along its lean on entrance; under reduced motion everything is static. This supersedes the white plate and the lower-left type position in the FIRST VIEWPORT above. Services and gifting now sit next to each other on white and are deferred to the next pass.
+
+## Categories and gifting revision (2026-10-06)
+
+Services became "Shop by category": eight compact tiles (Photos, Frames, Personalised Gifts, Batteries, Jewellery, Cameras, Gift Wrapping, Specials) in a 4x2 grid, 2x4 on a phone, each an authored icon disc, a name and an arrow ring, linking to `/shop/<slug>`. Tiles turn brand blue with an amber disc under the pointer; Specials holds that state at rest. Gifting now opens on the cover's leaning blue band (headline white with "at your fingertips" in amber, lede band beneath) and closes on a centred two-column delivery/collection ledger split by one hairline. Nothing in either section is under 16px.

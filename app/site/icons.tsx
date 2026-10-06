@@ -49,6 +49,15 @@ export function ArrowRight(props: IconProps) {
   );
 }
 
+export function ArrowLeft(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M20 12H5" {...stroke} />
+      <path d="M11 6l-6 6 6 6" {...stroke} />
+    </Svg>
+  );
+}
+
 export function ArrowDown(props: IconProps) {
   return (
     <Svg {...props}>
@@ -171,6 +180,101 @@ export function Cart(props: IconProps) {
       <path d="M3 4h2.1l2.2 10.2a1.6 1.6 0 0 0 1.6 1.3h7.7a1.6 1.6 0 0 0 1.6-1.2L20 7.4H6" {...stroke} />
       <circle cx="9.5" cy="19.5" r="1.3" {...stroke} />
       <circle cx="17" cy="19.5" r="1.3" {...stroke} />
+    </Svg>
+  );
+}
+
+/*
+ * The shop's categories. Same grid, same 1.6 stroke, but each is drawn as the
+ * object on the counter rather than an abstract sign: two prints, a mitred
+ * frame, a photo mug, a cell, a ring, a camera, a wrapped box and a price tag.
+ */
+
+export function Photos(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M7.4 6.4V5.1A1.3 1.3 0 0 1 8.7 3.8h10.9a1.3 1.3 0 0 1 1.3 1.3V16a1.3 1.3 0 0 1-1.3 1.3h-1.3" {...stroke} />
+      <rect x="3.1" y="7.6" width="13.6" height="12.6" rx="1.3" {...stroke} />
+      <path d="M3.4 18.2l4.1-4.1 3.1 3.1 1.9-1.9 3.6 3.6" {...stroke} />
+      <circle cx="12.4" cy="11.3" r="1.2" {...stroke} />
+    </Svg>
+  );
+}
+
+export function Frame(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3.4" y="3.4" width="17.2" height="17.2" rx="1.2" {...stroke} />
+      <rect x="7.2" y="7.2" width="9.6" height="9.6" rx="0.6" {...stroke} />
+      <path d="M3.8 3.8l3.4 3.4M20.2 3.8l-3.4 3.4M3.8 20.2l3.4-3.4M20.2 20.2l-3.4-3.4" {...stroke} />
+    </Svg>
+  );
+}
+
+export function Mug(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4.2 6h11.6v9.8a3.7 3.7 0 0 1-3.7 3.7H7.9a3.7 3.7 0 0 1-3.7-3.7z" {...stroke} />
+      <path d="M15.8 8.6h1.6a2.8 2.8 0 0 1 0 5.6h-1.6" {...stroke} />
+      <path d="M10 15.6s-2.9-1.6-2.9-3.6a1.5 1.5 0 0 1 2.9-.7 1.5 1.5 0 0 1 2.9.7c0 2-2.9 3.6-2.9 3.6z" {...stroke} />
+    </Svg>
+  );
+}
+
+export function Battery(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="2.6" y="7.2" width="16.6" height="9.6" rx="1.8" {...stroke} />
+      <path d="M19.2 10.2h1.1a.9.9 0 0 1 .9.9v1.8a.9.9 0 0 1-.9.9h-1.1" {...stroke} />
+      <path d="M11.7 9.2l-2.4 3.1h3.2l-2.4 3.1" {...stroke} />
+    </Svg>
+  );
+}
+
+export function Ring(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="15" r="5.7" {...stroke} />
+      <path d="M9.3 6.2l1.1-2.3h3.2l1.1 2.3L12 9.3z" {...stroke} />
+      <path d="M9.3 6.2h5.4" {...stroke} />
+    </Svg>
+  );
+}
+
+export function Camera(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path
+        d="M3.2 8.7a1.7 1.7 0 0 1 1.7-1.7h2.6l1.6-2.3h5.8l1.6 2.3h2.6a1.7 1.7 0 0 1 1.7 1.7v9a1.7 1.7 0 0 1-1.7 1.7H4.9a1.7 1.7 0 0 1-1.7-1.7z"
+        {...stroke}
+      />
+      <circle cx="12" cy="13" r="3.6" {...stroke} />
+      <path d="M17.4 10.1h.01" {...stroke} strokeWidth={2.2} />
+    </Svg>
+  );
+}
+
+export function GiftBox(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3.4" y="8.2" width="17.2" height="4" rx="0.9" {...stroke} />
+      <path d="M5 12.2v7a1.3 1.3 0 0 0 1.3 1.3h11.4a1.3 1.3 0 0 0 1.3-1.3v-7" {...stroke} />
+      <path d="M12 8.2v12.3" {...stroke} />
+      <path d="M12 8.2C10.9 5 7.3 4.3 7.3 6.4c0 1.4 2.4 1.8 4.7 1.8zM12 8.2c1.1-3.2 4.7-3.9 4.7-1.8 0 1.4-2.4 1.8-4.7 1.8z" {...stroke} />
+    </Svg>
+  );
+}
+
+export function Tag(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path
+        d="M3.4 11.9V4.9a1.5 1.5 0 0 1 1.5-1.5h7a1.5 1.5 0 0 1 1.06.44l7.3 7.3a1.5 1.5 0 0 1 0 2.12l-7 7a1.5 1.5 0 0 1-2.12 0l-7.3-7.3a1.5 1.5 0 0 1-.44-1.06z"
+        {...stroke}
+      />
+      <circle cx="7.9" cy="7.9" r="1.3" {...stroke} />
+      <path d="M11.3 16.2l4.4-4.4" {...stroke} />
+      <path d="M11.7 12.4h.01M15.3 16h.01" {...stroke} strokeWidth={2.2} />
     </Svg>
   );
 }

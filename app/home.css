@@ -1,9 +1,10 @@
 /*
  * Homepage system.
  *
- * Loud blue surfaces (cover, word band) alternate with warm paper reading
- * surfaces. Gold is the highlighter: primary actions, the marked line, the
- * slashes in the running band. Mono carries marks and measurements only.
+ * Brand blue (header, the cover's bands, catalogue, footer) alternates with
+ * white (the wall's ground, categories, gifting), and nothing else is a ground. Gold is only ever the accent: primary actions, the marked
+ * line, the slashes in the running band. Mono carries marks and measurements
+ * only.
  */
 
 /* ---- Shared ------------------------------------------------------------ */
@@ -120,20 +121,24 @@
   box-shadow: var(--shadow-blue);
 }
 
+/* The blue has no lighter step to brighten into — there is only the one blue
+   — so under the pointer it lifts and its glow deepens instead. */
 .btn--blue:hover {
-  background: var(--blue-lift);
+  box-shadow: var(--shadow-blue-hover);
   transform: translateY(-2px);
 }
 
 /* ---- Header ------------------------------------------------------------ */
 
+/* Solid brand blue, which is also what the white-lettered logo needs under it.
+   The wall under it is white-ground studio shots, so the bar ends on a clean
+   edge and needs no shadow to hold itself off the page. */
 .header {
   position: sticky;
   top: 0;
   z-index: 60;
-  background: rgb(251 250 248 / 0.84);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--rule-paper);
+  background: var(--blue);
+  color: var(--print);
 }
 
 .header__bar {
@@ -175,7 +180,7 @@
   gap: clamp(12px, 1.7vw, 28px);
   margin-inline-start: auto;
   font-size: 13.5px;
-  color: var(--ink-soft);
+  color: var(--on-leather-soft);
 }
 
 .header__nav a {
@@ -188,7 +193,7 @@
 }
 
 .header__nav a:hover {
-  color: var(--ink);
+  color: var(--print);
   border-bottom-color: var(--gold);
 }
 
@@ -217,7 +222,7 @@
   width: 44px;
   height: 44px;
   border-radius: 999px;
-  color: var(--ink);
+  color: var(--print);
   text-decoration: none;
   transition:
     background-color 0.2s,
@@ -225,8 +230,7 @@
 }
 
 .header__icon:hover {
-  background: rgb(0 29 164 / 0.07);
-  color: var(--blue);
+  background: rgb(255 255 255 / 0.12);
 }
 
 /*
@@ -291,19 +295,34 @@
   display: flex;
   align-items: flex-end;
   overflow: hidden;
-  background: var(--leather);
-  color: var(--print);
+  background: var(--paper);
+  color: var(--ink);
 }
 
-/* Three rows of real work, leaning off both edges. */
+/* Three rows of real work, leaning off both edges. The shots are studio
+   photographs on white, so on this white ground they sit the way the products
+   sit on the shop's own counter, in their true colour. */
+/* The wall is packed from its foot, not centred: the headline band sits
+   between the second and third rows, so packing from the bottom is what
+   guarantees a real slice of the last row above the leaning edge, and lets
+   the first row be the one the header crops. */
 .cover__wall {
   position: absolute;
-  inset: -10% -16%;
+  inset: -10% -16% -5%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: clamp(12px, 1.8vw, 24px);
+  justify-content: flex-end;
+  gap: clamp(10px, 1.4vw, 18px);
   transform: rotate(-4deg);
+}
+
+/* The cover is capped near the wall's own height on portrait screens, so on
+   a tall tablet the rows still fill it rather than leaving paper under the
+   header. */
+@media (max-width: 61.99rem) {
+  .cover {
+    min-height: min(calc(100svh - var(--header-h)), 46rem);
+  }
 }
 
 .cover__row {
@@ -312,14 +331,28 @@
   gap: clamp(10px, 1.6vw, 20px);
 }
 
+/* Three rows, two bands and the sign have to share one screen, so a print is
+   sized by the viewport's height as well as its width. */
 .cover__row img {
-  height: clamp(150px, 17vw, 258px);
+  height: clamp(140px, min(17vw, 22svh), 210px);
   width: auto;
   aspect-ratio: 1;
   flex: none;
   border-radius: var(--radius);
   object-fit: cover;
   background: var(--print);
+  /* White on white needs an edge: the card hairline and the card lift, the
+     same two things that hold the catalogue's frames off their ground. */
+  border: 1px solid var(--rule-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* On a phone the rows are what is left once the sign is set, so they take
+   more of the width to fill the cover from header to edge. */
+@media (max-width: 47.99rem) {
+  .cover__row img {
+    height: clamp(130px, min(44vw, 22svh), 190px);
+  }
 }
 
 /* The layer-promotion hint is worth paying for only while the wall is actually
@@ -332,29 +365,16 @@
   will-change: transform;
 }
 
-/*
- * The scrim is what makes a wall of studio white read as one surface, and it is
- * load-bearing rather than decorative: these studio shots are photographed on
- * white, so without it the wall is a field of white rectangles and the white
- * display type has nothing to sit on.
- *
- * The stops are the ones DESIGN.md records. They had drifted lighter at every
- * stop, which took the far end of the h1's second line down to roughly 2.8:1
- * against the lightest photograph on a wide screen — under the 3:1 that large
- * text needs. Do not re-balance these without re-running white type against the
- * lightest shot in row one.
- */
 /* The running band, woven between the rows of the wall. A strip rather than a
    room: it carries its own brand-blue ground so white words never land on a
    white product shot, and it inherits the wall's -4deg lean and its scroll
-   drift, because it is part of the wall and not a layer over it. Under the
-   scrim it fades out on the type side exactly as the photographs do. */
+   drift, because it is part of the wall and not a layer over it. */
 .cover__band {
   display: flex;
   width: max-content;
   padding-block: clamp(6px, 0.9vw, 12px);
   background: var(--leather);
-  color: rgb(255 255 255 / 0.92);
+  color: var(--print);
   font-size: clamp(0.85rem, 1.5vw, 1.25rem);
   font-weight: 500;
   line-height: 1.15;
@@ -375,218 +395,310 @@
   color: var(--gold);
 }
 
-.cover__scrim {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    98deg,
-    rgb(0 15 90 / 0.96) 0%,
-    rgb(0 29 164 / 0.9) 38%,
-    rgb(0 29 164 / 0.42) 66%,
-    rgb(0 29 164 / 0.12) 100%
-  );
-}
-
-.cover__scrim--foot {
-  inset: auto 0 0 0;
-  height: 36%;
-  background: linear-gradient(to top, rgb(0 17 98 / 0.94), rgb(0 29 164 / 0));
-}
-
-.cover__inner {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  padding-block: clamp(80px, 12vh, 132px) clamp(28px, 4vh, 44px);
+/* The mark is a 7:1 lockup whose lettering fills the middle half of the
+   file's height, so at 1.5em its capitals match the band's words. The negative
+   margin gives the extra height back to the band's own padding, so the strip
+   is no taller for carrying it. */
+.cover__bandLogo {
+  flex: none;
+  width: auto;
+  height: 1.5em;
+  margin-block: -0.175em;
 }
 
 /*
- * The dock is fixed to the foot of the viewport and the cover's type is bottom
- * aligned, so on a phone the gold pill would land on top of the lede and cut
- * the words in half. Above 46rem the dock floats far enough right of the type
- * for the two to share the foot; below it the cover gives the dock its own
- * height back and the lede comes to rest above it.
+ * The sign: the headline as the wall's widest band. It runs the wall's full
+ * width and leans with it, so it is the same device as the word strip at
+ * display strength, and it holds still while everything around it travels.
+ * The lede rides a slimmer band directly under it, split by a hairline, so
+ * the two read as one pair of stacked bands rather than as a card.
  */
-@media (max-width: 45.99rem) {
-  .cover__inner {
-    padding-bottom: calc(clamp(28px, 4vh, 44px) + var(--dock-h));
-  }
+.cover__sign {
+  width: 100%;
+  color: var(--print);
+  text-align: center;
+  /* Lifts the pair off the photographs the way the frames lift off theirs. */
+  filter: drop-shadow(0 18px 28px rgb(1 38 186 / 0.28));
 }
 
 .cover__title {
   margin: 0;
-  /* A contrast constraint, not a typographic one. The scrim holds the type side
-     dark and releases past roughly 58% of the shell so the work shows its true
-     colour; white display type has to stay inside the held part. At this size
-     17ch lands on that boundary, so it is the ceiling a longer headline written
-     later has to respect. */
-  max-width: 17ch;
-  font-size: clamp(2.8rem, 8.2vw, 6rem);
+  padding: clamp(14px, 2vw, 26px) var(--gutter) clamp(12px, 1.6vw, 20px);
+  background: var(--leather);
+  /* "photo & gift shop" is about 7.6em wide, so the vw rate keeps it on one
+     line down to a 360px phone. The cap is lower than the page's display
+     ceiling because the band has to leave a whole row of work either side. */
+  font-size: clamp(2.25rem, 9.6vw, 4.75rem);
   font-weight: 600;
-  line-height: 0.94;
+  line-height: 0.98;
   letter-spacing: -0.035em;
-  text-wrap: balance;
+}
+
+.cover__line {
+  display: block;
+  white-space: nowrap;
+}
+
+/* The amber in the cover: the words the shop is named for, lettered in gold on
+   the blue the way the logo letters EXPRESS. Gold on brand blue is about 7:1. */
+.cover__gold {
+  color: var(--gold);
 }
 
 .cover__lede {
-  margin-top: clamp(1.1rem, 2.2vw, 1.6rem);
-  max-width: 58ch;
+  margin: 0;
+  padding: clamp(10px, 1.3vw, 16px) var(--gutter) clamp(12px, 1.5vw, 18px);
+  background: var(--leather);
+  /* Held to a 44ch measure in the middle of a band that runs the wall's
+     whole width. The wall overhangs the screen by 16% of it each side, which
+     is about 12.2% of the wall, so the gutter is measured from the screen's
+     edge and not the band's. */
+  padding-inline: max(calc(12.2% + var(--gutter)), calc((100% - 44ch) / 2));
+  border-top: 1px solid var(--rule-leather);
   font-size: clamp(1rem, 1.45vw, 1.2rem);
-  line-height: 1.55;
-  color: rgb(255 255 255 / 0.9);
-  text-wrap: pretty;
+  line-height: 1.5;
+  color: var(--on-leather-soft);
+  text-wrap: balance;
 }
 
-/* ---- The four services, one card each ---------------------------------- */
+/*
+ * The catalogue's top edge. The wall leans -4deg, so its right side is higher;
+ * this triangle of brand blue rises the same way, tan(4deg) of the width, and
+ * meets the catalogue under it with no seam. It is the one band that does not
+ * travel or hold a word: the ground the wall comes to rest on.
+ */
+.cover__edge {
+  position: absolute;
+  inset: auto 0 -1px 0;
+  z-index: 1;
+  height: calc(6.993vw + 1px);
+  background: var(--leather);
+  clip-path: polygon(0 100%, 100% 0, 100% 100%);
+}
 
-/* The retired ledger's job is now done by four cards, and each one is a door
-   into the shop rather than a row that opens WhatsApp.
-   The composition is centred and quiet: the drawing sits on the card's own
-   white with room around it — no tinted plate, no rule under it — and the name
-   and its one line are centred beneath. What that composition does not supply
-   on its own is any sign that it can be pressed, so the card keeps its border
-   and its blue lift and ends on the hairline ring the cover's scroll cue uses.
-   Sized to be read in one glance: four across a wide screen, two-up on a phone,
-   never stacked. */
+/*
+ * Desktop: the wall fitted to the cover rather than packed into it.
+ *
+ * A row leaning -4deg across the screen sits tan(4deg) × 50vw (about 3.5vw)
+ * higher at the right edge than at the centre and as much lower at the left.
+ * So the wall's top padding is that lean plus a margin, which keeps the word
+ * strip clear of the header at its high end. The bottom padding is the same,
+ * which keeps the last row whole above the leaning edge, because the edge
+ * leans by exactly as much. The two rows either side of the sign then share
+ * whatever height is left as `1fr` tracks, so every print shows whole at any
+ * screen height. The first row is not counted: it sits in a zero-height track
+ * above the strip and fills the wedge the lean opens under the header, with
+ * the header cropping it.
+ *
+ * Phones and tablets keep the packed wall above.
+ */
+@media (min-width: 62rem) {
+  .cover {
+    /* A short laptop screen still gets two readable rows; the cover scrolls
+       a little rather than shrinking the work to thumbnails. */
+    min-height: max(700px, min(calc(100svh - var(--header-h)), 900px));
+  }
 
-.services {
+  .cover__wall {
+    inset: 0 -16%;
+    display: grid;
+    grid-template-rows: 0 auto minmax(0, 1fr) auto minmax(0, 1fr);
+    /* One column the wall's own width. The travelling rows are thousands of
+       pixels long and overflow it to the right, as they did in the flex
+       column; left to size it they would widen the sign with them. */
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    align-content: stretch;
+    row-gap: clamp(14px, 1.4vw, 22px);
+    padding-block: calc(3.5vw + clamp(14px, 2.2vh, 26px))
+      calc(3.5vw + clamp(20px, 3.4vh, 40px));
+  }
+
+  .cover__row {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .cover__row img {
+    height: 100%;
+  }
+
+  /* The first row only fills the wedge above the strip, so it hangs from the
+     top of the strip and has a size of its own, close to what the two `1fr`
+     rows come to, so the wall does not read as one big row over two small. */
+  .cover__row:first-child {
+    align-self: end;
+    height: clamp(130px, min(11vw, 19svh), 180px);
+  }
+
+  .cover__title {
+    /* On a short screen the headline gives up size before the work does. */
+    font-size: clamp(2.75rem, min(9.6vw, 8.4svh), 4.5rem);
+  }
+
+  /* On one line from about 1280px, so the sign spends its height on the
+     headline and the rows keep theirs. The measure is the screen's, less the
+     gutter and the wall's overhang. */
+  .cover__lede {
+    padding-inline: calc(12.2% + var(--gutter));
+    font-size: clamp(1rem, 1.2vw, 1.15rem);
+  }
+}
+
+/* ---- Shop by category ------------------------------------------------- */
+
+/* Eight compact doors on white, four by two on a wide screen and two by four
+   on a phone. A tile is an icon disc, the arrow's ring and a name, and nothing
+   else: the shelf's own page carries the detail. Under the pointer a tile
+   becomes a piece of the catalogue's blue and its disc goes amber, so the
+   section answers the pointer in the page's own two loud colours. */
+
+.categories {
   background: var(--paper);
 }
 
-.services__title {
-  max-width: 18ch;
-  margin-bottom: clamp(1.9rem, 3.8vw, 3rem);
+/* Centred over the grid, as the catalogue's heading is over its row. */
+.categories__title {
+  color: var(--blue);
+  text-align: center;
+  margin-bottom: clamp(1.8rem, 3.6vw, 2.9rem);
 }
 
-/* Two-up from the narrowest width, because four stacked cards is a scroll and
-   the point of the row is that the whole offer arrives at once. */
-.svcs {
+.cats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(12px, 1.6vw, 22px);
+  gap: clamp(10px, 1.4vw, 18px);
+  max-width: 1180px;
+  margin-inline: auto;
+  padding: 0;
+  list-style: none;
 }
 
-/* One row, once there is width for four without squeezing the names. */
 @media (min-width: 56rem) {
-  .svcs {
+  .cats {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
-.svc {
+.cats > li {
+  display: flex;
+}
+
+/* Icon and arrow share the top line; the name sits on the tile's floor, so
+   one-line and two-line names still leave the eight icons on two clean rows. */
+.cat {
+  flex: 1;
   display: grid;
-  /* art, name, blurb, arrow. The blurb row takes the slack so a two-line and a
-     three-line blurb still leave the four arrows on one line across the row. */
-  grid-template-rows: auto auto 1fr auto;
-  justify-items: center;
-  text-align: center;
-  padding: clamp(1.05rem, 2.2vw, 1.9rem) clamp(0.85rem, 1.7vw, 1.5rem)
-    clamp(1rem, 1.9vw, 1.6rem);
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto 1fr;
+  align-items: start;
+  row-gap: clamp(1.1rem, 2.4vw, 2rem);
+  min-height: clamp(128px, 10.5vw, 150px);
+  padding: clamp(14px, 1.5vw, 20px) clamp(14px, 1.5vw, 20px)
+    clamp(15px, 1.6vw, 22px);
   background: var(--print);
+  color: var(--ink);
   border: 1px solid var(--rule-card);
-  border-radius: 22px;
+  border-radius: var(--radius);
   text-decoration: none;
   box-shadow: var(--shadow-card);
   transition:
     transform 0.5s var(--ease-out),
     box-shadow 0.5s var(--ease-out),
-    border-color 0.5s var(--ease-out);
+    background-color 0.35s var(--ease-out),
+    border-color 0.35s var(--ease-out),
+    color 0.35s var(--ease-out);
 }
 
-.svc:hover {
-  transform: translateY(-4px);
-  border-color: rgb(0 29 164 / 0.26);
-  box-shadow: var(--shadow-card-hover);
-}
-
-.svc:active {
-  transform: translateY(-1px);
-}
-
-/* The four files arrive at four aspect ratios — 2.6:1 through 0.94:1 — so the
-   band is what is fixed and each drawing is contained inside it. Letting either
-   axis run free would size them unevenly card to card, which is exactly what a
-   row of four makes obvious. */
-.svc__art {
-  width: 100%;
-  height: clamp(92px, 9.5vw, 136px);
-  object-fit: contain;
-  /* Seated on the band's floor rather than centred in it, so the four drawings
-     share a ground line instead of each floating at its own height. */
-  object-position: center bottom;
-  transition: transform 0.55s var(--ease-out);
-}
-
-.svc:hover .svc__art {
-  transform: scale(1.04);
-}
-
-.svc__name {
-  margin-top: clamp(0.9rem, 1.6vw, 1.3rem);
-  font-size: clamp(1rem, 1.25vw, 1.15rem);
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
-  text-wrap: balance;
-  transition: color 0.4s var(--ease-out);
-}
-
-.svc:hover .svc__name {
-  color: var(--blue);
-}
-
-/* Centred prose wants a tighter measure than ranged-left prose: two short lines
-   read as a caption, four read as a paragraph someone centred by accident. */
-.svc__blurb {
-  margin-top: 0.35rem;
-  max-width: 26ch;
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: var(--ink-soft);
-  text-wrap: pretty;
-}
-
-/* The affordance the reference composition has no room for, borrowed from the
-   cover's scroll cue: a hairline ring holding the arrow. */
-.svc__go {
+/* The disc is the brand blue let through to the white, so at rest the glyph
+   is the loudest thing on the tile and the disc only seats it. */
+.cat__icon {
+  grid-column: 1;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  margin-top: clamp(0.75rem, 1.6vw, 1.25rem);
+  width: clamp(48px, 4.2vw, 58px);
+  height: clamp(48px, 4.2vw, 58px);
+  border-radius: 999px;
+  background: rgb(1 38 186 / 0.07);
+  color: var(--blue);
+  transition:
+    background-color 0.35s var(--ease-out),
+    color 0.35s var(--ease-out),
+    transform 0.5s var(--ease-out);
+}
+
+.cat__go {
+  grid-column: 3;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
   border: 1px solid var(--rule-hair);
   border-radius: 999px;
   color: var(--ink-faint);
   transition:
     transform 0.45s var(--ease-out),
-    background-color 0.45s var(--ease-out),
-    border-color 0.45s var(--ease-out),
-    color 0.45s var(--ease-out);
+    background-color 0.35s var(--ease-out),
+    border-color 0.35s var(--ease-out),
+    color 0.35s var(--ease-out);
 }
 
-.svc:hover .svc__go {
-  transform: translateX(3px);
-  background: var(--blue);
-  border-color: var(--blue);
+.cat__name {
+  grid-column: 1 / -1;
+  align-self: end;
+  font-size: clamp(1.05rem, 1.45vw, 1.3rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* Specials, and every tile under the pointer: the catalogue's blue, an amber
+   disc holding a blue glyph, and the ring drawn in white. */
+.cat[data-feature="true"] {
+  background: var(--leather);
+  border-color: var(--leather);
+  color: var(--print);
+  box-shadow: var(--shadow-blue);
+}
+
+.cat[data-feature="true"] .cat__icon {
+  background: var(--gold);
+  color: var(--blue);
+}
+
+.cat[data-feature="true"] .cat__go {
+  border-color: var(--rule-dark);
   color: var(--print);
 }
 
-/* On a phone the cards hold still: a tap leaves hover stuck on, and the lift
-   and scale then play out mid-scroll. The entrance is dropped too, in Motion. */
-@media (max-width: 47.99rem) {
-  .svc,
-  .svc__art,
-  .svc__name,
-  .svc__go {
-    transition: none;
+/* Hover only where there is a pointer to hover with: on a phone a tap would
+   leave the blue stuck on the tile mid-scroll. */
+@media (hover: hover) {
+  .cat:hover {
+    transform: translateY(-4px);
+    background: var(--leather);
+    border-color: var(--leather);
+    color: var(--print);
+    box-shadow: var(--shadow-blue-hover);
   }
 
-  .svc:hover,
-  .svc:active,
-  .svc:hover .svc__art,
-  .svc:hover .svc__go {
-    transform: none;
+  .cat:hover .cat__icon {
+    background: var(--gold);
+    color: var(--blue);
+    transform: rotate(-4deg) scale(1.06);
   }
+
+  .cat:hover .cat__go {
+    transform: translateX(3px);
+    background: var(--print);
+    border-color: var(--print);
+    color: var(--blue);
+  }
+}
+
+.cat:active {
+  transform: translateY(-1px);
 }
 
 /* ---- The catalogue, on a wheel ----------------------------------------- */
@@ -596,12 +708,15 @@
    alone runs full bleed, so it reads as a catalogue carrying on past both sides
    rather than as a finite list. */
 
+/* The page's middle blue: white frames on brand blue, so the shop's work is
+   what the eye lands on, and the white sections either side read as rooms. */
 .catalogue {
-  background: var(--paper-deep);
-  border-block: 1px solid var(--rule-paper);
-  /* No bottom padding: the wheel's own viewport already holds the room the
-     arc drops into, and a section pad under it only reads as a gap. */
-  padding-block: clamp(52px, 8vw, 100px) 0;
+  background: var(--leather);
+  color: var(--print);
+  /* Tight on top: the cover's leaning edge is the same blue and already
+     gives this section its first few centimetres. No bottom padding: the wheel's own viewport
+     already holds the room the arc drops into. */
+  padding-block: clamp(20px, 4vw, 56px) 0;
   overflow: hidden;
 }
 
@@ -613,16 +728,15 @@
   text-align: center;
 }
 
-/* Tight under the headline, because it belongs to it. Brand blue rather than
-   soft ink: it is the second step in the hierarchy, not quieter prose, and it
-   is the only colour this paper section carries. */
+/* Tight under the headline, because it belongs to it. Amber rather than
+   soft white: it is the second step in the hierarchy, not quieter prose. */
 .catalogue__sub {
   margin-top: 0.5rem;
   font-size: clamp(1.1rem, 2vw, 1.4rem);
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.015em;
-  color: var(--blue);
+  color: var(--gold);
   text-align: center;
 }
 
@@ -634,7 +748,7 @@
   text-align: center;
   font-size: clamp(1rem, 1.3vw, 1.15rem);
   line-height: 1.62;
-  color: var(--ink-soft);
+  color: var(--on-leather-soft);
 }
 
 /*
@@ -651,20 +765,15 @@
  * wheel sits square, which is what the page shows if that script never runs.
  */
 .carousel {
+  position: relative;
   --frame-w: clamp(186px, 23vw, 280px);
   --gap: clamp(16px, 2.2vw, 24px);
   --pitch: calc(var(--frame-w) + var(--gap));
   --spin: 0;
-  /* A hand-turn laid on top of the scroll's, and the furthest the two together
-     may take the wheel. Only the phone's drag branch in `Motion.tsx` sets
-     either, so everywhere else `--turn` is `--spin` exactly. */
+  /* A hand-turn laid on top of the scroll's. The wheel has no ends — frames
+     wrap round (see `.frame`) — so the two simply add. */
   --drag: 0;
-  --reach: 99;
-  --turn: clamp(
-    calc(var(--reach) * -1),
-    calc(var(--spin) + var(--drag)),
-    var(--reach)
-  );
+  --turn: calc(var(--spin) + var(--drag));
   --step: 12deg;
   --k: 21px;
   /* A ceiling on the drop. Without it the frames furthest round the wheel sit
@@ -722,7 +831,8 @@
 
 .frame {
   /* Where this frame sits along the arc, counted from the top in steps. */
-  --i: calc(var(--n) - var(--mid) + var(--turn));
+  --raw: calc(var(--n) - var(--mid) + var(--turn));
+  --i: var(--raw);
   --lean: 1;
   --lift: 0px;
 
@@ -730,6 +840,8 @@
   position: relative;
   width: var(--frame-w);
   background: var(--print);
+  /* The section around it is blue and white-lettered; the frame is paper. */
+  color: var(--ink);
   border: 1px solid var(--rule-card);
   border-radius: 22px;
   overflow: hidden;
@@ -744,6 +856,20 @@
   transition:
     transform 0.5s var(--ease-out),
     box-shadow 0.5s var(--ease-out);
+}
+
+/* The wheel wraps. A frame turned more than half the row past the top is
+   carried round to the other end, so the arc never runs out however far the
+   page or the hand turns it. The carry is a whole number of rows and happens
+   well off screen; it rides on `translate`, which is not transitioned, so the
+   frame jumps there instead of flying back across the row. */
+@supports (scale: mod(3, 2)) {
+  .frame {
+    --i: calc(
+      mod(var(--raw) + var(--count) / 2, var(--count)) - var(--count) / 2
+    );
+    translate: calc((var(--i) - var(--raw)) * var(--pitch)) 0;
+  }
 }
 
 .frame img {
@@ -773,12 +899,79 @@
   box-shadow: var(--shadow-card-hover);
 }
 
-/* On a phone the wheel can also be turned by hand. Vertical pans stay the
-   browser's, so the page still scrolls through the row; a sideways drag is
+/* The wheel can also be turned by hand on any touch screen. Vertical pans stay
+   the browser's, so the page still scrolls through the row; a sideways drag is
    left to `Motion.tsx`, which turns the wheel with it. */
-@media (max-width: 47.99rem) and (prefers-reduced-motion: no-preference) {
+@media (prefers-reduced-motion: no-preference) {
   .carousel__viewport {
     touch-action: pan-y;
+  }
+}
+
+/*
+ * The desktop arrows. They sit on the shell's edges, level with the middle of
+ * the frame at the top of the arc, and take the dock's WhatsApp mark as their
+ * model: a print-white disc with a blue hairline and the blue shadow, so they
+ * read as controls laid over the work rather than as part of it. At an end
+ * the arrow stays where it is, dimmed, so the pair never shifts under the
+ * pointer. Below 48rem a swipe does this job and the arrows are not drawn.
+ */
+.carousel__arrow {
+  position: absolute;
+  z-index: 2;
+  top: calc(clamp(16px, 2vw, 28px) + var(--frame-w) / 2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid rgb(1 38 186 / 0.22);
+  border-radius: 999px;
+  background: var(--print);
+  color: var(--blue);
+  box-shadow: var(--shadow-blue);
+  cursor: pointer;
+  translate: 0 -50%;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    border-color 0.2s,
+    box-shadow 0.25s,
+    scale 0.45s var(--ease-out);
+}
+
+.carousel__arrow--prev {
+  left: max(var(--gutter), calc((100vw - var(--shell)) / 2 + var(--gutter)));
+}
+
+.carousel__arrow--next {
+  right: max(var(--gutter), calc((100vw - var(--shell)) / 2 + var(--gutter)));
+}
+
+.carousel__arrow:hover {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--print);
+}
+
+.carousel__arrow:active {
+  scale: 0.94;
+}
+
+/* Dimmed by its mark, not by the whole disc: a faded white disc vanishes
+   against the white frame behind it, and the pair should stay put. */
+.carousel__arrow[aria-disabled="true"] {
+  cursor: default;
+  background: var(--paper);
+  border-color: rgb(1 38 186 / 0.14);
+  color: rgb(1 38 186 / 0.32);
+  box-shadow: none;
+}
+
+@media (max-width: 47.99rem) {
+  .carousel__arrow {
+    display: none;
   }
 }
 
@@ -811,173 +1004,194 @@
 
 /* ---- End-to-end gifting ------------------------------------------------ */
 
-/* The page's second peak. It takes the cover's display scale on the closing
-   near-black ground, then drops straight into two ruled rows: the one place on
-   the page that separates by hairline rather than by card, so the two ways an
-   order reaches its person read as a single mechanism and not as two more
-   things to choose between. */
-
+/* The page's second sign. The headline is set on the cover's own device — a
+   brand-blue band leaning -4deg off both edges of the screen, the lede on a
+   slimmer band under a hairline — so the scroll closes on what it opened with.
+   Below it, on white, the highlighter line and the two ways an order reaches
+   its person, split by one hairline rather than boxed. */
 .gifting {
-  background: var(--card);
-  color: var(--print);
+  background: var(--paper);
+  color: var(--ink);
+  /* The band overhangs the screen by design; it must never become a sideways
+     scroll. `clip` rather than `hidden`, so the section is not a scroll
+     container and the anchors above it still land. */
+  overflow-x: clip;
+  padding-block: clamp(70px, 8.5vw, 124px) clamp(62px, 9vw, 130px);
 }
 
-/* No measure on the head: the title breaks where its own line break says,
-   and the prose under it carries its own. The head is centred as one block, so
-   the lede's measure has to be centred with it rather than left-hung. */
-
-.gifting__head {
+/* 124% of the screen, centred on it, so the band's ends stay off-screen
+   through the lean: a -4deg band on a screen-wide box would show its corners. */
+.gifting__sign {
+  width: 124%;
+  margin-left: -12%;
+  transform: rotate(-4deg);
+  color: var(--print);
   text-align: center;
+  filter: drop-shadow(0 18px 28px rgb(1 38 186 / 0.28));
 }
 
 .gifting__title {
-  font-size: clamp(2.8rem, 8.2vw, 6rem);
+  margin: 0;
+  padding: clamp(16px, 2.2vw, 28px) var(--gutter) clamp(14px, 1.8vw, 22px);
+  background: var(--leather);
+  /* "End-to-end gifting," is about 9.3em, so the vw rate keeps each line
+     whole down to a 360px phone. The ceiling is the cover title's. */
+  font-size: clamp(2rem, 8.4vw, 4.75rem);
   font-weight: 600;
-  line-height: 0.94;
+  line-height: 0.98;
   letter-spacing: -0.035em;
+}
+
+.gifting__line {
+  display: block;
+  white-space: nowrap;
+}
+
+.gifting__gold {
+  color: var(--gold);
+}
+
+/* The overhang is 12% of the screen each side, which is about 9.7% of the
+   band, so the gutter is measured from the screen's edge. */
+.gifting__lede {
+  margin: 0;
+  padding: clamp(12px, 1.4vw, 18px) var(--gutter) clamp(14px, 1.6vw, 20px);
+  padding-inline: max(calc(9.7% + var(--gutter)), calc((100% - 46ch) / 2));
+  background: var(--leather);
+  border-top: 1px solid var(--rule-leather);
+  font-size: clamp(1rem, 1.45vw, 1.2rem);
+  line-height: 1.55;
+  color: var(--on-leather-soft);
   text-wrap: balance;
 }
 
-/* The authored break is a wide-screen composition. Narrow, it would strand
-   "gifting," on a line of its own, so the browser balances the three lines
-   instead. */
-@media (max-width: 45.999rem) {
-  .gifting__title br {
-    display: none;
-  }
-}
-
-.gifting__lede {
-  margin-top: clamp(1.2rem, 2.4vw, 1.7rem);
-  max-width: 44ch;
-  margin-inline: auto;
-}
-
-/* The highlighter at full strength: on this ground it is the section's
-   statement, not a footnote under the lede. */
+/* Clear of the band's low left end, which sits tan(4deg) × 62vw under its
+   middle, before the section's own space starts. */
 .gifting__marked {
-  margin-top: clamp(1.5rem, 3vw, 2.2rem);
+  margin-top: calc(4.4vw + clamp(2.2rem, 4.6vw, 3.6rem));
+  text-align: center;
   font-size: clamp(1.5rem, 3.4vw, 2.6rem);
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.2;
-  color: var(--ink);
 }
 
-/* The handover ledger: how the order reaches its person. The amber rule across
-   the top is its mark, and it says the section has turned from the promise to
-   the mechanics. */
-.handover {
-  margin-top: clamp(2.8rem, 5.5vw, 4.4rem);
-  border-top: 2px solid var(--gold);
-}
-
-.handover__row {
+/* Two ways, one ledger. The rows are a subgrid, so the two slots — the
+   courier's mark and the directions link — share a baseline whatever the
+   blurbs above them run to. */
+.ways {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  column-gap: clamp(0.9rem, 2.4vw, 1.4rem);
-  row-gap: 1.1rem;
-  align-items: start;
-  padding-block: clamp(1.5rem, 3vw, 2.3rem);
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 1080px;
+  margin: clamp(2.4rem, 5vw, 4rem) auto 0;
 }
 
-.handover__row + .handover__row {
-  border-top: 1px solid var(--rule-leather);
+.way {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 4;
+  justify-items: center;
+  align-content: start;
+  row-gap: 0;
+  text-align: center;
+  padding: clamp(1.8rem, 3.4vw, 2.6rem) clamp(0.5rem, 3vw, 2.6rem);
 }
 
-.handover__mark {
-  display: block;
-  color: var(--gold);
-  /* Seats the 24px-grid mark on the first line of the name beside it. */
-  margin-top: 0.22em;
+.way + .way {
+  border-top: 1px solid var(--rule-paper);
 }
 
-.handover__name {
-  font-size: clamp(1.15rem, 2.2vw, 1.55rem);
+@media (min-width: 46rem) {
+  .ways {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .way {
+    padding-block: clamp(0.4rem, 1vw, 0.8rem);
+  }
+
+  .way + .way {
+    border-top: 0;
+    border-left: 1px solid var(--rule-paper);
+  }
+}
+
+/* The category tiles' disc at rest, so the page's icons are one family. */
+.way__icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  background: rgb(1 38 186 / 0.07);
+  color: var(--blue);
+}
+
+.way__name {
+  margin-top: 1.1rem;
+  font-size: clamp(1.25rem, 2.2vw, 1.6rem);
   font-weight: 600;
+  line-height: 1.2;
   letter-spacing: -0.025em;
+  text-wrap: balance;
 }
 
-.handover__blurb {
-  margin-top: 0.55rem;
-  max-width: 46ch;
-  font-size: 15.5px;
-  line-height: 1.65;
-  color: var(--on-card-soft);
+.way__blurb {
+  margin-top: 0.6rem;
+  max-width: 40ch;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  text-wrap: pretty;
 }
 
-/* Reserved slot: the same cell on both rows, whatever it holds. */
-.handover__slot {
-  grid-column: 2;
-  justify-self: start;
+.way__slot {
+  align-self: end;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1.4rem;
+}
+
+.way__powered {
+  font-size: 16px;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+
+/* The courier's mark is supplied in white, so it is drawn as a mask and filled
+   with the brand blue: the exact silhouette, in the exact blue, which no
+   filter chain on the image itself can promise. */
+.way__logo {
+  display: block;
+  width: clamp(170px, 30vw, 220px);
+  aspect-ratio: 1024 / 283;
+  background: var(--blue);
+  -webkit-mask: url("/pudo_courierguy_logo.png") center / contain no-repeat;
+  mask: url("/pudo_courierguy_logo.png") center / contain no-repeat;
+}
+
+.way__link {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-}
-
-.handover__slot--wrap {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.55rem;
-}
-
-.handover__powered {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 11.5px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--on-card-soft);
-}
-
-.handover__logo {
-  width: clamp(150px, 34vw, 240px);
-  height: auto;
-}
-
-.handover__link {
-  font-size: 14.5px;
-  color: var(--print);
+  min-height: 44px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
   text-decoration: underline;
   text-decoration-color: var(--gold);
   text-underline-offset: 5px;
   text-decoration-thickness: 2px;
 }
 
-.handover__link svg {
+.way__link svg {
   transition: transform 0.35s var(--ease-out);
 }
 
-.handover__link:hover svg {
+.way__link:hover svg {
   transform: translateX(3px);
-}
-
-/* Wide enough for the slot to take its own column, so both rows read as one
-   ledger with a right edge rather than two stacks. */
-@media (min-width: 62rem) {
-  .handover__row {
-    grid-template-columns: auto minmax(0, 1fr) clamp(200px, 22vw, 290px);
-    column-gap: clamp(1.4rem, 3.5vw, 3rem);
-  }
-
-  .handover__slot {
-    grid-column: 3;
-    grid-row: 1;
-    justify-self: end;
-  }
-
-  .handover__slot--wrap {
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.6rem;
-  }
-}
-
-.gifting__note {
-  margin-top: clamp(1.8rem, 3.2vw, 2.4rem);
-  max-width: 62ch;
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: var(--on-card-soft);
 }
 
 /* ---- The shop's counter ------------------------------------------------- */
@@ -1090,96 +1304,71 @@
 /* ---- Footer ------------------------------------------------------------ */
 
 /*
- * The footer is the shop's counter: the heading, the three columns of where /
- * when / how to reach it, then the sign-up held off below a hairline with the
- * base line on its end. Under all of it the wordmark runs wider than the
- * viewport and is cropped by the footer.
- *
- * Brand blue, not the near-black the rest of the page closes on — the gifting
- * section above already owns near-black, and the two of them meeting was what
- * made this boundary read as an arbitrary seam rather than an ending.
+ * The footer is the shop's counter, kept compact: the heading, the three
+ * columns of where / when / how to reach it, the sign-up as one row
+ * held off by a hairline, and the colophon. The same brand blue as the
+ * header, so the page opens and closes on the one blue.
  */
 
 .footer {
   background: var(--leather);
   color: var(--print);
-  /* Nothing below the wordmark at any width: the page's last pixel is the line
-     the word is cut on. The dock does not push a band of empty ground under it
-     — it comes to rest above it instead, which `Motion` arranges. */
-  overflow: hidden;
 }
 
-/* The top padding is a section's, so the step down from gifting keeps the same
-   rhythm as every other boundary on the page; the bottom is shorter because
-   the wordmark closes the gap. */
 .footer__top {
-  padding-block: clamp(62px, 9vw, 130px) clamp(3rem, 7vw, 7rem);
+  padding-top: clamp(48px, 6vw, 84px);
 }
 
-/* The band between the colophon and the top of the wordmark is where the dock
-   comes to rest, so on a phone it has to be at least as deep as the dock plus
-   the clearance `Motion` holds above the word. Both are read from the tokens
-   rather than restated as a number here — that number and the one in `Motion`
-   had already drifted apart from the token that was supposed to govern them.
-   Above this width the fluid padding is already deeper than the mark needs. */
-@media (max-width: 45.99rem) {
-  .footer__top {
-    padding-bottom: calc(var(--dock-h) + var(--dock-gap));
-  }
+/* A step under the section headline: in a compact footer this names the
+   columns under it rather than opening a new room. */
+.footer__title {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
 }
 
 /*
  * The sign-up is the only thing down here that is not a detail of the shop, so
- * it is the only thing ruled off from what sits above it. On a wide screen the
- * base line sits at the far end of that same row, on the sign-up's last line.
+ * it is the only thing ruled off from what sits above it. Wide, it is one row
+ * on the same three columns as the blocks above: what it is for under `The
+ * shop`, the line to write on across the other two.
  */
 .footer__base {
   display: grid;
-  gap: clamp(2.4rem, 4vw, 3rem);
-  margin-top: clamp(3.2rem, 6vw, 5.5rem);
-  padding-top: clamp(2.4rem, 4vw, 3.4rem);
+  gap: 1.2rem;
+  margin-top: clamp(2.2rem, 4vw, 3.2rem);
+  padding-top: clamp(1.8rem, 3vw, 2.4rem);
   border-top: 1px solid var(--rule-leather);
 }
 
-/* The same three columns as the block row above, so the base line lands under
-   `Talk to us` rather than in the middle of nothing: the space to the right of
-   the sign-up is a column the page already uses, not a hole. */
 @media (min-width: 56rem) {
   .footer__base {
-    grid-template-columns: 1.15fr 1fr 1fr;
+    grid-template-columns: 1.15fr 2fr;
     gap: clamp(2.2rem, 4.5vw, 4rem);
-    align-items: end;
-  }
-
-  .footer__signup {
-    grid-column: span 2;
+    align-items: center;
   }
 }
 
-/* The field is a line to write an address on, not a rule across the page. The
-   cap is what keeps it that at every width — without it the stacked layout
-   stretches it to the full column. */
+.footer__signup-copy {
+  max-width: 30rem;
+}
+
 .footer__signup {
-  max-width: 27rem;
+  max-width: 34rem;
 }
 
-/* Below the page's h2 and above the field: the statement step, not the
-   headline step — with `Come and find us` now heading this ground, a second
-   near-display line here would read as a rival heading. */
 .footer__signup-title {
   margin: 0;
-  font-size: clamp(1.2rem, 2.2vw, 1.75rem);
+  font-size: clamp(1.15rem, 1.8vw, 1.4rem);
   font-weight: 600;
   line-height: 1.3;
   letter-spacing: -0.02em;
   color: var(--print);
 }
 
-/* What signing up is actually for, said once under the heading. It carries the
-   sign-up's own measure rather than the page's prose measure — this column is
-   already capped at 27rem. */
 .footer__signup-sub {
-  margin: 0.7rem 0 0;
+  margin: 0.45rem 0 0;
   font-size: 14.5px;
   line-height: 1.6;
   color: var(--on-leather-soft);
@@ -1192,7 +1381,6 @@
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 0.6rem;
-  margin-top: clamp(1.6rem, 2.6vw, 2.2rem);
   border-bottom: 1px solid var(--rule-leather);
   transition: border-color 0.2s;
 }
@@ -1208,7 +1396,8 @@
   color: var(--print);
   caret-color: var(--gold);
   font: inherit;
-  font-size: 15px;
+  /* 16px, not less: anything smaller makes mobile Safari zoom on focus. */
+  font-size: 16px;
 }
 
 .newsletter__input::placeholder {
@@ -1266,58 +1455,41 @@
    opens on the line the visitor was just typing on rather than a line lower.
    It is focused on submit, so it takes the footer's amber ring. */
 .newsletter__done {
-  margin-top: clamp(1.6rem, 2.6vw, 2.2rem);
+  margin-top: 0;
   color: var(--gold);
 }
 
+/*
+ * The last row is sized to the dock. When the page bottoms out the docked pair
+ * sits at the foot of the viewport, which is now this row: wide, the colophon
+ * holds the left end of it, level with the pill, and the dock rests on the
+ * right. On a phone the pair spans too much of the width to share, so the
+ * colophon takes a line above and the row below it is left for the dock.
+ */
+.footer__end {
+  display: flex;
+  align-items: center;
+  padding-top: clamp(1.6rem, 2.6vw, 2.2rem);
+  padding-bottom: calc(var(--dock-h) + 0.6rem);
+}
+
+@media (min-width: 46rem) {
+  .footer__end {
+    box-sizing: content-box;
+    height: 60px;
+    padding-top: clamp(0.6rem, 1.2vw, 1rem);
+    padding-bottom: clamp(20px, 2.6vw, 34px);
+  }
+}
+
 /* The base line: the one piece of small print, in mono like every other
-   measured thing on the page. The street address used to be repeated here as
-   well — it is four lines away, above the rule. */
+   measured thing on the page. */
 .footer__colophon {
   margin: 0;
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 12.5px;
   line-height: 1.3;
   color: var(--on-leather-soft);
-}
-
-@media (min-width: 56rem) {
-  .footer__colophon {
-    justify-self: end;
-    text-align: end;
-  }
-}
-
-/*
- * The wordmark: the shop's first word alone, at the width of the screen. It
- * is set to overflow the viewport deliberately — the crop is the effect — so
- * the size is given in vw and the footer does the cutting.
- */
-.footer__wordmark {
-  overflow: hidden;
-}
-
-/*
- * Cut on three sides. The negative bottom margin pulls the line past the
- * clip, taking about a tenth of the cap height with it; the vw size runs the
- * word wider than the viewport, so the E and the S go too. Every number here
- * is a fraction of the font size, which keeps the crop identical at any
- * width.
- */
-.footer__wordmark-line {
-  display: block;
-  margin-bottom: -0.21em;
-  font-family: var(--font-montserrat), var(--font-archivo), sans-serif;
-  font-size: 20vw;
-  font-style: italic;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.045em;
-  text-align: center;
-  text-transform: uppercase;
-  white-space: nowrap;
-  color: var(--print);
-  user-select: none;
 }
 
 /* ---- The order dock ---------------------------------------------------- */
@@ -1357,10 +1529,9 @@
   padding: 0.95rem 1.5rem;
 }
 
-/* This one mark has to stay legible over paper, over the blue find-us band
-   and over the near-black gifting section in turn. Print white is the only
-   ground that reads on all three; the hairline is what keeps it off the
-   paper. */
+/* This one mark has to stay legible over white and over every blue ground in
+   turn. Print white is the only ground that reads on both; the hairline is
+   what keeps it off the white. */
 .dock__chat {
   display: inline-flex;
   align-items: center;
@@ -1370,7 +1541,7 @@
   width: 52px;
   height: 52px;
   background: var(--print);
-  border: 1px solid rgb(0 29 164 / 0.22);
+  border: 1px solid rgb(1 38 186 / 0.22);
   border-radius: 999px;
   color: var(--blue);
   text-decoration: none;
@@ -1382,7 +1553,7 @@
 }
 
 .dock__chat:hover {
-  border-color: rgb(0 29 164 / 0.5);
+  border-color: rgb(1 38 186 / 0.5);
   transform: translateY(-2px);
   box-shadow: var(--shadow-blue-hover);
 }
