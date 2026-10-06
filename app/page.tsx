@@ -231,7 +231,7 @@ export default function Home() {
               Choose from our wide catalogue
             </h2>
             <p className="catalogue__sub" data-reveal>
-              Tailored to you
+              Tailored by you
             </p>
             <p className="catalogue__link" data-reveal>
               <Link className="inline-link" href="/shop" prefetch={false}>
