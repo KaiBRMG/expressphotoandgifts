@@ -180,6 +180,17 @@ body {
   outline-color: var(--ink);
 }
 
+/* A white sheet held inside a dark ground, like the header's search window:
+   back to the paper's ring and the paper's links. */
+.on-dark .on-light :focus-visible,
+.on-dark .on-light:focus-visible {
+  outline-color: var(--blue);
+}
+
+.on-dark .on-light .inline-link:hover {
+  color: var(--blue);
+}
+
 a {
   color: inherit;
   text-decoration-thickness: 1px;

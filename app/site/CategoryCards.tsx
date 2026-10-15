@@ -15,10 +15,10 @@ import { CATEGORIES } from "./data";
 
 /** Each category's drawing, keyed by its slug. */
 const ICONS: Record<string, typeof Photos> = {
-  photos: Photos,
+  "photo-printing": Photos,
   frames: Frame,
-  "personalised-gifts": Mug,
-  batteries: Battery,
+  "photo-gifts": Mug,
+  "add-ons": Battery,
   jewellery: Ring,
   cameras: Camera,
   "gift-wrapping": GiftBox,
@@ -47,9 +47,6 @@ export function CategoryCards() {
               className="cat"
               data-feature={feature ? "true" : undefined}
               href={`/shop/${slug}`}
-              /* These routes ship with the catalogue in a later pass.
-                 Prefetching a route that does not exist yet only buys a 404. */
-              prefetch={false}
             >
               <span className="cat__icon" aria-hidden="true">
                 <Icon size={28} />

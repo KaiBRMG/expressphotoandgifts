@@ -184,6 +184,22 @@ export function Cart(props: IconProps) {
   );
 }
 
+export function Minus(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M6 12h12" {...stroke} />
+    </Svg>
+  );
+}
+
+export function Plus(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 6v12M6 12h12" {...stroke} />
+    </Svg>
+  );
+}
+
 /*
  * The shop's categories. Same grid, same 1.6 stroke, but each is drawn as the
  * object on the counter rather than an abstract sign: two prints, a mitred
@@ -275,6 +291,180 @@ export function Tag(props: IconProps) {
       <circle cx="7.9" cy="7.9" r="1.3" {...stroke} />
       <path d="M11.3 16.2l4.4-4.4" {...stroke} />
       <path d="M11.7 12.4h.01M15.3 16h.01" {...stroke} strokeWidth={2.2} />
+    </Svg>
+  );
+}
+
+/*
+ * The shop's own marks for the catalogue. "Your photo" is a portrait print —
+ * a head and shoulders inside a print's edge — because what it promises is
+ * that the customer's own picture goes on the thing.
+ */
+
+export function YourPhoto(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="4.2" y="3.4" width="15.6" height="17.2" rx="1.3" {...stroke} />
+      <circle cx="12" cy="10" r="2.9" {...stroke} />
+      <path d="M6.9 20.4c.7-3.2 2.7-4.9 5.1-4.9s4.4 1.7 5.1 4.9" {...stroke} />
+    </Svg>
+  );
+}
+
+/* ---- The photo step's tools -------------------------------------------- */
+
+/** An arrow rising out of a tray: add photos. */
+export function Upload(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 15V4" {...stroke} />
+      <path d="M7.5 8.5 12 4l4.5 4.5" {...stroke} />
+      <path d="M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14" {...stroke} />
+    </Svg>
+  );
+}
+
+/** A quarter turn, clockwise. */
+export function Rotate(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" {...stroke} />
+      <path d="M19.5 4.5v4h-4" {...stroke} />
+    </Svg>
+  );
+}
+
+/** The two corner brackets of a crop. */
+export function Crop(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M6.5 3v14.5H21" {...stroke} />
+      <path d="M3 6.5h14.5V21" {...stroke} />
+    </Svg>
+  );
+}
+
+/** A disc half filled: colour to black and white. */
+export function Greyscale(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="8" {...stroke} />
+      <path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" />
+    </Svg>
+  );
+}
+
+export function Check(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="m5 12.5 4.5 4.5L19 7.5" {...stroke} />
+    </Svg>
+  );
+}
+
+/** A warning, drawn as a triangle with its mark. */
+export function Alert(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M10.3 4.3a2 2 0 0 1 3.4 0l7 12.2a2 2 0 0 1-1.7 3H5a2 2 0 0 1-1.7-3Z" {...stroke} />
+      <path d="M12 9.5v4" {...stroke} />
+      <circle cx="12" cy="16.6" r="0.4" {...stroke} />
+    </Svg>
+  );
+}
+
+export function Trash(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4.5 6.5h15" {...stroke} />
+      <path d="M9.5 6.5V4.5h5v2" {...stroke} />
+      <path d="M6.5 6.5 7.4 19a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-12.5" {...stroke} />
+    </Svg>
+  );
+}
+
+/** A magnifier with a plus: zoom in. */
+export function ZoomIn(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="10.5" cy="10.5" r="6.5" {...stroke} />
+      <path d="m15.5 15.5 4.5 4.5M10.5 7.8v5.4M7.8 10.5h5.4" {...stroke} />
+    </Svg>
+  );
+}
+
+/** A rectangle turned through a quarter: the print's orientation. */
+export function Turn(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3.5" y="7" width="11" height="14" rx="1.5" {...stroke} />
+      <path d="M13 3.5h4.5A3 3 0 0 1 20.5 6.5V11" {...stroke} />
+      <path d="m18.5 9 2 2 2-2" {...stroke} />
+    </Svg>
+  );
+}
+
+/** A pencil: edit this photo. */
+export function Pencil(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M15.5 4.5 19.5 8.5 8.5 19.5H4.5V15.5Z" {...stroke} />
+      <path d="M13 7l4 4" {...stroke} />
+    </Svg>
+  );
+}
+
+/* ---- Admin console --------------------------------------------------------- */
+
+export function Box(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3.4l7.6 4v9.2L12 20.6l-7.6-4V7.4z" {...stroke} />
+      <path d="M4.4 7.4L12 11.4l7.6-4M12 11.4v9.2" {...stroke} />
+    </Svg>
+  );
+}
+
+export function External(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M13.6 5H19v5.4M19 5l-8 8" {...stroke} />
+      <path d="M17 13.6V18a1.6 1.6 0 0 1-1.6 1.6H6.6A1.6 1.6 0 0 1 5 18V8.6A1.6 1.6 0 0 1 6.6 7H11" {...stroke} />
+    </Svg>
+  );
+}
+
+export function SignOut(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M10 4.6H6.6A1.6 1.6 0 0 0 5 6.2v11.6a1.6 1.6 0 0 0 1.6 1.6H10" {...stroke} />
+      <path d="M14.6 8l4 4-4 4M18.6 12H9.4" {...stroke} />
+    </Svg>
+  );
+}
+
+/** The handle a row is dragged by. */
+export function Grip(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M9.4 6.4h.01M14.6 6.4h.01M9.4 12h.01M14.6 12h.01M9.4 17.6h.01M14.6 17.6h.01" {...stroke} strokeWidth={2.6} />
+    </Svg>
+  );
+}
+
+export function ArrowUp(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 19V5M6 11l6-6 6 6" {...stroke} />
+    </Svg>
+  );
+}
+
+export function Ruler(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3.6 15.6L15.6 3.6l4.8 4.8-12 12z" {...stroke} />
+      <path d="M7.4 11.8l1.8 1.8M10 9.2l1.4 1.4M12.6 6.6l1.8 1.8" {...stroke} />
     </Svg>
   );
 }

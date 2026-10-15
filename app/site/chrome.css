@@ -1,0 +1,1470 @@
+/*
+ * Site chrome: the shared atoms (shell, headings, the highlighter, inline
+ * links, buttons), the header, the footer, the order dock and the skip link.
+ * Every page imports this; page stylesheets hold only their own rooms.
+ */
+
+/* ---- Shared ------------------------------------------------------------ */
+
+.shell {
+  width: 100%;
+  max-width: var(--shell);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.section {
+  padding-block: clamp(62px, 9vw, 130px);
+}
+
+.h2 {
+  font-size: clamp(1.9rem, 4.4vw, 3.6rem);
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.lede {
+  max-width: var(--measure);
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  line-height: 1.62;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.on-dark .lede {
+  color: var(--on-leather-soft);
+}
+
+/* The shop's highlighter, drawn under the line rather than behind it. */
+.marked {
+  background-image: linear-gradient(to top, var(--gold) 42%, transparent 42%);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  padding-inline: 4px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* On a dark ground the stroke has to carry the whole line. A 42% underline
+   would leave the top of every glyph in ink against near-black; filling the
+   line keeps the pairing amber-and-ink, which is the legible one. It is still
+   a gradient, so the highlighter still fills in from 0% as it arrives. */
+.on-dark .marked {
+  background-image: linear-gradient(var(--gold), var(--gold));
+  padding-block: 0.12em;
+}
+
+/* A link inside prose. Underlined in the shop's highlighter so it reads as a
+   link without changing the colour of the sentence it sits in. */
+.inline-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
+  transition: color 0.25s var(--ease-out);
+}
+
+.inline-link:hover {
+  color: var(--blue);
+}
+
+/* The same link as a button, for actions that stay on the page. */
+button.inline-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.on-dark .inline-link:hover {
+  color: var(--print);
+}
+
+/* ---- The title band: a shelf's name, the photo step's ------------------ */
+
+/* The bar's blue carries on into the title, so header and name read as one
+   ground and everything under it is white and products. */
+.shelfhead {
+  background: var(--leather);
+  color: var(--print);
+  padding-block: clamp(22px, 3.4vw, 48px) clamp(26px, 3.6vw, 52px);
+}
+
+.shelfhead__crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  list-style: none;
+  font-size: 1rem;
+  color: var(--on-leather-soft);
+}
+
+.shelfhead__crumbs li + li::before {
+  content: "/";
+  margin-inline: 0.55rem;
+  color: var(--gold);
+}
+
+.shelfhead__crumbs a,
+.shelfhead__crumbs button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.shelfhead__crumbs a:hover,
+.shelfhead__crumbs button:hover {
+  color: var(--print);
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
+}
+
+.shelfhead__title {
+  margin: 0;
+  font-size: clamp(1.9rem, 4.4vw, 3.6rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+/* ---- Buttons ----------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.95rem 1.65rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform 0.45s var(--ease-out),
+    background-color 0.25s,
+    border-color 0.25s,
+    box-shadow 0.45s var(--ease-out);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn--gold {
+  background: var(--gold);
+  color: var(--ink);
+  box-shadow: var(--shadow-gold);
+}
+
+.btn--gold:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-gold-hover);
+}
+
+.btn--blue {
+  background: var(--blue);
+  color: var(--print);
+  box-shadow: var(--shadow-blue);
+}
+
+/* The blue has no lighter step to brighten into — there is only the one blue
+   — so under the pointer it lifts and its glow deepens instead. */
+.btn--blue:hover {
+  box-shadow: var(--shadow-blue-hover);
+  transform: translateY(-2px);
+}
+
+/* ---- Header ------------------------------------------------------------ */
+
+/* Solid brand blue, which is also what the white-lettered logo needs under it.
+   The wall under it is white-ground studio shots, so the bar ends on a clean
+   edge and needs no shadow to hold itself off the page. */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: var(--blue);
+  color: var(--print);
+}
+
+.header__bar {
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 3vw, 36px);
+  padding: 0.7rem var(--gutter);
+  max-width: var(--shell);
+  margin-inline: auto;
+}
+
+.header__logo {
+  flex: none;
+  min-width: 0;
+}
+
+/*
+ * The wordmark is a 7:1 mark, so below the shell breakpoint it is sized by
+ * width and not by height: a bar holding a very wide mark and three targets has
+ * width, not height, as its scarce axis, and sizing by height is what let the
+ * mark run the actions off the end of the screen at every phone width.
+ * Above 62rem the bar has room to spare and the mark goes back to being set by
+ * its height, which is what keeps it in step with the bar's own 74px.
+ */
+.header__logo img {
+  width: clamp(175px, 46vw, 210px);
+  height: auto;
+}
+
+@media (min-width: 62rem) {
+  .header__logo img {
+    width: auto;
+    height: clamp(35px, 3.7vw, 48px);
+  }
+}
+
+.header__nav {
+  display: none;
+  gap: clamp(12px, 1.7vw, 28px);
+  margin-inline-start: auto;
+  font-size: 13.5px;
+  color: var(--on-leather-soft);
+}
+
+.header__nav a {
+  text-decoration: none;
+  padding-block: 0.3rem;
+  border-bottom: 2px solid transparent;
+  transition:
+    color 0.2s,
+    border-color 0.2s;
+}
+
+.header__nav a:hover {
+  color: var(--print);
+  border-bottom-color: var(--gold);
+}
+
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-inline-start: auto;
+}
+
+.header__actions > .btn {
+  padding: 0.6rem 1.05rem;
+  font-size: 13.5px;
+}
+
+/* The three icon controls. Bare marks, not pills: the gold Shop now beside
+   them is the bar's one filled shape, and three more outlined circles would
+   turn the right end of the header into a row of buttons with no hierarchy. */
+.header__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 44px, because on a phone these three marks are most of what the bar is for
+     and the audience for this shop spans a wide age range. The mark inside
+     stays 21px; it is the target that grows, not the drawing. */
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  color: var(--print);
+  text-decoration: none;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.header__icon:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+
+/*
+ * At the narrow end the wordmark and three targets are wider than the screen.
+ * At 320px the gutter takes 40px, three 44px marks take 132px, and the logo at
+ * its 35px floor is another 152px — over the 280px available before any gap is
+ * counted at all, and `overflow-x: hidden` on the body was quietly clipping the
+ * basket rather than letting it show as a scroll.
+ *
+ * The air goes first, then the wordmark: the marks are what the bar is for down
+ * here, so they keep full size and the logo drops to a floor that fits. The
+ * logo is still legible at 28px — it is a wordmark, not a detail drawing.
+ */
+@media (max-width: 26rem) {
+  .header__bar {
+    gap: 8px;
+  }
+
+  .header__actions {
+    gap: 0;
+  }
+
+  /* The account steps out here; see HEADER_ICONS in SiteHeader.tsx for why it
+     is the one that goes. Two targets and the wordmark fit at 320px. */
+  .header__icon[data-narrow="drop"] {
+    display: none;
+  }
+}
+
+/* ---- Search ------------------------------------------------------------ */
+
+/* The bar is what the open field and its window are placed against. */
+.header__bar {
+  position: relative;
+}
+
+/* Open, the field takes the bar's right end, grown leftwards out of the
+   search mark; on a phone it takes the whole bar, wordmark and all, because a
+   field narrower than the thumb typing into it is no field. */
+.search__panel {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: var(--gutter);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+}
+
+@media (min-width: 46rem) {
+  .search__panel {
+    inset-inline-start: auto;
+    width: min(30rem, calc(100% - 2 * var(--gutter)));
+  }
+}
+
+.search__field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  height: 48px;
+  padding-inline: 1.1rem 0.3rem;
+  border-radius: 999px;
+  background: var(--print);
+  color: var(--ink);
+  box-shadow: 0 10px 28px -14px rgb(0 0 0 / 0.45);
+  animation: search-grow 0.45s var(--ease-out);
+}
+
+.search__field:focus-within {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
+
+/* 16px, so mobile Safari never zooms the page when the field is tapped. */
+.search__field input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  outline: none;
+}
+
+.search__field input::placeholder {
+  color: var(--ink-faint);
+}
+
+.search__field input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.search__close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.search__close:hover {
+  background: rgb(1 38 186 / 0.08);
+}
+
+/* The window: a sheet of the shop's white hung from the bar's right end, as
+   tall as the screen allows and scrolling inside itself past that. */
+.search__window {
+  position: absolute;
+  top: calc(100% - 4px);
+  inset-inline: 0;
+  max-height: calc(100dvh - var(--header-h) - 20px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.5rem;
+  border: 1px solid var(--rule-card);
+  border-radius: var(--radius);
+  background: var(--print);
+  color: var(--ink);
+  box-shadow: 0 28px 60px -26px rgb(0 0 0 / 0.45);
+  animation: search-drop 0.35s var(--ease-out);
+}
+
+.search__note {
+  margin: 0;
+  padding: 0.85rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.search__note em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Shelves and filters the words name outright, as the catalogue's pills. */
+.search__shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.35rem;
+  padding: 0.35rem 0.25rem 0.75rem;
+  border-bottom: 1px solid var(--rule-card);
+  list-style: none;
+}
+
+.search__shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.45rem 0.95rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.search__kind {
+  font-weight: 400;
+  color: var(--ink-faint);
+  transition: color 0.2s;
+}
+
+.search__shortcut:hover,
+.search__shortcut[aria-selected="true"] {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--print);
+}
+
+.search__shortcut:hover .search__kind,
+.search__shortcut[aria-selected="true"] .search__kind {
+  color: var(--on-leather-soft);
+}
+
+.search__results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search__result {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.45rem;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.search__result:hover,
+.search__result[aria-selected="true"] {
+  background: rgb(1 38 186 / 0.07);
+}
+
+/* The shop's shots are on white, so they sit whole in a pale tile rather
+   than being cropped to fill it. */
+.search__thumb {
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: rgb(1 38 186 / 0.05);
+}
+
+.search__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.search__text {
+  display: grid;
+  min-width: 0;
+}
+
+.search__name,
+.search__meta {
+  overflow: hidden;
+  font-size: 1rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.search__name {
+  font-weight: 600;
+}
+
+.search__meta {
+  color: var(--ink-soft);
+}
+
+.search__all {
+  justify-content: center;
+  width: calc(100% - 0.5rem);
+  margin: 0.45rem 0.25rem 0.25rem;
+  padding: 0.85rem 1.2rem;
+  font-size: 1rem;
+}
+
+.search__all[aria-selected="true"] {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+@keyframes search-grow {
+  from {
+    clip-path: inset(0 0 0 calc(100% - 48px) round 999px);
+  }
+  to {
+    clip-path: inset(0 round 999px);
+  }
+}
+
+@keyframes search-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search__field,
+  .search__window {
+    animation: none;
+  }
+}
+
+/* On a phone the bar is the wordmark and the three marks. The section links
+   are on the page a scroll away, and Shop now is already docked at the foot
+   of the screen within thumb reach — a second gold pill a few centimetres
+   above it would be the same tap twice. */
+@media (max-width: 61.99rem) {
+  .header__shop {
+    display: none;
+  }
+}
+
+@media (min-width: 62rem) {
+  .header__nav {
+    display: flex;
+  }
+  .header__actions {
+    margin-inline-start: 0;
+    gap: 0.35rem;
+  }
+  /* The gold pill is the step up from the plain section links, so it keeps a
+     little air of its own before the marks begin. */
+  .header__shop {
+    margin-inline-end: 0.45rem;
+  }
+}
+
+
+/* ---- The shop's counter ------------------------------------------------- */
+
+/* These four blocks no longer have a section of their own: they are the top of
+   the footer. The ground comes from `.footer`, which is why there is no
+   background declared here. */
+
+.shop__grid {
+  display: grid;
+  gap: clamp(2.2rem, 4.5vw, 4rem);
+  margin-top: clamp(2rem, 3.6vw, 3rem);
+}
+
+@media (min-width: 56rem) {
+  .shop__grid {
+    grid-template-columns: 1.15fr 1fr 1fr;
+  }
+}
+
+.shop__block h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.shop__address {
+  font-style: normal;
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  line-height: 1.65;
+}
+
+.shop__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 2px;
+}
+
+.hours {
+  width: 100%;
+  /* Below the three-column breakpoint this table has the whole shell to
+     itself; uncapped, the day and its time end up at opposite ends of the
+     screen and stop reading as one row. */
+  max-width: 26rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.hours th,
+.hours td {
+  padding: 0.58rem 0;
+  text-align: start;
+  font-size: 15.5px;
+  font-weight: 400;
+  border-bottom: 1px solid var(--rule-leather);
+}
+
+.hours td {
+  text-align: end;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13.5px;
+  color: var(--on-leather-soft);
+}
+
+.hours tr[data-closed="true"] td {
+  color: var(--print);
+}
+
+.contacts {
+  display: grid;
+  gap: 0.1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Five links stacked on a phone, each one a way to reach a real shop — so the
+   row is padded to a 44px target rather than to the height of its own text. */
+.contacts a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 44px;
+  padding: 0.35rem 0;
+  font-size: 15.5px;
+  text-decoration: none;
+}
+
+.contacts a:hover {
+  color: var(--gold);
+}
+
+.contacts svg {
+  flex: none;
+  color: var(--on-leather-soft);
+}
+
+/* ---- Footer ------------------------------------------------------------ */
+
+/*
+ * The footer is the shop's counter, kept compact: the heading, the three
+ * columns of where / when / how to reach it, the sign-up as one row
+ * held off by a hairline, and the colophon. The same brand blue as the
+ * header, so the page opens and closes on the one blue.
+ */
+
+.footer {
+  background: var(--leather);
+  color: var(--print);
+}
+
+.footer__top {
+  padding-top: clamp(48px, 6vw, 84px);
+}
+
+/* A step under the section headline: in a compact footer this names the
+   columns under it rather than opening a new room. */
+.footer__title {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+/*
+ * The sign-up is the only thing down here that is not a detail of the shop, so
+ * it is the only thing ruled off from what sits above it. Wide, it is one row
+ * on the same three columns as the blocks above: what it is for under `The
+ * shop`, the line to write on across the other two.
+ */
+.footer__base {
+  display: grid;
+  gap: 1.2rem;
+  margin-top: clamp(2.2rem, 4vw, 3.2rem);
+  padding-top: clamp(1.8rem, 3vw, 2.4rem);
+  border-top: 1px solid var(--rule-leather);
+}
+
+@media (min-width: 56rem) {
+  .footer__base {
+    grid-template-columns: 1.15fr 2fr;
+    gap: clamp(2.2rem, 4.5vw, 4rem);
+    align-items: center;
+  }
+}
+
+.footer__signup-copy {
+  max-width: 30rem;
+}
+
+.footer__signup {
+  max-width: 34rem;
+}
+
+.footer__signup-title {
+  margin: 0;
+  font-size: clamp(1.15rem, 1.8vw, 1.4rem);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--print);
+}
+
+.footer__signup-sub {
+  margin: 0.45rem 0 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--on-leather-soft);
+}
+
+/* The sign-up field: one rule under the line, the submit sitting on its end,
+   so the whole thing reads as a line to write on rather than a boxed form. */
+.newsletter {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  border-bottom: 1px solid var(--rule-leather);
+  transition: border-color 0.2s;
+}
+
+.newsletter:focus-within {
+  border-color: var(--gold);
+}
+
+.newsletter__input {
+  padding: 0.55rem 0;
+  border: 0;
+  background: none;
+  color: var(--print);
+  caret-color: var(--gold);
+  font: inherit;
+  /* 16px, not less: anything smaller makes mobile Safari zoom on focus. */
+  font-size: 16px;
+}
+
+.newsletter__input::placeholder {
+  color: var(--on-leather-soft);
+}
+
+/* The rule under the field is the focus indicator; a ring around a bare
+   input drawn on top of it would only double the same signal. */
+.newsletter__input:focus {
+  outline: none;
+}
+
+/* Chrome paints its own near-white ground on an autofilled field, which on
+   this footer reads as a broken input. There is no property for it, so the
+   ground is held by an inset shadow and the text by the fill colour. */
+.newsletter__input:-webkit-autofill,
+.newsletter__input:-webkit-autofill:hover,
+.newsletter__input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--print);
+  -webkit-box-shadow: 0 0 0 40px var(--leather) inset;
+  caret-color: var(--gold);
+}
+
+.newsletter__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--print);
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.newsletter__submit:hover {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+/* The consent line under the rule. */
+.newsletter__fine,
+.newsletter__done {
+  margin: 1.1rem 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--on-leather-soft);
+}
+
+/* The acknowledgement takes the field's place, not the small print's, so it
+   opens on the line the visitor was just typing on rather than a line lower.
+   It is focused on submit, so it takes the footer's amber ring. */
+.newsletter__done {
+  margin-top: 0;
+  color: var(--gold);
+}
+
+/*
+ * The last row is sized to the dock. When the page bottoms out the docked pair
+ * sits at the foot of the viewport, which is now this row: wide, the colophon
+ * holds the left end of it, level with the pill, and the dock rests on the
+ * right. On a phone the pair spans too much of the width to share, so the
+ * colophon takes a line above and the row below it is left for the dock.
+ */
+.footer__end {
+  display: flex;
+  align-items: center;
+  padding-top: clamp(1.6rem, 2.6vw, 2.2rem);
+  padding-bottom: calc(var(--dock-h) + 0.6rem);
+}
+
+@media (min-width: 46rem) {
+  /* The dock's 60px plus this row's own padding. Border-box like every
+     shell: content-box added the gutters to a 100%-wide row, which ran it
+     past the screen and pulled the colophon off the page's left edge. */
+  .footer__end {
+    --end-top: clamp(0.6rem, 1.2vw, 1rem);
+    --end-bottom: clamp(20px, 2.6vw, 34px);
+    height: calc(60px + var(--end-top) + var(--end-bottom));
+    padding-top: var(--end-top);
+    padding-bottom: var(--end-bottom);
+  }
+}
+
+/* The base line: the one piece of small print, in mono like every other
+   measured thing on the page. */
+.footer__colophon {
+  margin: 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--on-leather-soft);
+}
+
+/* ---- The order dock ---------------------------------------------------- */
+
+/*
+ * The counter, docked to the foot of the viewport at every width: the gold
+ * pill and the round WhatsApp mark, floating on the shell's right edge with
+ * nothing drawn behind them. A strip across the phone used to carry them, and
+ * it cost a permanent band of the smallest screen to hold two shapes that
+ * already read on their own.
+ *
+ * The container is inert; only the two controls take the pointer, so the page
+ * underneath stays reachable across the dock's full width.
+ */
+.dock {
+  position: fixed;
+  inset: auto 0 clamp(16px, 2.6vw, 34px) 0;
+  z-index: 70;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  pointer-events: none;
+}
+
+.dock__inner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  max-width: var(--shell);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.dock__cta {
+  flex: none;
+  pointer-events: auto;
+  justify-content: center;
+  padding: 0.95rem 1.5rem;
+}
+
+/* This one mark has to stay legible over white and over every blue ground in
+   turn. Print white is the only ground that reads on both; the hairline is
+   what keeps it off the white. */
+.dock__chat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  pointer-events: auto;
+  width: 52px;
+  height: 52px;
+  background: var(--print);
+  border: 1px solid rgb(1 38 186 / 0.22);
+  border-radius: 999px;
+  color: var(--blue);
+  text-decoration: none;
+  box-shadow: var(--shadow-blue);
+  transition:
+    border-color 0.25s,
+    transform 0.45s var(--ease-out),
+    box-shadow 0.45s var(--ease-out);
+}
+
+.dock__chat:hover {
+  border-color: rgb(1 38 186 / 0.5);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-blue-hover);
+}
+
+.dock__chat:active {
+  transform: scale(0.98);
+}
+
+/* Room to breathe once there is a page wide enough to give it. */
+@media (min-width: 46rem) {
+  .dock__cta {
+    padding: 1.05rem 1.9rem;
+    font-size: 1rem;
+  }
+
+  .dock__chat {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+/* The pill once the cart holds something: the same gold, because the cart is
+   now the action to take, carrying the count on a blue disc. The disc pops
+   each time the count changes; under reduced motion it simply changes. */
+.dock__cart {
+  gap: 0.55rem;
+  padding-right: 0.7rem;
+}
+
+.dock__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.9rem;
+  height: 1.9rem;
+  padding-inline: 0.45rem;
+  border-radius: 999px;
+  background: var(--blue);
+  color: var(--print);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 16px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  animation: count-bump 0.55s var(--ease-out);
+}
+
+@keyframes count-bump {
+  from {
+    transform: scale(0.55);
+  }
+  55% {
+    transform: scale(1.14);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* ---- Quantity stepper -------------------------------------------------- */
+
+/* A pill holding two 44px round steps: on the product page and in the cart. */
+.qty {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+}
+
+.qty__step {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--blue);
+  cursor: pointer;
+  transition: background-color 0.25s var(--ease-out);
+}
+
+.qty__step:hover:not(:disabled) {
+  background: rgb(1 38 186 / 0.07);
+}
+
+.qty__step:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.qty__input {
+  width: 3.4ch;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- The counter slip ------------------------------------------------- */
+
+/* Ruled, not boxed: it is the order written down, not a thing to press. */
+.slip {
+  display: grid;
+  gap: 0.3rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.slip__line {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.slip__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.cart__excl {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.slip__total strong {
+  font-size: clamp(1.2rem, 2.2vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- The cart drawer --------------------------------------------------- */
+
+/*
+ * A native modal dialog, drawn as a panel on the right edge: the full width on
+ * a phone, 28rem from there. It slides in over a blue-tinted scrim, never a
+ * grey one, and opens on a blue band that carries the header's blue into it.
+ * The lines scroll between the band and the slip; the slip and the way out
+ * never leave the screen.
+ */
+.cart {
+  --cart-pad: clamp(20px, 5vw, 28px);
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(100vw, 28rem);
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--paper);
+  color: var(--ink);
+  transform: translateX(100%);
+  transition:
+    transform 0.5s var(--ease-out),
+    overlay 0.5s allow-discrete,
+    display 0.5s allow-discrete;
+}
+
+.cart[open] {
+  transform: none;
+}
+
+@starting-style {
+  .cart[open] {
+    transform: translateX(100%);
+  }
+}
+
+.cart::backdrop {
+  background: rgb(1 38 186 / 0);
+  transition:
+    background-color 0.4s var(--ease-out),
+    overlay 0.4s allow-discrete,
+    display 0.4s allow-discrete;
+}
+
+.cart[open]::backdrop {
+  background: rgb(1 38 186 / 0.34);
+}
+
+@starting-style {
+  .cart[open]::backdrop {
+    background: rgb(1 38 186 / 0);
+  }
+}
+
+/* The page behind holds still while the cart is open. */
+html:has(.cart[open]) {
+  overflow: hidden;
+}
+
+.cart__panel {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+}
+
+.cart__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: var(--header-h);
+  padding: 0.6rem calc(var(--cart-pad) - 10px) 0.6rem var(--cart-pad);
+  background: var(--leather);
+  color: var(--print);
+}
+
+.cart__title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.7rem;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.cart__units {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--on-leather-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.cart__close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--print);
+  cursor: pointer;
+  transition: background-color 0.25s var(--ease-out);
+}
+
+.cart__close:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.cart__lines {
+  margin: 0;
+  padding: 0 var(--cart-pad);
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.cart__line {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 1rem;
+  padding-block: 1.25rem;
+  border-bottom: 1px solid var(--rule-paper);
+}
+
+.cart__line:last-child {
+  border-bottom: 0;
+}
+
+.cart__thumb {
+  position: relative;
+  display: block;
+  align-self: start;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--rule-card);
+  border-radius: var(--radius-sm);
+  background: var(--print);
+}
+
+.cart__thumb img {
+  object-fit: cover;
+}
+
+.cart__info {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.cart__name {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.cart__name a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.cart__name a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.cart__variant,
+.cart__takes {
+  font-size: 1rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.cart__takes {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cart__takes svg {
+  flex: none;
+}
+
+/* A frame's print, offered on the line at the frame's own size: a pill on white, the price in mono. */
+.cart__frame {
+  display: grid;
+  justify-items: start;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+}
+
+.cart__addprint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.5rem 1rem 0.5rem 0.8rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--print);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.25s, background-color 0.25s;
+}
+
+.cart__addprint:hover {
+  border-color: var(--blue);
+  background: rgb(1 38 186 / 0.05);
+}
+
+.cart__addprint span {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.cart__flag {
+  margin-top: 0.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.cart__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+  margin-top: 0.6rem;
+}
+
+/* Buttons worn as `.inline-link`: only the button's own chrome is reset. */
+.cart__remove,
+.cart__keep {
+  min-height: 44px;
+  padding: 0 0.15rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.cart__price {
+  margin-left: auto;
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cart__line[data-unavailable] .cart__thumb {
+  opacity: 0.45;
+}
+
+.cart__line[data-unavailable] .cart__name {
+  color: var(--ink-soft);
+}
+
+/* The slip: ruled, not boxed, and always on screen under the lines. */
+.cart__foot {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.1rem var(--cart-pad) calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--rule-paper);
+}
+
+.cart__order {
+  justify-content: center;
+  min-height: 54px;
+}
+
+.cart__note {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.cart__keep {
+  justify-self: center;
+  font-weight: 600;
+}
+
+.cart__empty {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 1.4rem;
+  padding: clamp(28px, 6vw, 44px) var(--cart-pad);
+}
+
+.cart__empty p {
+  font-size: clamp(1.2rem, 2.2vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+/* Under reduced motion the panel fades in place instead of travelling. */
+@media (prefers-reduced-motion: reduce) {
+  .cart {
+    transform: none;
+    opacity: 0;
+    transition:
+      opacity 0.25s,
+      overlay 0.25s allow-discrete,
+      display 0.25s allow-discrete;
+  }
+
+  .cart[open] {
+    opacity: 1;
+  }
+
+  @starting-style {
+    .cart[open] {
+      transform: none;
+      opacity: 0;
+    }
+  }
+}
+
+/* ---- Skip link --------------------------------------------------------- */
+
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 1rem 1.4rem;
+  background: var(--print);
+  color: var(--ink);
+  font-weight: 600;
+  outline: 3px solid var(--blue);
+}
+
+.skip:focus {
+  left: 0;
+}

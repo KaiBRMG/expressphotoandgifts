@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-22T00:00:00.000Z",
+  "generatedAt": "2026-10-07T18:00:00.000Z",
   "title": "Design System: Express Photo and Gifts",
   "extensions": {
     "colorMeta": {
@@ -8,7 +8,7 @@
         "role": "primary",
         "displayName": "Brand Deep Blue",
         "canonical": "#0126BA",
-        "note": "Binding brand value, supplied by the shop. Owns cover, running band and find-us whole. Takes white text.",
+        "note": "The binding brand value, supplied by the shop. Owns the header, the cover's bands and leaning edge, the catalogue and the footer whole. On white it is the ink, the focus ring and the caret. Takes white text. In the shop: the catalogue title band, the current rail entry, the pressed photo toggle, the board's see-all door and a budget door under the pointer.",
         "tonalRamp": [
           "#000516",
           "#000B33",
@@ -20,27 +20,11 @@
           "#C8D2F6"
         ]
       },
-      "blue-lift": {
-        "role": "primary",
-        "displayName": "Blue Lift",
-        "canonical": "#1C45E0",
-        "note": "Hover state for the blue action only; not a surface colour.",
-        "tonalRamp": [
-          "#020A33",
-          "#04135C",
-          "#061C85",
-          "#0825AE",
-          "#1C45E0",
-          "#4359E4",
-          "#8395EF",
-          "#C4CDF8"
-        ]
-      },
       "gold": {
         "role": "secondary",
         "displayName": "Foil Amber",
         "canonical": "#FFB72A",
-        "note": "The shop's highlighter. Pairs legibly with ink or brand blue; never takes white text; never a region's background.",
+        "note": "The shop's highlighter: the Shop now action, the marked line, band slashes, marks on blue, the footer's phone and links underline. Pairs with ink or brand blue, never takes white text, never a region's background. In the shop: the count in the storefront sign, the Special chip, breadcrumb slashes, door go discs, the size chart's picked outline and radio dot.",
         "tonalRamp": [
           "#3A2500",
           "#5C3B00",
@@ -68,75 +52,27 @@
           "#C8D2F6"
         ]
       },
-      "leather-deep": {
-        "role": "neutral",
-        "displayName": "Deep Leather",
-        "canonical": "#000F5A",
-        "note": "The darkest stop in the cover scrim, and the only place it appears.",
-        "tonalRamp": [
-          "#00040F",
-          "#00071F",
-          "#000A3A",
-          "#000C4A",
-          "#000F5A",
-          "#0C2698",
-          "#3F58D2",
-          "#9FAEEC"
-        ]
-      },
-      "card": {
-        "role": "neutral",
-        "displayName": "Night Card",
-        "canonical": "#0B0D16",
-        "note": "Closes the page: collect-or-deliver and the footer.",
-        "tonalRamp": [
-          "#0B0D16",
-          "#151824",
-          "#222639",
-          "#343A55",
-          "#4B5277",
-          "#6D739B",
-          "#9BA0BE",
-          "#D2D5E3"
-        ]
-      },
       "paper": {
         "role": "neutral",
-        "displayName": "Shop Paper",
-        "canonical": "#FBFAF8",
-        "note": "Body ground, the gifting reading surface, and the translucent header's base.",
+        "displayName": "Shop White",
+        "canonical": "#FFFFFF",
+        "note": "The body ground and the reading surface for the categories and the gifting section.",
         "tonalRamp": [
-          "#1B1A17",
-          "#35332E",
-          "#514D46",
-          "#6F6A60",
-          "#928C80",
-          "#B8B2A6",
-          "#E2DED6",
-          "#FBFAF8"
-        ]
-      },
-      "paper-deep": {
-        "role": "neutral",
-        "displayName": "Deeper Paper",
-        "canonical": "#F2EFE9",
-        "note": "The shelf's trough, ruled top and bottom; also the scrollbar track.",
-        "tonalRamp": [
-          "#1A1814",
-          "#32302A",
-          "#4D4941",
-          "#6C665B",
-          "#8F887A",
-          "#B6AFA1",
-          "#D8D3C9",
-          "#F2EFE9"
+          "#151515",
+          "#2E2E2E",
+          "#4A4A4A",
+          "#6B6B6B",
+          "#909090",
+          "#B8B8B8",
+          "#DEDEDE",
+          "#FFFFFF"
         ]
       },
       "print": {
         "role": "neutral",
         "displayName": "Print White",
         "canonical": "#FFFFFF",
-        "note": "Shelf cards, the photographs' own backing, the skip link.",
+        "note": "Cards, the photographs' own backing, the dock's round mark, the skip link.",
         "tonalRamp": [
           "#151515",
           "#2E2E2E",
@@ -151,55 +87,56 @@
       "ink": {
         "role": "neutral",
         "displayName": "Ink",
-        "canonical": "#101013",
-        "note": "Body text on paper, and the label on amber.",
+        "canonical": "#0126BA",
+        "note": "Body text on white, and the label on amber. The brand blue itself, 10.6:1 on white. There is no black.",
         "tonalRamp": [
-          "#101013",
-          "#1E1E23",
-          "#2F2F38",
-          "#464653",
-          "#626274",
-          "#8A8A9B",
-          "#B9B9C6",
-          "#E4E4EB"
+          "#000516",
+          "#000B33",
+          "#001156",
+          "#00177E",
+          "#0126BA",
+          "#2A48CE",
+          "#7A90E6",
+          "#C8D2F6"
         ]
       },
       "ink-soft": {
         "role": "neutral",
         "displayName": "Soft Ink",
-        "canonical": "#4C5070",
-        "note": "Secondary prose on paper. Blue-leaning, never grey.",
+        "canonical": "rgb(1 38 186 / 0.8)",
+        "note": "Secondary prose on white: the blue let through to the white under it, 6.6:1.",
         "tonalRamp": [
-          "#0E0F16",
-          "#1D1F2C",
-          "#2E3145",
-          "#3D405C",
-          "#4C5070",
-          "#6F7495",
-          "#9CA0BA",
-          "#CDCFDE"
+          "#000516",
+          "#000B33",
+          "#001156",
+          "#00177E",
+          "#0126BA",
+          "#2A48CE",
+          "#7A90E6",
+          "#C8D2F6"
         ]
       },
       "ink-faint": {
         "role": "neutral",
         "displayName": "Faint Ink",
-        "canonical": "#5F6480",
-        "note": "The quietest tone on paper: index numbers, the shelf hint, the occasions label, the placeholder note.",
+        "canonical": "rgb(1 38 186 / 0.72)",
+        "note": "The quietest text on white, 5.3:1.",
         "tonalRamp": [
-          "#12131A",
-          "#23252F",
-          "#363A4C",
-          "#494E68",
-          "#5F6480",
-          "#858AA3",
-          "#ACB0C2",
-          "#D6D8E1"
+          "#000516",
+          "#000B33",
+          "#001156",
+          "#00177E",
+          "#0126BA",
+          "#2A48CE",
+          "#7A90E6",
+          "#C8D2F6"
         ]
       },
       "on-leather": {
         "role": "neutral",
         "displayName": "On Leather",
         "canonical": "#FFFFFF",
+        "note": "Text on the blue grounds.",
         "tonalRamp": [
           "#151515",
           "#2E2E2E",
@@ -213,270 +150,276 @@
       },
       "on-leather-soft": {
         "role": "neutral",
-        "displayName": "Soft Periwinkle",
-        "canonical": "#B9C2EE",
-        "note": "Ledes, hours values and contact glyphs on blue.",
+        "displayName": "Soft White on Blue",
+        "canonical": "rgb(255 255 255 / 0.8)",
+        "note": "Ledes, nav links and hours values on blue, 7.2:1.",
         "tonalRamp": [
-          "#141A3A",
-          "#232D62",
-          "#33408A",
-          "#4657B0",
-          "#6070C6",
-          "#8D99DA",
-          "#B9C2EE",
-          "#E1E5F9"
-        ]
-      },
-      "on-card-soft": {
-        "role": "neutral",
-        "displayName": "Soft Card Ink",
-        "canonical": "#9AA0BF",
-        "note": "The softened tone on near-black.",
-        "tonalRamp": [
-          "#101223",
-          "#1E2140",
-          "#2E335E",
-          "#41477E",
-          "#5A619D",
-          "#7A81B0",
-          "#9AA0BF",
-          "#CBCFDF"
+          "#151515",
+          "#2E2E2E",
+          "#4A4A4A",
+          "#6B6B6B",
+          "#909090",
+          "#B8B8B8",
+          "#DEDEDE",
+          "#FFFFFF"
         ]
       },
       "rule-paper": {
         "role": "neutral",
         "displayName": "Paper Rule",
-        "canonical": "rgb(16 16 19 / 0.13)",
-        "note": "The hairline that separates ledger rows, card bodies and the shelf's edges on paper.",
+        "canonical": "rgb(1 38 186 / 0.12)",
+        "note": "Hairlines on white.",
         "tonalRamp": [
-          "rgb(16 16 19 / 0.04)",
-          "rgb(16 16 19 / 0.07)",
-          "rgb(16 16 19 / 0.09)",
-          "rgb(16 16 19 / 0.13)",
-          "rgb(16 16 19 / 0.16)",
-          "rgb(16 16 19 / 0.2)",
-          "rgb(16 16 19 / 0.3)",
-          "rgb(16 16 19 / 0.5)"
+          "#000516",
+          "#000B33",
+          "#001156",
+          "#00177E",
+          "#0126BA",
+          "#2A48CE",
+          "#7A90E6",
+          "#C8D2F6"
         ]
       },
       "rule-leather": {
         "role": "neutral",
         "displayName": "Leather Rule",
         "canonical": "rgb(255 255 255 / 0.22)",
-        "note": "The hairline on blue and near-black grounds.",
+        "note": "Hairlines on blue.",
         "tonalRamp": [
-          "rgb(255 255 255 / 0.06)",
-          "rgb(255 255 255 / 0.1)",
-          "rgb(255 255 255 / 0.15)",
-          "rgb(255 255 255 / 0.2)",
-          "rgb(255 255 255 / 0.22)",
-          "rgb(255 255 255 / 0.36)",
-          "rgb(255 255 255 / 0.6)",
-          "rgb(255 255 255 / 0.9)"
+          "#151515",
+          "#2E2E2E",
+          "#4A4A4A",
+          "#6B6B6B",
+          "#909090",
+          "#B8B8B8",
+          "#DEDEDE",
+          "#FFFFFF"
+        ]
+      },
+      "rule-card": {
+        "role": "neutral",
+        "displayName": "Card Rule",
+        "canonical": "rgb(1 38 186 / 0.1)",
+        "note": "The 1px edge of every white door card.",
+        "tonalRamp": [
+          "#000516",
+          "#000B33",
+          "#001156",
+          "#00177E",
+          "#0126BA",
+          "#2A48CE",
+          "#7A90E6",
+          "#C8D2F6"
+        ]
+      },
+      "rule-hair": {
+        "role": "neutral",
+        "displayName": "Hair Rule",
+        "canonical": "rgb(1 38 186 / 0.2)",
+        "note": "The edge of every pill control on white: category and rail pills, the photo toggle, the selects.",
+        "tonalRamp": [
+          "#000516",
+          "#000B33",
+          "#001156",
+          "#00177E",
+          "#0126BA",
+          "#2A48CE",
+          "#7A90E6",
+          "#C8D2F6"
+        ]
+      },
+      "rule-dark": {
+        "role": "neutral",
+        "displayName": "Dark Rule",
+        "canonical": "rgb(255 255 255 / 0.32)",
+        "note": "The stronger line on blue: the size chart's outlines at rest and its radio rings.",
+        "tonalRamp": [
+          "#151515",
+          "#2E2E2E",
+          "#4A4A4A",
+          "#6B6B6B",
+          "#909090",
+          "#B8B8B8",
+          "#DEDEDE",
+          "#FFFFFF"
         ]
       }
     },
     "typographyMeta": {
       "display": {
         "displayName": "Display",
-        "purpose": "The cover headline only, two lines, centred on the wall's widest blue band, capped at 4.75rem."
+        "purpose": "The cover headline only, on its own leaning blue band."
       },
       "headline": {
         "displayName": "Headline",
-        "purpose": "Every section h2, text-wrap balanced."
+        "purpose": "Every section h2, balanced."
       },
-      "band": {
-        "displayName": "Band",
-        "purpose": "The running word band — one weight lighter than a headline so a moving line does not out-shout a fixed one."
+      "band-strip": {
+        "displayName": "Band Strip",
+        "purpose": "The words travelling on the strips between the wall's rows."
       },
       "statement": {
         "displayName": "Statement",
-        "purpose": "The highlighter-marked line; the only prose that takes the amber stroke."
+        "purpose": "The highlighter-marked line."
+      },
+      "statement-loud": {
+        "displayName": "Statement Loud",
+        "purpose": "The gifting section's marked line, under a title already at display scale."
+      },
+      "ledger-name": {
+        "displayName": "Ledger Name",
+        "purpose": "The row heading in the delivery/collection ledger."
       },
       "subtitle": {
         "displayName": "Subtitle",
-        "purpose": "Collect-or-deliver headings, set inline with their icon."
+        "purpose": "The catalogue's amber subtitle and the way headings."
       },
       "title": {
         "displayName": "Title",
-        "purpose": "Service ledger names."
+        "purpose": "Category tile names."
       },
       "card-title": {
         "displayName": "Card Title",
-        "purpose": "Shelf card names."
+        "purpose": "Catalogue frame captions and product card names."
+      },
+      "price": {
+        "displayName": "Price",
+        "purpose": "Prices on product cards and in the size chart, tabular; also the weight of pill labels and the Special chip."
       },
       "cover-lede": {
         "displayName": "Cover Lede",
-        "purpose": "The one sentence under the display line, centred, capped at 40ch."
+        "purpose": "The one sentence on the cover's slim band, 44ch."
       },
       "address": {
         "displayName": "Address",
-        "purpose": "The street address block on blue."
+        "purpose": "The street address block in the footer."
       },
       "lede": {
         "displayName": "Lede",
-        "purpose": "Section-opening prose, capped at the 62ch measure."
-      },
-      "drawer-link": {
-        "displayName": "Drawer Link",
-        "purpose": "Mobile navigation links in the paper drawer."
+        "purpose": "Section-opening prose, 62ch measure."
       },
       "button": {
         "displayName": "Button",
-        "purpose": "Pill action labels; 13.5px in the compact header variant."
+        "purpose": "Pill action labels."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Fulfilment paragraphs, contact rows, hours day labels."
+        "purpose": "Footer contact links and hours day labels. Below the 16px Floor: outstanding debt."
       },
       "body-sm": {
         "displayName": "Body Small",
-        "purpose": "Ledger blurbs, footer lists and blurb, the fulfilment note."
-      },
-      "caption": {
-        "displayName": "Caption",
-        "purpose": "Chips and shelf card blurbs."
+        "purpose": "The sign-up's explanatory line. Below the 16px Floor: outstanding debt."
       },
       "micro": {
         "displayName": "Micro",
-        "purpose": "Compact header nav and actions, the shelf placeholder note."
+        "purpose": "The desktop-only header nav and compact gold action."
       },
       "mark": {
         "displayName": "Mark",
-        "purpose": "Mono section marks, the scroll cue and shop block headings. Uppercase, tracked 0.16em."
-      },
-      "mark-sm": {
-        "displayName": "Small Mark",
-        "purpose": "Footer column headings."
-      },
-      "index": {
-        "displayName": "Index",
-        "purpose": "The 01-04 ledger numbers."
+        "purpose": "The footer's block headings, mono, tracked and uppercase, in amber on blue. Below the 16px Floor: outstanding debt."
       },
       "slot": {
         "displayName": "Slot",
-        "purpose": "The reserved action slot on every ledger row, and the footer base line."
+        "purpose": "The footer's copyright line, mono."
       },
       "measure": {
         "displayName": "Measure",
-        "purpose": "Hours values, right-aligned and tabular."
+        "purpose": "Hours values, mono and tabular."
       },
       "colophon": {
         "displayName": "Colophon",
-        "purpose": "The footer phone number in amber mono."
+        "purpose": "The sign-up's thank-you line, mono."
+      },
+      "count": {
+        "displayName": "Count",
+        "purpose": "Mono product counts on category and rail pills, and the size chart's measures. 16px: the one mono role that meets the floor."
       }
     },
     "shadows": [
       {
-        "name": "action-gold",
+        "name": "shadow-gold",
         "value": "0 18px 38px -20px rgb(255 183 42 / 0.95)",
-        "purpose": "Under the amber primary action at rest."
+        "purpose": "Under the amber action. Hover: 0 22px 44px -20px rgb(255 183 42 / 1)."
       },
       {
-        "name": "action-gold-hover",
-        "value": "0 22px 44px -20px rgb(255 183 42 / 1)",
-        "purpose": "The amber action on hover, paired with a 2px lift."
-      },
-      {
-        "name": "action-blue",
+        "name": "shadow-blue",
         "value": "0 18px 40px -22px rgb(1 38 186 / 0.9)",
-        "purpose": "Under the blue action on paper."
+        "purpose": "Under the blue button, the dock's round mark, a category tile in its blue state and the board's see-all door; its hover value under a budget door turned blue. Hover: 0 24px 48px -22px rgb(1 38 186 / 0.95)."
       },
       {
-        "name": "card-lift",
-        "value": "0 22px 44px -32px rgb(1 38 186 / 0.55)",
-        "purpose": "The shelf card at rest; the only container shadow in the system."
+        "name": "shadow-card",
+        "value": "0 22px 44px -32px rgb(1 38 186 / 0.4)",
+        "purpose": "The category tile, the catalogue frame, the product card, the budget door at rest and standalone photographs (cover wall prints, the storefront portrait). Hover: 0 30px 54px -30px rgb(1 38 186 / 0.5)."
       },
       {
-        "name": "card-lift-hover",
-        "value": "0 30px 54px -30px rgb(1 38 186 / 0.6)",
-        "purpose": "The shelf card raised 4px on hover."
+        "name": "sign-lift",
+        "value": "drop-shadow(0 18px 28px rgb(1 38 186 / 0.28))",
+        "purpose": "A filter under every leaning sign: the cover's, the gifting section's and the storefront's."
       }
     ],
     "motion": [
       {
         "name": "ease-out",
         "value": "cubic-bezier(0.16, 1, 0.3, 1)",
-        "purpose": "The only CSS easing in the system: button lifts, card lifts and shadow transitions."
+        "purpose": "State transitions: button lift, card raise, glow."
       },
       {
-        "name": "press",
-        "value": "transform: scale(0.98)",
-        "purpose": "Active state on every pill action."
+        "name": "expo.out",
+        "value": "gsap expo.out",
+        "purpose": "Entrances: the signs running in along their lean (1.3s) and the reveal batch (0.9s)."
       },
       {
-        "name": "lift",
-        "value": "transform: translateY(-2px); 0.45s",
-        "purpose": "Hover on every button variant; 4px over 0.5s on the shelf card."
+        "name": "row-loops",
+        "value": "116s / 148s / 92s linear",
+        "purpose": "The cover wall's rows; the word strips run 66s / 52s so the wall never beats in time."
       },
       {
-        "name": "gsap-entrance",
-        "value": "headline and lede bands from { xPercent: -100, duration: 1.3, ease: 'expo.out', stagger: 0.12 }; sign scrubbed 0.6 to y -48 across the cover's pass",
-        "purpose": "The headline band running in along the wall's lean and coming to rest."
+        "name": "wheel-scrub",
+        "value": "scrub 0.6, --spin +2.2 to -2.2",
+        "purpose": "The catalogue wheel, geared to the page's scroll and bounded."
       },
       {
-        "name": "gsap-reveal",
-        "value": "ScrollTrigger.batch('[data-reveal]', { start: 'top 88%', once: true }) -> gsap.from({ y: 30, autoAlpha: 0, duration: 0.9, ease: 'expo.out', stagger: 0.08 })",
-        "purpose": "The one reveal grammar for sections; shelf cards use y: 40 / 0.8s / 0.07 at 'top 92%'."
+        "name": "wheel-hand",
+        "value": "0.9s power3.out coast; 0.7s per arrow press",
+        "purpose": "Hand-turning the wheel: a touch swipe or the desktop arrows, written to --drag."
       },
       {
-        "name": "gsap-wall",
-        "value": "rows at 58s / 74s / 46s linear, alternate rows reversed, xPercent 0 <-> -50; wall scrubbed 0.6 to yPercent 12, scale 1.06",
-        "purpose": "The three-speed cover wall and its scroll-linked drift."
-      },
-      {
-        "name": "gsap-band",
-        "value": "gsap.to('.band__track', { xPercent: -50, duration: 34, ease: 'none', repeat: -1 })",
-        "purpose": "The running word band's loop; the run is duplicated so the seam is invisible."
-      },
-      {
-        "name": "gsap-marked",
-        "value": "gsap.from('.marked', { backgroundSize: '0% 100%', duration: 0.9, ease: 'expo.out' })",
-        "purpose": "The highlighter stroke drawing itself in as the marked line arrives."
-      },
-      {
-        "name": "reduced-motion",
-        "value": "gsap.matchMedia() returns before any tween is created; CSS collapses animation/transition to 0.001ms",
-        "purpose": "prefers-reduced-motion is answered before motion exists, not by reverting it afterwards."
+        "name": "shop-hover",
+        "value": "0.25–0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The shop's only motion: card and door lifts (4px), the blue turn, the go disc's -4deg tilt, the card photo's 1.04 scale. No scroll motion or entrances in the shop; recorded as headroom."
       }
     ],
     "breakpoints": [
       {
-        "name": "row",
-        "value": "30rem"
+        "name": "chart-stack",
+        "value": "36rem"
       },
       {
-        "name": "pair",
-        "value": "46rem"
+        "name": "narrow",
+        "value": "26rem"
       },
       {
-        "name": "wide",
+        "name": "dock",
+        "value": "46rem",
+        "note": "Also: the dock's larger sizes, catalogue grid three-up, board three-up, glyphs and chart labels return."
+      },
+      {
+        "name": "wheel-2",
+        "value": "48rem"
+      },
+      {
+        "name": "grid",
         "value": "56rem"
       },
       {
-        "name": "split",
-        "value": "60rem"
-      },
-      {
         "name": "shell",
-        "value": "62rem"
-      }
-    ],
-    "focusRings": [
-      {
-        "name": "default",
-        "value": "outline: 3px solid var(--blue); outline-offset: 3px",
-        "purpose": "Every focusable element on paper."
+        "value": "62rem",
+        "note": "Also: the catalogue rail becomes a list beside the grid, shelves go four-up, the board six-up."
       },
       {
-        "name": "on-dark",
-        "value": "outline-color: var(--gold)",
-        "purpose": "Inside .on-dark; brand blue is invisible against a blue ground."
-      },
-      {
-        "name": "on-gold",
-        "value": "outline-color: var(--ink)",
-        "purpose": "On the amber action, where both blue and gold lose contrast."
+        "name": "wide",
+        "value": "90rem",
+        "note": "The wheel's widest tuning and the catalogue grid four-up."
       }
     ]
   },
@@ -485,124 +428,163 @@
       "name": "Primary Button (Amber)",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Start Order. Carries the WhatsApp mark because that is the channel it actually opens; focus ring flips to ink via .on-gold.",
-      "html": "<a class=\"ds-btn ds-btn-primary\" href=\"#\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12.03 2.5c-5.24 0-9.5 4.24-9.5 9.47 0 1.67.44 3.3 1.28 4.74L2.5 21.5l4.94-1.28a9.5 9.5 0 0 0 4.59 1.17h.01c5.24 0 9.5-4.24 9.5-9.47a9.4 9.4 0 0 0-2.79-6.7 9.45 9.45 0 0 0-6.72-2.72zm0 17.33h-.01a7.9 7.9 0 0 1-4.01-1.1l-.29-.17-2.93.77.78-2.85-.19-.29a7.83 7.83 0 0 1-1.21-4.22c0-4.35 3.55-7.88 7.9-7.88a7.85 7.85 0 0 1 5.58 2.31 7.79 7.79 0 0 1 2.31 5.58c0 4.35-3.55 7.85-7.93 7.85z\"/></svg>Start Order</a>",
-      "css": ".ds-btn { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.95rem 1.65rem; border: 1px solid transparent; border-radius: 999px; font-family: var(--font-archivo, Archivo), system-ui, sans-serif; font-size: 0.95rem; font-weight: 600; text-decoration: none; white-space: nowrap; cursor: pointer; transition: transform 0.45s cubic-bezier(0.16,1,0.3,1), background-color 0.25s, border-color 0.25s, box-shadow 0.45s cubic-bezier(0.16,1,0.3,1); } .ds-btn:active { transform: scale(0.98); } .ds-btn-primary { background: var(--gold, #FFB72A); color: var(--ink, #101013); box-shadow: 0 18px 38px -20px rgb(255 183 42 / 0.95); } .ds-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 22px 44px -20px rgb(255 183 42 / 1); } .ds-btn-primary:focus-visible { outline: 3px solid var(--ink, #101013); outline-offset: 3px; }"
+      "description": "Shop now, to the storefront at /shop, in the header from 62rem and the dock; left out inside the shop. Focus ring flips to ink via .on-gold.",
+      "html": "<a class=\"ds-btn ds-btn-primary\" href=\"#\">Shop now<svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></a>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;gap:.6rem;padding:.95rem 1.65rem;border:1px solid transparent;border-radius:999px;font-family: var(--font-archivo, Archivo), system-ui, sans-serif;font-size:.95rem;font-weight:600;text-decoration:none;white-space:nowrap;cursor:pointer;transition:transform .45s cubic-bezier(.16,1,.3,1),box-shadow .45s cubic-bezier(.16,1,.3,1)}.ds-btn:active{transform:scale(.98)}.ds-btn:focus-visible{outline:3px solid #0126BA;outline-offset:3px}.ds-btn-primary{background:var(--gold,#FFB72A);color:var(--ink,#0126BA);box-shadow:0 18px 38px -20px rgb(255 183 42/.95)}.ds-btn-primary:hover{transform:translateY(-2px);box-shadow:0 22px 44px -20px rgb(255 183 42/1)}.ds-btn-primary:focus-visible{outline-color:var(--ink,#0126BA)}"
     },
     {
       "name": "Blue Button",
       "kind": "button",
       "refersTo": "button-blue",
-      "description": "The primary action when it sits inside paper prose rather than on a photograph; brightens to Blue Lift on hover.",
-      "html": "<a class=\"ds-btn ds-btn-blue\" href=\"#\">Start Order</a>",
-      "css": ".ds-btn { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.95rem 1.65rem; border: 1px solid transparent; border-radius: 999px; font-family: var(--font-archivo, Archivo), system-ui, sans-serif; font-size: 0.95rem; font-weight: 600; text-decoration: none; white-space: nowrap; cursor: pointer; transition: transform 0.45s cubic-bezier(0.16,1,0.3,1), background-color 0.25s, box-shadow 0.45s cubic-bezier(0.16,1,0.3,1); } .ds-btn-blue { background: var(--blue, #0126BA); color: #fff; box-shadow: 0 18px 40px -22px rgb(1 38 186 / 0.9); } .ds-btn-blue:hover { background: #1C45E0; transform: translateY(-2px); } .ds-btn-blue:active { transform: scale(0.98); } .ds-btn-blue:focus-visible { outline: 3px solid var(--blue, #0126BA); outline-offset: 3px; }"
+      "description": "For an action that sits on white. In the shop: Order prints on WhatsApp, Ask on WhatsApp, Clear filters; label 1rem inside .shop.",
+      "html": "<a class=\"ds-btn ds-btn-blue\" href=\"#\">Browse the catalogue</a>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;gap:.6rem;padding:.95rem 1.65rem;border:1px solid transparent;border-radius:999px;font-family: var(--font-archivo, Archivo), system-ui, sans-serif;font-size:.95rem;font-weight:600;text-decoration:none;white-space:nowrap;cursor:pointer;transition:transform .45s cubic-bezier(.16,1,.3,1),box-shadow .45s cubic-bezier(.16,1,.3,1)}.ds-btn:active{transform:scale(.98)}.ds-btn:focus-visible{outline:3px solid #0126BA;outline-offset:3px}.ds-btn-blue{background:var(--blue,#0126BA);color:#fff;box-shadow:0 18px 40px -22px rgb(1 38 186/.9)}.ds-btn-blue:hover{transform:translateY(-2px);box-shadow:0 24px 48px -22px rgb(1 38 186/.95)}"
     },
     {
-      "name": "Ghost Button",
-      "kind": "button",
-      "refersTo": "button-ghost",
-      "description": "The secondary action on dark grounds only — a white hairline pill over the cover scrim.",
-      "html": "<div style=\"background:#0126BA;padding:28px;border-radius:18px\"><a class=\"ds-btn-ghost\" href=\"#\">See all products</a></div>",
-      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.95rem 1.65rem; border: 1px solid rgb(255 255 255 / 0.36); border-radius: 999px; background: transparent; color: #fff; font-family: var(--font-archivo, Archivo), system-ui, sans-serif; font-size: 0.95rem; font-weight: 600; text-decoration: none; white-space: nowrap; transition: transform 0.45s cubic-bezier(0.16,1,0.3,1), background-color 0.25s, border-color 0.25s; } .ds-btn-ghost:hover { background: rgb(255 255 255 / 0.12); border-color: rgb(255 255 255 / 0.7); transform: translateY(-2px); } .ds-btn-ghost:active { transform: scale(0.98); } .ds-btn-ghost:focus-visible { outline: 3px solid #FFB72A; outline-offset: 3px; }"
-    },
-    {
-      "name": "Outline Button",
-      "kind": "button",
-      "refersTo": "button-outline",
-      "description": "The secondary action on paper; hover tints the fill brand blue at 6% and turns the hairline blue.",
-      "html": "<a class=\"ds-btn-outline\" href=\"#\">See all products</a>",
-      "css": ".ds-btn-outline { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.95rem 1.65rem; border: 1px solid rgb(16 16 19 / 0.2); border-radius: 999px; background: transparent; color: var(--ink, #101013); font-family: var(--font-archivo, Archivo), system-ui, sans-serif; font-size: 0.95rem; font-weight: 600; text-decoration: none; white-space: nowrap; transition: transform 0.45s cubic-bezier(0.16,1,0.3,1), background-color 0.25s, border-color 0.25s; } .ds-btn-outline:hover { background: rgb(1 38 186 / 0.06); border-color: var(--blue, #0126BA); transform: translateY(-2px); } .ds-btn-outline:active { transform: scale(0.98); } .ds-btn-outline:focus-visible { outline: 3px solid var(--blue, #0126BA); outline-offset: 3px; }"
-    },
-    {
-      "name": "Occasion Chips",
-      "kind": "chip",
-      "refersTo": "chip",
-      "description": "Static tags, not controls. Exactly two in a row are filled — one brand blue, one amber — to pace the row, not to signal state.",
-      "html": "<div class=\"ds-chips\"><span class=\"ds-mark\">For any occasion</span><span class=\"ds-chip ds-chip-blue\">Birthdays</span><span class=\"ds-chip\">Anniversaries</span><span class=\"ds-chip\">Weddings</span><span class=\"ds-chip ds-chip-gold\">Corporate gifts</span></div>",
-      "css": ".ds-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; font-family: var(--font-archivo, Archivo), system-ui, sans-serif; } .ds-mark { font-family: var(--font-mono, 'Geist Mono'), ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #5F6480; margin-inline-end: 0.5rem; } .ds-chip { padding: 0.5rem 1.05rem; border: 1px solid rgb(16 16 19 / 0.16); border-radius: 999px; font-size: 14px; color: var(--ink, #101013); } .ds-chip-blue { background: var(--blue, #0126BA); border-color: var(--blue, #0126BA); color: #fff; } .ds-chip-gold { background: var(--gold, #FFB72A); border-color: var(--gold, #FFB72A); color: var(--ink, #101013); }"
-    },
-    {
-      "name": "Shelf Card",
-      "kind": "card",
-      "refersTo": "card",
-      "description": "The only bordered container in the system: a 22px print-white card on the deeper-paper shelf, snapped to a horizontal rail, carrying the one blue-tinted lift.",
-      "html": "<article class=\"ds-card\"><div class=\"ds-card-img\"></div><div class=\"ds-card-body\"><h3 class=\"ds-card-name\">Photo mug</h3><p class=\"ds-card-blurb\">Your picture printed onto a mug, ready the same week.</p></div></article>",
-      "css": ".ds-card { width: clamp(224px, 26vw, 306px); background: #fff; border: 1px solid rgb(16 16 19 / 0.09); border-radius: 22px; overflow: hidden; box-shadow: 0 22px 44px -32px rgb(1 38 186 / 0.55); font-family: var(--font-archivo, Archivo), system-ui, sans-serif; transition: transform 0.5s cubic-bezier(0.16,1,0.3,1), box-shadow 0.5s cubic-bezier(0.16,1,0.3,1); } .ds-card:hover { transform: translateY(-4px); box-shadow: 0 30px 54px -30px rgb(1 38 186 / 0.6); } .ds-card-img { aspect-ratio: 1; background: linear-gradient(135deg, #F2EFE9, #FFFFFF); } .ds-card-body { padding: 1rem 1.15rem 1.25rem; border-top: 1px solid rgb(16 16 19 / 0.07); } .ds-card-name { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.015em; color: #101013; } .ds-card-blurb { margin: 0.42rem 0 0; font-size: 14px; line-height: 1.5; color: #4C5070; }"
-    },
-    {
-      "name": "Header Navigation",
+      "name": "Header Bar",
       "kind": "nav",
       "refersTo": "header",
-      "description": "Sticky translucent paper with a 14px blur and a hairline rule; links underline nothing at rest and draw a 2px amber border on hover.",
-      "html": "<div class=\"ds-header\"><nav class=\"ds-nav\"><a href=\"#\">Photo printing</a><a href=\"#\">Print services</a><a href=\"#\">Framing</a><a href=\"#\">Gifts</a><a href=\"#\">Find us</a></nav></div>",
-      "css": ".ds-header { background: rgb(251 250 248 / 0.84); backdrop-filter: blur(14px); border-bottom: 1px solid rgb(16 16 19 / 0.13); padding: 0.7rem clamp(20px, 5vw, 56px); } .ds-nav { display: flex; gap: clamp(12px, 1.7vw, 28px); font-family: var(--font-archivo, Archivo), system-ui, sans-serif; font-size: 13.5px; color: #4C5070; } .ds-nav a { color: inherit; text-decoration: none; padding-block: 0.3rem; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; } .ds-nav a:hover { color: #101013; border-bottom-color: #FFB72A; } .ds-nav a:focus-visible { outline: 3px solid #0126BA; outline-offset: 3px; }"
+      "description": "Solid brand blue, no shadow. From 62rem: the page's inline links (Categories / Find Us on the homepage; Shop / All products / Find Us in the shop) with hover in white over an amber underline, the gold Shop now outside the shop only, then the three icon targets. Below 62rem: wordmark and icons only, no drawer.",
+      "html": "<div class=\"ds-header\"><span class=\"ds-wordmark\">EXPRESS <b>PHOTO &amp; GIFTS</b></span><nav class=\"ds-nav\"><a href=\"#\">Categories</a><a href=\"#\">Find Us</a></nav><div class=\"ds-actions\"><a class=\"ds-shop\" href=\"#\">Shop now</a><a class=\"ds-icon\" href=\"#\" aria-label=\"Search\"><svg width=\"21\" height=\"21\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"6.5\"/><path d=\"M16 16l4.5 4.5\"/></svg></a><a class=\"ds-icon\" href=\"#\" aria-label=\"Account\"><svg width=\"21\" height=\"21\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"8.5\" r=\"3.6\"/><path d=\"M5 20c.8-3.6 3.7-5.5 7-5.5s6.2 1.9 7 5.5\"/></svg></a><a class=\"ds-icon\" href=\"#\" aria-label=\"Cart\"><svg width=\"21\" height=\"21\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3.5 4.5h2.3l1.9 10.2h9.6l1.6-7.2H7\"/><circle cx=\"9.5\" cy=\"19\" r=\"1.3\"/><circle cx=\"17\" cy=\"19\" r=\"1.3\"/></svg></a></div></div>",
+      "css": ".ds-header{display:flex;align-items:center;gap:28px;padding:.7rem 24px;background:var(--blue,#0126BA);color:#fff;font-family: var(--font-archivo, Archivo), system-ui, sans-serif;}.ds-wordmark{font-weight:700;letter-spacing:-.01em;color:var(--gold,#FFB72A)}.ds-wordmark b{color:#fff}.ds-nav{display:flex;gap:24px;margin-left:auto;font-size:13.5px;color:rgb(255 255 255/.8)}.ds-nav a{color:inherit;text-decoration:none;padding-block:.3rem;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}.ds-nav a:hover{color:#fff;border-bottom-color:var(--gold,#FFB72A)}.ds-actions{display:flex;align-items:center;gap:.35rem}.ds-shop{margin-right:.45rem;padding:.6rem 1.05rem;border-radius:999px;background:var(--gold,#FFB72A);color:var(--ink,#0126BA);font-size:13.5px;font-weight:600;text-decoration:none;box-shadow:0 18px 38px -20px rgb(255 183 42/.95)}.ds-icon{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:999px;color:#fff;transition:background-color .2s}.ds-icon:hover{background:rgb(255 255 255/.12)}.ds-icon:focus-visible,.ds-nav a:focus-visible,.ds-shop:focus-visible{outline:3px solid var(--gold,#FFB72A);outline-offset:3px}"
     },
     {
-      "name": "Service Ledger Row",
+      "name": "Order Dock",
       "kind": "custom",
-      "refersTo": "section-mark",
-      "description": "A ruled ledger row, not a card: mono index, name and blurb, and a reserved mono slot pinned to the row's right edge so the column never reflows.",
-      "html": "<div class=\"ds-ledger\"><span class=\"ds-mark-blue\">Our services</span><div class=\"ds-row\"><span class=\"ds-no\">01</span><div><h3 class=\"ds-row-name\">Photo printing</h3><p class=\"ds-row-blurb\">Prints from your phone, in the sizes people actually hang.</p></div><a class=\"ds-slot\" href=\"#\">ask us</a></div><div class=\"ds-row\"><span class=\"ds-no\">02</span><div><h3 class=\"ds-row-name\">Framing</h3><p class=\"ds-row-blurb\">Frame finishes you can look at in person before you choose.</p></div><a class=\"ds-slot\" href=\"#\">ask us</a></div></div>",
-      "css": ".ds-ledger { font-family: var(--font-archivo, Archivo), system-ui, sans-serif; } .ds-mark-blue { display: block; margin-bottom: 0.7rem; font-family: var(--font-mono, 'Geist Mono'), ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #0126BA; } .ds-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.5rem 1.15rem; align-items: baseline; padding-block: clamp(1.1rem, 2vw, 1.5rem); border-top: 1px solid rgb(16 16 19 / 0.14); } .ds-row:last-child { border-bottom: 1px solid rgb(16 16 19 / 0.14); } .ds-no { font-family: var(--font-mono, 'Geist Mono'), ui-monospace, monospace; font-size: 12px; color: #5F6480; } .ds-row-name { margin: 0; font-size: clamp(1.05rem, 1.9vw, 1.35rem); font-weight: 600; letter-spacing: -0.02em; color: #101013; } .ds-row-blurb { margin: 0.5rem 0 0; max-width: 48ch; font-size: 14.5px; line-height: 1.6; color: #4C5070; } .ds-slot { justify-self: end; font-family: var(--font-mono, 'Geist Mono'), ui-monospace, monospace; font-size: 12.5px; color: #0126BA; text-decoration: none; white-space: nowrap; } .ds-slot:hover { text-decoration: underline; } .ds-slot:focus-visible { outline: 3px solid #0126BA; outline-offset: 3px; }"
+      "refersTo": "button-dock",
+      "description": "The standing action: the gold Shop now pill (to /shop) and a round print-white WhatsApp mark, floating at the foot of the viewport with nothing behind them. Inside the shop the dock is the WhatsApp mark alone.",
+      "html": "<div class=\"ds-dock\"><a class=\"ds-dock-cta\" href=\"#\">Shop now<svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></a><a class=\"ds-dock-chat\" href=\"#\" aria-label=\"Message the shop on WhatsApp\"><svg width=\"21\" height=\"21\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12.03 2.5c-5.24 0-9.5 4.24-9.5 9.47 0 1.67.44 3.3 1.28 4.74L2.5 21.5l4.94-1.28a9.5 9.5 0 0 0 4.59 1.17h.01c5.24 0 9.5-4.24 9.5-9.47a9.4 9.4 0 0 0-2.79-6.7 9.45 9.45 0 0 0-6.72-2.72zm0 17.33h-.01a7.9 7.9 0 0 1-4.01-1.1l-.29-.17-2.93.77.78-2.85-.19-.29a7.83 7.83 0 0 1-1.21-4.22c0-4.35 3.55-7.88 7.9-7.88a7.85 7.85 0 0 1 5.58 2.31 7.79 7.79 0 0 1 2.31 5.58c0 4.35-3.55 7.85-7.93 7.85z\"/></svg></a></div>",
+      "css": ".ds-dock{display:flex;align-items:center;justify-content:flex-end;gap:.6rem;padding:20px;font-family: var(--font-archivo, Archivo), system-ui, sans-serif;}.ds-dock-cta{display:inline-flex;align-items:center;gap:.6rem;padding:1.05rem 1.9rem;border-radius:999px;background:var(--gold,#FFB72A);color:var(--ink,#0126BA);font-size:1rem;font-weight:600;text-decoration:none;box-shadow:0 18px 38px -20px rgb(255 183 42/.95);transition:transform .45s cubic-bezier(.16,1,.3,1)}.ds-dock-cta:hover{transform:translateY(-2px)}.ds-dock-chat{display:inline-flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:999px;background:#fff;border:1px solid rgb(1 38 186/.22);color:var(--blue,#0126BA);box-shadow:0 18px 40px -22px rgb(1 38 186/.9);transition:transform .45s cubic-bezier(.16,1,.3,1),border-color .25s}.ds-dock-chat:hover{transform:translateY(-2px);border-color:rgb(1 38 186/.5)}.ds-dock-cta:focus-visible{outline:3px solid var(--ink,#0126BA);outline-offset:3px}.ds-dock-chat:focus-visible{outline:3px solid var(--blue,#0126BA);outline-offset:3px}"
+    },
+    {
+      "name": "Category Tile",
+      "kind": "card",
+      "refersTo": "card-category",
+      "description": "One of eight doors on white: an icon disc, an arrow ring, the name on the floor. Under a pointer it becomes a piece of the catalogue's blue with an amber disc.",
+      "html": "<a class=\"ds-cat\" href=\"#\"><span class=\"ds-cat-icon\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3.5\" y=\"5\" width=\"13\" height=\"13\" rx=\"1.5\"/><path d=\"M7 15l3-3.5 2.5 2.5 2-2 2 3\"/></svg></span><span class=\"ds-cat-go\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 17L17 7M9 7h8v8\"/></svg></span><span class=\"ds-cat-name\">Photos</span></a>",
+      "css": ".ds-cat{position:relative;display:block;width:240px;height:140px;padding:18px;border:1px solid rgb(1 38 186/.1);border-radius:18px;background:#fff;color:var(--ink,#0126BA);text-decoration:none;box-shadow:0 22px 44px -32px rgb(1 38 186/.4);font-family: var(--font-archivo, Archivo), system-ui, sans-serif;transition:background-color .3s,color .3s,transform .5s cubic-bezier(.16,1,.3,1),box-shadow .5s cubic-bezier(.16,1,.3,1)}.ds-cat-icon{position:absolute;top:18px;left:18px;display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:999px;background:rgb(1 38 186/.07);color:var(--blue,#0126BA);transition:background-color .3s,color .3s}.ds-cat-go{position:absolute;top:18px;right:18px;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:999px;border:1px solid rgb(1 38 186/.2);transition:background-color .3s,color .3s}.ds-cat-name{position:absolute;left:18px;bottom:16px;font-size:1.15rem;font-weight:600;letter-spacing:-.015em}.ds-cat:hover{background:var(--blue,#0126BA);color:#fff;transform:translateY(-4px);box-shadow:0 30px 54px -30px rgb(1 38 186/.5)}.ds-cat:hover .ds-cat-icon{background:var(--gold,#FFB72A);color:var(--blue,#0126BA);transform:rotate(-4deg)}.ds-cat:hover .ds-cat-go{background:#fff;color:var(--blue,#0126BA)}.ds-cat:focus-visible{outline:3px solid var(--blue,#0126BA);outline-offset:3px}"
+    },
+    {
+      "name": "Catalogue Frame",
+      "kind": "card",
+      "refersTo": "card-frame",
+      "description": "A white frame on the blue catalogue ground: a square product photograph flush to the edges, a hairline, then the name. Links to /shop. Its angle comes from its place on the wheel; shown here square, as at the top of the arc.",
+      "html": "<a class=\"ds-frame\" href=\"#\"><span class=\"ds-frame-img\" role=\"img\" aria-label=\"Product photograph placeholder\"></span><span class=\"ds-frame-name\">Photo mug</span></a>",
+      "css": ".ds-frame{display:block;width:220px;border:1px solid rgb(1 38 186/.1);border-radius:22px;overflow:hidden;background:#fff;color:var(--ink,#0126BA);text-decoration:none;box-shadow:0 22px 44px -32px rgb(1 38 186/.4);font-family: var(--font-archivo, Archivo), system-ui, sans-serif;transition:transform .5s cubic-bezier(.16,1,.3,1),box-shadow .5s cubic-bezier(.16,1,.3,1)}.ds-frame-img{display:block;aspect-ratio:1;background:linear-gradient(135deg,rgb(1 38 186/.06),rgb(1 38 186/.16))}.ds-frame-name{display:block;padding:.85rem 1.05rem 1rem;border-top:1px solid rgb(1 38 186/.08);font-size:17px;font-weight:600;letter-spacing:-.015em}.ds-frame:hover{transform:translateY(-4px);box-shadow:0 30px 54px -30px rgb(1 38 186/.5)}.ds-frame:focus-visible{outline:3px solid var(--gold,#FFB72A);outline-offset:3px}"
     },
     {
       "name": "Highlighter-Marked Line",
       "kind": "custom",
-      "refersTo": "statement",
-      "description": "The shop's highlighter drawn under the line rather than behind it: an amber gradient filling the bottom 58% of the line box, cloned across wraps. GSAP fills it from 0% width as it scrolls in.",
-      "html": "<p class=\"ds-statement\"><span class=\"ds-marked\">Gift giving, made easy</span></p>",
-      "css": ".ds-statement { margin: 0; font-family: var(--font-archivo, Archivo), system-ui, sans-serif; font-size: clamp(1.2rem, 2.2vw, 1.75rem); font-weight: 600; line-height: 1.3; letter-spacing: -0.02em; color: #101013; } .ds-marked { background-image: linear-gradient(to top, #FFB72A 42%, transparent 42%); background-repeat: no-repeat; background-size: 100% 100%; padding-inline: 4px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }"
+      "refersTo": "colors.gold",
+      "description": "The shop's highlighter, drawn under the line at 42% and filling in from 0% as it arrives. On a blue ground the stroke carries the whole line.",
+      "html": "<p class=\"ds-marked\"><span>Gift giving, made easy</span></p>",
+      "css": ".ds-marked{margin:0;font-family: var(--font-archivo, Archivo), system-ui, sans-serif;font-size:1.5rem;font-weight:600;letter-spacing:-.03em;color:var(--ink,#0126BA)}.ds-marked span{background-image:linear-gradient(to top,var(--gold,#FFB72A) 42%,transparent 42%);padding-inline:4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}"
     },
     {
-      "name": "Cover Scroll Cue",
+      "name": "Inline Link",
       "kind": "custom",
-      "refersTo": "cover-image",
-      "description": "A 42px hairline ring around a down arrow with a mono label beside it, sitting on the cover's foot scrim. The ring bobs 7px on a 1.3s sine yoyo; hover turns the whole cue amber.",
-      "html": "<div style=\"background:#0126BA;padding:28px;border-radius:18px\"><a class=\"ds-cue\" href=\"#\"><span class=\"ds-cue-ring\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 4v16\"/><path d=\"m5 13 7 7 7-7\"/></svg></span><span class=\"ds-cue-text\">Scroll down</span></a></div>",
-      "css": ".ds-cue { display: inline-flex; align-items: center; gap: 0.8rem; color: rgb(255 255 255 / 0.8); text-decoration: none; transition: color 0.25s; } .ds-cue:hover { color: #FFB72A; } .ds-cue:focus-visible { outline: 3px solid #FFB72A; outline-offset: 3px; } .ds-cue-ring { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid rgb(255 255 255 / 0.32); border-radius: 999px; } .ds-cue-text { font-family: var(--font-mono, 'Geist Mono'), ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; }"
+      "refersTo": "colors.gold",
+      "description": "A second action inside prose: underlined in amber, 2px, so it reads as a link without recolouring the sentence.",
+      "html": "<p class=\"ds-prose\">Browse the <a class=\"ds-inline\" href=\"#\">full catalogue</a></p>",
+      "css": ".ds-prose{margin:0;font-family: var(--font-archivo, Archivo), system-ui, sans-serif;font-size:1.05rem;color:var(--ink,#0126BA)}.ds-inline{color:inherit;text-decoration:underline;text-decoration-color:var(--gold,#FFB72A);text-decoration-thickness:2px;text-underline-offset:4px;transition:color .25s}.ds-inline:hover{color:var(--blue,#0126BA)}.ds-inline:focus-visible{outline:3px solid var(--blue,#0126BA);outline-offset:3px}"
+    },
+    {
+      "name": "Sign-up Field",
+      "kind": "input",
+      "refersTo": "header",
+      "description": "One rule under the line with the submit sitting on its end. The rule is the focus indicator and turns amber on focus.",
+      "html": "<form class=\"ds-signup\" onsubmit=\"return false\"><label class=\"ds-vh\" for=\"ds-email\">Email address</label><input id=\"ds-email\" class=\"ds-input\" type=\"email\" placeholder=\"Enter your email\"><button class=\"ds-submit\" type=\"submit\" aria-label=\"Sign up\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></button></form>",
+      "css": ".ds-signup{display:flex;align-items:center;gap:.6rem;width:320px;padding:20px;background:var(--blue,#0126BA);font-family: var(--font-archivo, Archivo), system-ui, sans-serif;}.ds-vh{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.ds-input{flex:1;min-width:0;padding:.7rem 0;border:0;border-bottom:1px solid rgb(255 255 255/.32);background:transparent;color:#fff;font:inherit;font-size:16px;outline:none;transition:border-color .25s}.ds-input::placeholder{color:rgb(255 255 255/.8)}.ds-input:focus{border-bottom-color:var(--gold,#FFB72A)}.ds-submit{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:999px;background:var(--gold,#FFB72A);color:var(--ink,#0126BA);cursor:pointer}.ds-submit:focus-visible{outline:3px solid #fff;outline-offset:3px}"
+    },
+    {
+      "name": "Hours Table",
+      "kind": "custom",
+      "refersTo": "colors.rule-leather",
+      "description": "Ruled with hairlines, not boxed. A closed row lifts its value from soft white to full white so the exception reads as the exception.",
+      "html": "<table class=\"ds-hours\"><tbody><tr><th scope=\"row\">Monday to Friday</th><td>8:30am &ndash; 4pm</td></tr><tr><th scope=\"row\">Saturday</th><td>9am &ndash; 1pm</td></tr><tr class=\"ds-closed\"><th scope=\"row\">Sunday</th><td>Closed</td></tr></tbody></table>",
+      "css": ".ds-hours{width:320px;padding:20px;border-collapse:collapse;background:var(--blue,#0126BA);color:#fff;font-family: var(--font-archivo, Archivo), system-ui, sans-serif;}.ds-hours th,.ds-hours td{padding:.7rem 0;border-top:1px solid rgb(255 255 255/.22);text-align:left;font-weight:400;font-size:15.5px}.ds-hours tr:first-child th,.ds-hours tr:first-child td{border-top:0}.ds-hours td{text-align:right;font-family:var(--font-mono,'Geist Mono'),ui-monospace,monospace;font-size:13.5px;font-variant-numeric:tabular-nums;color:rgb(255 255 255/.8)}.ds-closed td{color:#fff}"
+    },
+    {
+      "name": "Product Card",
+      "kind": "card",
+      "refersTo": "card-product",
+      "description": "A product as a door in the shop's grids: 1:1 photo flush to the edges, name, price, hint, and 'Takes your photo' with the YourPhoto glyph (glyph hidden under 46rem). Amber Special chip when flagged; 'Photo to come' when no photograph exists. Links to /shop/product/<slug>, prefetch off.",
+      "html": "<a class=\"ds-pcard\" href=\"#\"><span class=\"ds-pcard-photo\"><span class=\"ds-pcard-nophoto\">Photo to come</span><span class=\"ds-pcard-special\">Special</span></span><span class=\"ds-pcard-body\"><span class=\"ds-pcard-name\">Coffee mug</span><span class=\"ds-pcard-price\">from R120</span><span class=\"ds-pcard-hint\">Two sizes</span><span class=\"ds-pcard-yours\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"4.2\" y=\"3.4\" width=\"15.6\" height=\"17.2\" rx=\"1.3\"/><circle cx=\"12\" cy=\"10\" r=\"2.9\"/><path d=\"M6.9 20.4c.7-3.2 2.7-4.9 5.1-4.9s4.4 1.7 5.1 4.9\"/></svg>Takes your photo</span></span></a>",
+      "css": ".ds-pcard{position:relative;display:flex;flex-direction:column;width:220px;overflow:hidden;background:#fff;color:var(--ink,#0126BA);border:1px solid rgb(1 38 186/.1);border-radius:18px;text-decoration:none;box-shadow:0 22px 44px -32px rgb(1 38 186/.4);font-family: var(--font-archivo, Archivo), system-ui, sans-serif;transition:transform .5s cubic-bezier(.16,1,.3,1),box-shadow .5s cubic-bezier(.16,1,.3,1)}.ds-pcard-photo{position:relative;display:block;aspect-ratio:1;border-bottom:1px solid rgb(1 38 186/.08)}.ds-pcard-nophoto{display:grid;place-items:center;height:100%;font-size:16px;color:rgb(1 38 186/.72);background:rgb(1 38 186/.05)}.ds-pcard-special{position:absolute;top:10px;left:10px;padding:.2rem .7rem;border-radius:999px;background:var(--gold,#FFB72A);color:var(--ink,#0126BA);font-size:16px;font-weight:600}.ds-pcard-body{display:flex;flex:1;flex-direction:column;gap:.25rem;padding:.8rem .95rem .95rem}.ds-pcard-name{font-size:17px;font-weight:600;line-height:1.25;letter-spacing:-.015em}.ds-pcard-price{margin-top:.15rem;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}.ds-pcard-hint{font-size:16px;line-height:1.35;color:rgb(1 38 186/.8)}.ds-pcard-yours{display:inline-flex;align-items:center;gap:.4rem;margin-top:auto;padding-top:.6rem;font-size:16px;color:rgb(1 38 186/.8)}.ds-pcard-yours svg{color:var(--blue,#0126BA)}.ds-pcard:hover{transform:translateY(-4px);box-shadow:0 30px 54px -30px rgb(1 38 186/.5)}.ds-pcard:focus-visible{outline:3px solid var(--blue,#0126BA);outline-offset:3px}"
+    },
+    {
+      "name": "Filter Pills",
+      "kind": "chip",
+      "refersTo": "pill-filter",
+      "description": "Category pills with mono counts, the photo toggle and the pill selects. 44px, 16px/600, hair-rule edge; current or pressed is whole brand blue.",
+      "html": "<div class=\"ds-pills\"><a class=\"ds-pill\" href=\"#\" aria-current=\"page\">Frames <span class=\"ds-count\">9</span></a><a class=\"ds-pill\" href=\"#\">Gifts <span class=\"ds-count\">14</span></a><button class=\"ds-pill\" type=\"button\" aria-pressed=\"false\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"4.2\" y=\"3.4\" width=\"15.6\" height=\"17.2\" rx=\"1.3\"/><circle cx=\"12\" cy=\"10\" r=\"2.9\"/><path d=\"M6.9 20.4c.7-3.2 2.7-4.9 5.1-4.9s4.4 1.7 5.1 4.9\"/></svg>Takes your photo</button><select class=\"ds-pill ds-select\" aria-label=\"Sort by\"><option>Sort: Featured</option><option>Price, low to high</option></select></div>",
+      "css": ".ds-pills{display:flex;flex-wrap:wrap;gap:.5rem;padding:20px;font-family: var(--font-archivo, Archivo), system-ui, sans-serif;}.ds-pill{display:inline-flex;align-items:center;gap:.6rem;min-height:44px;padding:.55rem 1.05rem;border:1px solid rgb(1 38 186/.2);border-radius:999px;background:#fff;color:var(--ink,#0126BA);font:inherit;font-size:16px;font-weight:600;white-space:nowrap;text-decoration:none;cursor:pointer;transition:background-color .25s,border-color .25s,color .25s}.ds-count{font-family:var(--font-mono,'Geist Mono'),ui-monospace,monospace;font-size:16px;font-weight:400;color:rgb(1 38 186/.72);font-variant-numeric:tabular-nums}.ds-pill[aria-current=page],.ds-pill[aria-pressed=true]{background:var(--blue,#0126BA);border-color:var(--blue,#0126BA);color:#fff}.ds-pill[aria-current=page] .ds-count{color:rgb(255 255 255/.8)}.ds-pill:hover{border-color:var(--blue,#0126BA)}.ds-select{appearance:none;padding-right:2.6rem;background:#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230126ba' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\") no-repeat right 1rem center}.ds-pill:focus-visible{outline:3px solid var(--blue,#0126BA);outline-offset:3px}"
+    },
+    {
+      "name": "Budget Door",
+      "kind": "card",
+      "refersTo": "door-budget",
+      "description": "A door to a price band: three overlapping thumbnails, the band at Statement Loud, the count and an amber go disc. Under the pointer it turns brand blue like a category tile.",
+      "html": "<a class=\"ds-door\" href=\"#\"><span class=\"ds-door-faces\"><i></i><i></i><i></i></span><span class=\"ds-door-label\">Under R100</span><span class=\"ds-door-count\">12 products<span class=\"ds-door-go\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></span></span></a>",
+      "css": ".ds-door{display:grid;gap:.9rem;width:300px;padding:22px;background:#fff;color:var(--ink,#0126BA);border:1px solid rgb(1 38 186/.1);border-radius:18px;text-decoration:none;box-shadow:0 22px 44px -32px rgb(1 38 186/.4);font-family: var(--font-archivo, Archivo), system-ui, sans-serif;transition:transform .5s cubic-bezier(.16,1,.3,1),box-shadow .5s cubic-bezier(.16,1,.3,1),background-color .35s,border-color .35s,color .35s}.ds-door-faces{display:flex}.ds-door-faces i{width:72px;height:72px;border:1px solid rgb(1 38 186/.1);border-radius:12px;background:linear-gradient(135deg,rgb(1 38 186/.06),rgb(1 38 186/.16)) #fff}.ds-door-faces i+i{margin-left:-14px}.ds-door-label{font-size:2rem;font-weight:600;line-height:1.1;letter-spacing:-.03em}.ds-door-count{display:flex;align-items:center;justify-content:space-between;font-size:16px;color:rgb(1 38 186/.8)}.ds-door-go{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:999px;background:var(--gold,#FFB72A);color:var(--ink,#0126BA);transition:transform .45s cubic-bezier(.16,1,.3,1)}.ds-door:hover{transform:translateY(-4px);background:var(--blue,#0126BA);border-color:var(--blue,#0126BA);color:#fff;box-shadow:0 24px 48px -22px rgb(1 38 186/.95)}.ds-door:hover .ds-door-count{color:rgb(255 255 255/.8)}.ds-door:hover .ds-door-go{transform:rotate(-4deg) translateX(3px)}.ds-door:focus-visible{outline:3px solid var(--blue,#0126BA);outline-offset:3px}"
+    },
+    {
+      "name": "Size Chart",
+      "kind": "custom",
+      "refersTo": "colors.gold",
+      "description": "On blue: sizes drawn to true scale from a shared corner; the picked outline takes an amber stroke and no fill (no second blue). A real radio list with mono measures and 16px prices beside it.",
+      "html": "<div class=\"ds-chart\"><svg class=\"ds-chart-draw\" viewBox=\"-0.6 -0.6 31.2 41.2\" aria-hidden=\"true\"><rect x=\"0\" y=\"0\" width=\"30\" height=\"40\" rx=\".5\"/><rect x=\"0\" y=\"10\" width=\"20\" height=\"30\" rx=\".5\" data-picked=\"true\"/><rect x=\"0\" y=\"22\" width=\"13\" height=\"18\" rx=\".5\"/></svg><fieldset class=\"ds-chart-sizes\"><label class=\"ds-size\"><input type=\"radio\" name=\"ds-s\"><span class=\"ds-measure\">13 × 18 cm</span><span class=\"ds-price\">R95</span></label><label class=\"ds-size\"><input type=\"radio\" name=\"ds-s\" checked><span class=\"ds-measure\">20 × 30 cm</span><span class=\"ds-price\">R150</span></label><label class=\"ds-size\"><input type=\"radio\" name=\"ds-s\"><span class=\"ds-measure\">30 × 40 cm</span><span class=\"ds-price\">R220</span></label></fieldset></div>",
+      "css": ".ds-chart{display:grid;grid-template-columns:.9fr 1fr;gap:1.6rem;align-items:end;width:520px;padding:24px;background:var(--blue,#0126BA);color:#fff;font-family: var(--font-archivo, Archivo), system-ui, sans-serif;}.ds-chart-draw{width:100%;max-height:260px;overflow:visible}.ds-chart-draw rect{fill:transparent;stroke:rgb(255 255 255/.32);stroke-width:1.5px;vector-effect:non-scaling-stroke}.ds-chart-draw rect[data-picked]{stroke:var(--gold,#FFB72A);stroke-width:2.5px}.ds-chart-sizes{margin:0;padding:0;border:0}.ds-size{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.75rem;min-height:48px;border-bottom:1px solid rgb(255 255 255/.22);color:rgb(255 255 255/.8);cursor:pointer}.ds-size:first-of-type{border-top:1px solid rgb(255 255 255/.22)}.ds-size input{appearance:none;display:grid;place-items:center;width:20px;height:20px;margin:0;border:1.5px solid rgb(255 255 255/.32);border-radius:999px}.ds-size input::after{content:'';width:10px;height:10px;border-radius:999px;background:var(--gold,#FFB72A);transform:scale(0);transition:transform .3s cubic-bezier(.16,1,.3,1)}.ds-size input:checked{border-color:var(--gold,#FFB72A)}.ds-size input:checked::after{transform:scale(1)}.ds-size input:focus-visible{outline:2px solid var(--gold,#FFB72A);outline-offset:3px}.ds-size:has(input:checked),.ds-size:hover{color:#fff}.ds-measure{font-family:var(--font-mono,'Geist Mono'),ui-monospace,monospace;font-size:16px;font-variant-numeric:tabular-nums}.ds-price{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}"
     }
   ],
   "narrative": {
     "northStar": "The Shop Counter",
-    "overview": "This is a printed shop, not an app. The argument is the shop's own work: the first thing a visitor meets is a full-bleed wall of real product photographs travelling past behind one plain sentence, and from there the page reads the way the counter reads — a numbered ledger of the four services, a running band of everything the shop turns out, one shelf of things to look at, then where to find the door. Deep brand blue owns the loud surfaces whole; warm paper owns the surfaces you read on; near-black closes the page. Nothing is quiet for the sake of being quiet.\n\nThe density is deliberate and left-weighted: display type sits low-left at large clamped sizes with tight negative tracking, ledger rows are ruled hairlines rather than boxes, and long prose is capped at a 62ch measure so a wide shell never turns into a wide paragraph. Depth is low and warm — pill actions carry a coloured glow rather than a grey drop shadow, the one card has a single soft blue-tinted lift, and everything else earns separation from its ground instead of from a shadow.\n\nThe system has one accent and uses it like a highlighter, not like a second brand colour. Amber marks the action to take and the line worth remembering; it never becomes a region. There is no dark variant — color-scheme: light is declared, and the dark surfaces are compositional grounds, not a theme. The confirmed rejection is the previous build's sparse gallery treatment: the failure there was under-spending the material, not choosing the wrong material.",
+    "overview": "This is a printed shop, not an app. The argument is the shop's own work: the first thing a visitor meets is a full-bleed wall of real product photographs travelling past, with one plain sentence set on the widest of the wall's own blue bands, holding still while everything around it moves. From there the page reads the way the counter reads — one catalogue wheel turning with the scroll, eight category tiles that are each a door into the shop, then where to find the real door. One brand blue owns the loud surfaces whole — the header, the cover's bands, the catalogue and the footer — and white owns the rest: the wall's ground, the categories and the gifting promise, which carries its headline on one more leaning blue band. The page opens and closes on the same blue. Nothing is quiet for the sake of being quiet.\n\nThe shop under `/shop` is the same counter set for scanning. The storefront opens on the homepage's leaning sign, then lays one customer photograph beside every object it can go on; the catalogue carries the header's blue into a title band and puts the products on white beside a rail of categories. Every product is a white door with its price; every filter is a pill.\n\nThe density is deliberate and left-weighted: display type sits low-left at large clamped sizes with tight negative tracking, headings and actions hold one left edge from header to footer while the loud rows run full bleed past both, and long prose is capped at a 62ch measure so a wide shell never turns into a wide paragraph. Depth is low and warm — pill actions carry a coloured glow rather than a grey drop shadow, cards carry one soft blue-tinted lift, and everything else earns separation from its ground instead of from a shadow.\n\nThe system has one accent and uses it like a highlighter, not like a second brand colour. Amber marks the action to take and the line worth remembering; it never becomes a region. The client's rule is three colours in three roles: blue primary, white secondary, amber accent. There is no dark variant — `color-scheme: light` is declared, and the dark surfaces are compositional grounds, not a theme. The confirmed rejection is the previous build's sparse gallery treatment: the failure there was under-spending the material, not choosing the wrong material.",
     "keyCharacteristics": [
-      "Four grounds in rotation: brand blue (loud), warm paper and deeper paper (reading), near-black (close).",
-      "Amber as the shop's highlighter — actions, one marked line, band slashes, marks on dark; never a region's background.",
+      "Grounds in rotation: brand blue (loud), white and blue-white (reading), deep navy (the footer's close).",
+      "Amber as the accent only — actions, one marked line, band slashes, marks on dark. Never a region.",
+      "No black and no grey: every ink is the brand blue taken toward night.",
       "Two families, strictly divided: Archivo for prose, Geist Mono for marks and measurements only.",
       "Pill actions (999px), 12/18/22px surface radii, one soft blue-tinted elevation.",
-      "A headline set on the photo wall's own leaning blue band, holding still while the rows travel past, and a leaning catalogue edge the wall settles onto.",
+      "A white-ground photo wall whose headline is one of its own leaning blue bands, settling at its foot onto the catalogue's leaning edge.",
       "Focus rings that change colour with their ground.",
-      "Motion animates from an already-visible default; with JS off the page is complete and merely still."
+      "Motion animates from an already-visible default; with JS off the page is complete and merely still.",
+      "In the shop: one leaning sign, white product doors with prices, pills for every filter, mono for every count."
     ],
     "rules": [
       {
         "name": "The Highlighter Rule",
-        "body": "Amber marks; it does not upholster. It may carry a button, a line of text, a slash, a mark, a chip, an underline or a marker glyph — it may never be the background of a whole region, a section, a card or a hero. Audit test: if you can point at an amber area larger than a button, it is wrong.",
+        "body": "Amber marks; it does not upholster. It may carry a button, a line of text, a slash, a mark, a chip, an underline or a marker glyph. Nothing may be amber larger than the gifting section's highlighted line. An amber ground was tried for the gifting section and rejected by the client: it read as a warning sign and fought the blue.",
         "section": "colors"
       },
       {
         "name": "The Whole-Ground Rule",
-        "body": "A ground owns its section edge to edge. Blue, paper, deeper paper and night card alternate as full-bleed bands; a coloured panel floating inside a differently-coloured section is not part of this world.",
+        "body": "A ground owns its section edge to edge. Blue, white, blue-white and night blue alternate as full-bleed bands; a coloured panel floating inside a differently-coloured section is not part of this world.",
         "section": "colors"
       },
       {
-        "name": "The Tinted-Neutral Rule",
-        "body": "Secondary text is tinted from its ground's hue — blue-leaning on paper, periwinkle on blue, cool slate on near-black. There is no grey in this palette.",
+        "name": "The Three-Value Rule",
+        "body": "Only `#0126BA`, `#FFB72A` and `#FFFFFF` appear. Ink is the brand blue itself; softer text is that blue at 80% or 72% over white, or white at 80% over blue. There is no grey, no black, no navy and no tinted off-white.",
         "section": "colors"
+      },
+      {
+        "name": "The 16px Floor",
+        "body": "No text element may be smaller than 16px on mobile, and no input, textarea or select may be, or mobile Safari zooms in on tap. This is the project owner's standing rule (CLAUDE.md), and it outranks the ramp above. **The shop meets it:** every text element under `/shop` is 16px or more at every width, the selects included, and inside `.shop` the site button is raised from 0.95rem to 1rem. Where a label could only fit by shrinking, it steps out instead — the \"Takes your photo\" glyph and the size chart's drawn label both hide under 46rem. **The shared footer and header do not yet meet it.** These roles are below 16px and are outstanding debt, not precedent: Body (15.5px), Body Small (14.5px), Mark (11.5px), Slot (12.5px), Measure (13.5px), Colophon (13px), and Micro (13.5px), which is desktop-only and so already clear of phones. Do not add a new text role below 16px, and raise these to 16px when the footer is next touched.",
+        "section": "typography"
       },
       {
         "name": "The Two-Families Rule",
-        "body": "Archivo sets everything written in prose. Geist Mono sets only marks and measurements — section marks, index numbers, the reserved slot, hours, the shelf hint, the footer colophon. Mono is never body copy, never a heading, never a button. Audit test: read the mono string aloud; if it is a sentence, it is in the wrong family.",
+        "body": "Archivo sets everything written in prose. Geist Mono sets only marks and measurements — the footer's block headings, the hours values, the colophon, the shop's product counts and the size chart's measures. Mono is never body copy, never a heading, never a button. Audit test: read the mono string aloud; if it is a sentence, it is in the wrong family.",
         "section": "typography"
       },
       {
         "name": "The Tight-Display Rule",
-        "body": "The larger the type, the tighter it sets: -0.035em and 0.94 line-height at display, -0.03em at headline, normal tracking by the time it is prose. Never letterspace Archivo positively; positive tracking (0.16em) belongs to mono alone.",
+        "body": "The larger the type, the tighter it sets: −0.035em and 0.94 line-height at display, −0.03em at headline, normal tracking by the time it is prose. Never letterspace Archivo positively; positive tracking (0.16em) belongs to mono alone.",
         "section": "typography"
       },
       {
         "name": "The Measure Rule",
-        "body": "Prose is capped — 62ch for ledes, 58ch on the cover, 48ch for ledger blurbs, 44ch for fulfilment paragraphs, 36ch in the footer — regardless of how wide the 1400px shell gets.",
+        "body": "Prose is capped — 62ch for ledes, 44ch on the cover, 44ch for fulfilment paragraphs, 36ch in the footer — regardless of how wide the 1400px shell gets.",
         "section": "typography"
       },
       {
@@ -617,52 +599,72 @@
       },
       {
         "name": "The Rule-Not-Box Rule",
-        "body": "Lists, ledgers and tables are separated by 1px hairlines, not by borders around each item. The shelf card is the only bordered container on the page.",
+        "body": "A list, a ledger or a table is separated by 1px hairlines, not by a border around each item: the gifting ledger, the hours table and the footer columns are all ruled. A card is not a list item — it is bordered when it is a *door*, something that can be pressed and that leads somewhere. The white doors are the category tile, the catalogue frame, the product card and the budget door; all wear the same 1px `{colors.rule-card}` edge and the same blue lift. The board's \"see all\" is a door filled blue instead, so it needs no edge. What does not go anywhere wears no edge: the customer portrait on the board is the visitor's picture, not a door, so it is a bare print with its corner and lift; the prints note is prose set off by one hairline, not a box. Audit test: if a bordered box does not go anywhere when you press it, it is wrong.",
         "section": "elevation"
       },
       {
         "name": "The Two-Shape Rule",
-        "body": "Pill or soft rectangle. A square corner, a half-round squircle or a radius outside 12/18/22/999 is outside the system.",
+        "body": "Pill or soft rectangle. A square corner, a half-round \"squircle\" or a radius outside 12/18/22/999 is outside the system.",
         "section": "shapes"
       },
       {
         "name": "The Wall's-Own-Devices Rule",
-        "body": "Every element of the cover is something the wall already has: prints, blue bands, the -4° lean. The headline is the widest band, between the second and third rows, holding still while rows and strip travel; the catalogue meets the cover on a leaning blue edge, tan(4°) of the width. Nothing is laid over the photographs. A plate, scrims, a film frame and a halftone dome were all tried and rejected.",
+        "body": "Every element of the cover is something the wall already has: prints, blue bands, the lean. Nothing is laid over the photographs: no plate, no scrim, no gradient, no shape that is not a band. A white plate, a foot fade, a side scrim, a 35mm film frame and a halftone dome rising from the catalogue were all tried and rejected; the dome covered two-thirds of the wall. If the headline grows, the rows shrink by the `svh` term before the sign may cover a row.",
+        "section": "components"
+      },
+      {
+        "name": "The Icon Rule",
+        "body": "Category glyphs are drawn in `app/site/icons.tsx` on the shared 24px grid at the 1.6 stroke, as the object on the counter (two prints, a mitred frame, a photo mug, a cell, a ring, a camera, a wrapped box, a price tag). A new category gets a new drawing in the same hand, never a library icon.",
+        "section": "components"
+      },
+      {
+        "name": "The Geared-Not-Driven Rule",
+        "body": "The wheel has no motion of its own. The page turns it by scrubbing it to the section's pass through the viewport — scrolling down turns it left, scrolling up turns it back — bounded at ±2.2 steps — and it stops the instant the visitor stops. The visitor can also turn it by hand, on a phone with a swipe that ignores mouse pointers and coasts a little on release, and on a wide screen with two arrow buttons that move it one whole frame at a time. The arrows are drawn `hidden` and only the script reveals them, because without it they would do nothing, and they are not drawn at all below 48rem. Nothing on this page autoplays below the cover.",
         "section": "components"
       },
       {
         "name": "The From-Visible Rule",
-        "body": "Every tween is a gsap.from off an already-visible default. The markup renders complete; if the script never runs the page is intact and merely still. Nothing may be hidden in CSS and revealed by JS.",
+        "body": "Every tween is a `gsap.from` off an already-visible default. The markup renders complete; if the script never runs the page is intact and merely still. Nothing may be hidden in CSS and revealed by JS.",
         "section": "components"
       },
       {
         "name": "The Single-Orchestrator Rule",
-        "body": "New motion goes into the existing matchMedia block, not into a new component effect. prefers-reduced-motion: reduce returns before a single tween is created — not after, and not by reverting them — and the global stylesheet additionally collapses any CSS animation or transition to 0.001ms.",
+        "body": "New motion goes into the existing `matchMedia` block, not into a new component effect. `prefers-reduced-motion: reduce` returns before a single tween is created — not after, and not by reverting them — and the global stylesheet additionally collapses every CSS keyframe animation to 0.001ms and cancels the hover transforms. **Reduced motion removes movement, not feedback:** colour, border and shadow transitions keep their authored duration, because the category tile turning blue and the sign-up's rule going amber are state, not animation.",
         "section": "components"
       }
     ],
     "dos": [
-      "Do let a ground own its section edge to edge — blue for loud, paper / deeper paper for reading, night card to close.",
-      "Do spend amber on the action, the marked line, the band slashes, marks on dark, ::marker and ::selection — and stop there.",
-      "Do set every mark, index number, reserved slot, hours value and colophon in Geist Mono, and everything readable as a sentence in Archivo.",
-      "Do set the cover's type only on the wall's own blue bands; never lay a plate, scrim or shape over the photographs.",
-      "Do tune the focus ring to its ground: brand blue by default, amber inside .on-dark, ink on .on-gold. A single ring colour is invisible on one ground or the other — blue disappears into the blue panels, amber disappears into paper.",
-      "Do tint secondary text from its ground's hue (soft ink and faint ink on paper, periwinkle on blue, soft card ink on near-black).",
-      "Do rule lists and tables with hairlines, and reserve borders for the shelf card.",
-      "Do animate from an already-visible default, inside the one matchMedia block.",
-      "Do cap prose at its measure (62ch default) no matter how wide the shell is.",
-      "Do draw icons on the 24px grid at 1.6 stroke with round caps, and keep brand marks solid."
+      "**Do** let a ground own its section edge to edge — brand blue (header, the cover's bands, catalogue, footer) alternating with white (the wall's ground, categories, gifting).",
+      "**Do** spend amber on the action, the marked line, the band slashes, marks on dark, `::marker` and `::selection` — and stop there.",
+      "**Do** set every mark, hours value, colophon and base line in Geist Mono, and everything readable as a sentence in Archivo.",
+      "**Do** keep the cover wall unwashed and set its type only on its own blue bands. Never lay a plate, scrim or shape over the photographs.",
+      "**Do** tune the focus ring to its ground: brand blue by default, amber inside `.on-dark`, ink on `.on-gold`. A single ring colour is invisible on one ground or the other — blue disappears into the blue panels, amber disappears into paper.",
+      "**Do** tint secondary text from its ground's hue (brand blue at 80% / 72% on white, white at 80% on blue).",
+      "**Do** rule lists and tables with hairlines, and reserve borders for the door cards that lead somewhere (category tile, catalogue frame, product card, budget door).",
+      "**Do** keep the category tiles four-by-two on a wide screen and two-by-four on a phone, names only.",
+      "**Do** gear the catalogue wheel to the visitor's own scroll rather than to a clock, and keep its turn inside the bound that holds the arc full.",
+      "**Do** animate from an already-visible default, inside the one `matchMedia` block.",
+      "**Do** cap prose at its measure (62ch default) no matter how wide the shell is.",
+      "**Do** keep every new text element at 16px or more on mobile, and every input, textarea and select too (The 16px Floor).",
+      "**Do** render product photographs with `ProductImage` at the widths it already offers (400 and 640), and let a new width join that list rather than appear at a call site.",
+      "**Do** make a second action on a section an amber-underlined `.inline-link` rather than a second button.",
+      "**Do** draw icons on the 24px grid at 1.6 stroke with round caps, and keep brand marks solid.",
+      "**Do** make every shop filter a 44px pill at 16px, current or pressed in whole brand blue, and set its counts in mono.",
+      "**Do** mark a picked state on blue with the amber edge alone, as the size chart does."
     ],
     "donts": [
-      "Don't make amber the background of a region, section, card or hero. It is a highlighter, not an upholstery.",
-      "Don't set body copy, headings or button labels in mono, and don't letterspace Archivo positively.",
-      "Don't introduce a radius outside 12 / 18 / 22 / 999px, or square off a corner.",
-      "Don't use grey or black shadows; shadows are tinted by what casts them, and only actions and the shelf card cast one.",
-      "Don't float a coloured panel inside a differently-coloured section instead of banding the ground.",
-      "Don't use a grey neutral for secondary text.",
-      "Don't hide content in CSS for a JS reveal to uncover.",
-      "Don't ship a dark-mode variant; color-scheme: light is declared and the dark grounds are composition, not theme.",
-      "Don't swap Archivo for the template's Outfit or any other default face without a reason no other face could satisfy."
+      "**Don't** make amber the background of a region, section, card or hero. It is a highlighter, not an upholstery.",
+      "**Don't** set body copy, headings or button labels in mono, and don't letterspace Archivo positively.",
+      "**Don't** introduce a radius outside 12 / 18 / 22 / 999px, or square off a corner.",
+      "**Don't** use grey or black shadows; shadows are tinted by what casts them, and only actions, the door cards, the signs and standalone photographs cast one.",
+      "**Don't** float a coloured panel inside a differently-coloured section instead of banding the ground.",
+      "**Don't** use a grey neutral for secondary text.",
+      "**Don't** hide content in CSS for a JS reveal to uncover, and don't make a display row the only way to reach what it displays — the catalogue wheel shows a middle, and the link above it is the path.",
+      "**Don't** ship a dark-mode variant; `color-scheme: light` is declared and the dark grounds are composition, not theme.",
+      "**Don't** add a menu drawer or hamburger to the header; the bar is the wordmark and its icon controls on a phone, and the section links are a scroll away.",
+      "**Don't** put a product photograph in `public/` or ask Cloudinary for a size outside the shared list; the free plan meters every derived size and every byte stored.",
+      "**Don't** state a price that is not read from the catalogue, and don't add a review, a rating or a turnaround promise; none has been supplied (see `app/site/data.ts`). Shop prices come from Firestore only.",
+      "**Don't** swap Archivo for the template's Outfit or any other default face without a reason no other face could satisfy."
     ]
   }
 }

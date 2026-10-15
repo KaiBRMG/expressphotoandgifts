@@ -2,34 +2,18 @@ import { Fragment } from "react";
 
 import Image from "next/image";
 import Link from "next/link";
+import "./site/chrome.css";
 import "./home.css";
 
 import { Carousel } from "./site/Carousel";
 import { CategoryCards } from "./site/CategoryCards";
-import { Newsletter } from "./site/Newsletter";
 import { Motion } from "./site/Motion";
 import { OrderDock } from "./site/OrderDock";
-import {
-  ArrowRight,
-  Cart,
-  Clock,
-  Facebook,
-  Instagram,
-  Mail,
-  Phone,
-  Parcel,
-  Pin,
-  Profile,
-  Search,
-  WhatsApp,
-} from "./site/icons";
-import {
-  HOURS,
-  MARQUEE_WORDS,
-  SHOP,
-  WALL_ROWS,
-  whatsapp,
-} from "./site/data";
+import { ProductImage } from "./site/ProductImage";
+import { SiteFooter } from "./site/SiteFooter";
+import { SiteHeader, type NavItem } from "./site/SiteHeader";
+import { ArrowRight, Parcel, Pin } from "./site/icons";
+import { MARQUEE_WORDS, SHOP, WALL_ROWS } from "./site/data";
 
 /**
  * The gift wrapping page does not exist yet. The link is live in the markup
@@ -47,14 +31,6 @@ const WRAPPING_HREF = "#";
 export const revalidate = 86400;
 
 /**
- * The header's own dead ends. The shop, the basket, the account and search all
- * arrive with the catalogue; until then each control is drawn at its real size
- * in its real place and goes nowhere. "#" keeps them focusable and in the tab
- * order rather than 404ing.
- */
-const DEAD_HREF = "#";
-
-/**
  * How many words of the running band pass between each appearance of the
  * shop's mark. Thirteen words to a run, so the mark lands four times per run —
  * often enough that one is always somewhere on the visible side of the wall.
@@ -65,85 +41,16 @@ const BAND_LOGO_EVERY = 4;
  * The two sections of this page the header points at. Everything else in the
  * bar is a control, not a destination.
  */
-const NAV = [
+const NAV: NavItem[] = [
   { href: "#categories", label: "Categories" },
   { href: "#find-us", label: "Find Us" },
 ];
 
-/**
- * The icon controls, in the order they read left to right.
- *
- * At the very narrow end the wordmark and three 44px targets are wider than the
- * screen, and something has to give. Search is what goes: it is the one control
- * here a shopper does not reach for on a phone bar, and the catalogue it will
- * eventually search has its own way in from the page. The basket and the
- * account stay, because those are what a shopper comes to the bar for.
- */
-const HEADER_ICONS = [
-  { label: "Search", Icon: Search, narrow: false },
-  { label: "Account", Icon: Profile, narrow: true },
-  { label: "Cart", Icon: Cart, narrow: true },
-];
 
 export default function Home() {
   return (
     <>
-      <a className="skip" href="#main">
-        Skip to content
-      </a>
-
-      <header className="header on-dark">
-        <div className="header__bar">
-          <Link
-            className="header__logo"
-            href="/"
-            aria-label={`${SHOP.name}, home`}
-          >
-            <Image
-              src="/logo/new.png"
-              alt={SHOP.name}
-              /* The file's real size. It was declared 1300x300, a 4.33:1 box
-                 against a 7:1 image, so the space reserved for the wordmark had
-                 the wrong shape and the bar was budgeted against a mark almost
-                 100px narrower than the one that actually paints. */
-              width={1400}
-              height={200}
-              loading="eager"
-              fetchPriority="high"
-            />
-          </Link>
-
-          <nav className="header__nav" aria-label="Sections">
-            {NAV.map((item) => (
-              <a key={item.label} href={item.href}>
-                {item.label}
-              </a>
-            ))}
-          </nav>
-
-          <div className="header__actions">
-            <a className="btn btn--gold on-gold header__shop" href={DEAD_HREF}>
-              Shop now
-            </a>
-
-            {/* The three controls that survive to the narrow end: on a phone
-                the bar is the wordmark and these, because a basket and an
-                account are what a shopper reaches for and a section link is
-                what the page itself already provides. */}
-            {HEADER_ICONS.map(({ label, Icon, narrow }) => (
-              <a
-                key={label}
-                className="header__icon"
-                data-narrow={narrow ? "keep" : "drop"}
-                href={DEAD_HREF}
-                aria-label={label}
-              >
-                <Icon size={21} />
-              </a>
-            ))}
-          </div>
-        </div>
-      </header>
+      <SiteHeader nav={NAV} />
 
       <main id="main">
         {/* ---- The cover ---------------------------------------------- */}
@@ -161,9 +68,9 @@ export default function Home() {
                       and the travel never opens a gap at the far end. */}
                   {[0, 1].map((copy) =>
                     [...row, ...row].map((print, i) => (
-                      <Image
+                      <ProductImage
                         key={`${copy}-${i}-${print.src}`}
-                        src={`/products/web/${print.src}.webp`}
+                        code={print.src}
                         alt=""
                         width={640}
                         height={640}
@@ -248,7 +155,7 @@ export default function Home() {
               Tailored by you
             </p>
             <p className="catalogue__link" data-reveal>
-              <Link className="inline-link" href="/shop" prefetch={false}>
+              <Link className="inline-link" href="/shop/all">
                 Browse the full catalogue
               </Link>
             </p>
@@ -317,7 +224,7 @@ export default function Home() {
                   <span
                     className="way__logo"
                     role="img"
-                    aria-label="PUDO by The Courier Guy"
+                    aria-label="The Courier Guy"
                   />
                 </div>
               </div>
@@ -344,134 +251,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/*
-        The page closes on the counter itself: where the shop is, when it is
-        open, how to reach it, and the sign-up — one compact brand-blue
-        ground under the white gifting section, the same blue as the header.
-
-        The last row is the colophon, and it is sized to the dock: when the page
-        bottoms out the docked pair comes to rest on the right of that row, so
-        nothing has to move it out of the way.
-      */}
-      <footer className="footer on-dark" id="find-us">
-        <div className="shell footer__top">
-          <h2 className="footer__title" data-reveal>
-            Come and find us
-          </h2>
-
-          <div className="shop__grid">
-            <div className="shop__block" data-reveal>
-              <h3>
-                <Pin size={15} />
-                The shop
-              </h3>
-              <address className="shop__address">
-                {SHOP.street}
-                <br />
-                {SHOP.town}
-                <br />
-                {SHOP.region}
-                <br />
-                {SHOP.postcode}
-              </address>
-              <a
-                className="shop__link"
-                href={SHOP.mapsUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Get directions
-                <ArrowRight size={17} />
-              </a>
-            </div>
-
-            <div className="shop__block" data-reveal>
-              <h3>
-                <Clock size={15} />
-                Opening hours
-              </h3>
-              <table className="hours">
-                <tbody>
-                  {HOURS.map((row) => (
-                    <tr
-                      key={row.days}
-                      data-closed={row.closed ? "true" : "false"}
-                    >
-                      <th scope="row">{row.days}</th>
-                      <td>{row.time}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Every channel the shop answers on, each named once. The icon
-                pills that used to sit beside the sign-up were the same three
-                accounts a second time. */}
-            <div className="shop__block" data-reveal>
-              <h3>
-                <WhatsApp size={15} />
-                Talk to us
-              </h3>
-              <ul className="contacts">
-                <li>
-                  <a href={whatsapp("Hi! I have a question about…")}>
-                    <WhatsApp size={19} />
-                    WhatsApp {SHOP.phoneDisplay}
-                  </a>
-                </li>
-                <li>
-                  <a href={`tel:+${SHOP.phoneE164}`}>
-                    <Phone size={19} />
-                    Call {SHOP.phoneDisplay}
-                  </a>
-                </li>
-                <li>
-                  <a href={`mailto:${SHOP.email}`}>
-                    <Mail size={19} />
-                    {SHOP.email}
-                  </a>
-                </li>
-                <li>
-                  <a href={SHOP.instagramUrl} target="_blank" rel="noreferrer">
-                    <Instagram size={19} />@{SHOP.instagram}
-                  </a>
-                </li>
-                <li>
-                  <a href={SHOP.facebookUrl} target="_blank" rel="noreferrer">
-                    <Facebook size={19} />
-                    {SHOP.facebook}
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* The sign-up is the only thing down here that is not a detail of
-              the shop, so it is the only thing held off by a rule. On a wide
-              screen it is one row: what it is for on the left, the line to
-              write on to the right. */}
-          <div className="footer__base">
-            <div className="footer__signup-copy" data-reveal>
-              <h3 className="footer__signup-title">Sign up</h3>
-              <p className="footer__signup-sub">
-                To receive updates on our latest products, easily save your
-                information for future orders, and get access to exclusive
-                member-only loyalty deals.
-              </p>
-            </div>
-            <div className="footer__signup" data-reveal>
-              <Newsletter />
-            </div>
-          </div>
-        </div>
-
-        <div className="shell footer__end">
-          <p className="footer__colophon">
-            &copy;{new Date().getFullYear()}. All Rights Reserved.
-          </p>
-        </div>
-      </footer>
+      <SiteFooter />
 
       <OrderDock />
 

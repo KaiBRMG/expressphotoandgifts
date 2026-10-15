@@ -8,7 +8,9 @@ web
 
 ## Stack
 
-Next.js 16 (App Router, React 19) with TypeScript. **Mantine v9 is the primary UI foundation**, with Tailwind v4 available alongside it for layout and utility styling. E-commerce is built end-to-end in this codebase — no Shopify, no commerce SaaS. Payments go through **PayFast (payfast.io)**, a South African payment provider, via its API.
+Next.js 16 (App Router, React 19) with TypeScript. **Mantine v9 is the primary UI foundation** for the app flows still to come (upload, configure, checkout), with Tailwind v4 available alongside it for layout and utility styling. The homepage is hand-built CSS on the project's own tokens and does not use Mantine. Motion is GSAP with ScrollTrigger. E-commerce is built end-to-end in this codebase — no Shopify, no commerce SaaS. Payments go through **PayFast (payfast.io)**, a South African payment provider, via its API (not built yet).
+
+**Product photography is served from Cloudinary** (`products/<code>`) through `next-cloudinary`, on the free tier, which must stay free. Assets are stored no larger than they are shown and delivered at a small fixed set of widths. The logo and the courier's mark are the only images kept in `public/`.
 
 ## Users
 
@@ -23,6 +25,8 @@ They fall into two fulfilment situations that the site must serve equally well:
 ## Product Purpose
 
 Express Photo and Gifts turns customers' own photos into printed products and personalised gifts. It is a real storefront that also sells online.
+
+**The main selling point is the range of things a customer's own photo can go on** (stated by the owner, 2026-10-07): mugs, puzzles, keyrings, snow globes, tiles, coasters and more, each personalised with media the customer uploads. Shop surfaces lead with that range; frames, albums and counter stock follow it.
 
 The site is the online storefront and the primary ordering channel. Success is a customer who finds the product they want, uploads their photo, configures it with confidence, pays, and chooses pickup or delivery — without phoning the shop to ask whether it will come out right.
 
@@ -54,9 +58,9 @@ An actual local photo and gift shop selling online, not a faceless print-on-dema
 - Commerce is custom-built in this repo; PayFast handles the payment step.
 
 **Open / undecided — do not present as settled:**
-- The product catalogue itself: which products, which sizes, which options, and what they cost. Not yet supplied.
-- Whether the bulk/corporate line launches, and what form it takes (quote request, tiered pricing, account).
-- Shipping: courier, rates, zones, and turnaround times.
+- Which of the catalogue's products, sizes, options and prices are final. The shop has supplied its catalogue as source data (`public/product_list.json`), but no price is stated anywhere on the site yet and none may be until the catalogue is wired in and confirmed.
+- Whether the bulk/corporate line launches, and what form it takes (quote request, tiered pricing, account). "Corporate Gifts" appears in the homepage's running band, as one of the things the shop makes; nothing more is promised.
+- Shipping: rates, zones, and turnaround times. The homepage names PUDO by The Courier Guy as the courier for the last leg (door or locker, "if available"); nothing beyond that is settled.
 - Order tracking, customer accounts, and order history — not confirmed as in scope.
 - Image quality handling (minimum resolution, DPI warnings, crop preview) — a known hard problem for this product type, not yet specified.
 
@@ -85,9 +89,15 @@ Contrast constraint carried by these values: `#0126BA` is dark enough to take wh
 
 ## Evidence on Hand
 
-**None yet.** The repository is an unmodified `create-next-app` scaffold. There are no product photos, no examples of printed work, no store photography, no testimonials, no reviews, no customer names, no pricing, and no catalogue data.
+**Supplied by the shop and verified:**
+- **Product photography.** Real photographs of the shop's own products (photo gifts, frames, easels, jewellery, the counter range) and three family portraits used as sample customer photos, filed in Cloudinary under `products/<code>`. Every `*a` code and `PP1` is a spec or dimension diagram, not a product photo, and belongs on product pages only; `BP1` (biltong) is not a photo product and stays out of the wall.
+- **Catalogue source data.** `public/product_list.json`: 103 rows in the full catalogue and a 77-line quick list, with codes, names, measurements, descriptions, care notes and prices. Source data only; the homepage does not quote it.
+- **Brand assets.** The logo (`/public/logo/new.png`) and the courier's mark (`/public/pudo_courierguy_logo.png`, supplied in white).
+- **Store facts**, as under Capabilities above.
 
-Nothing in this list may be fabricated. No invented testimonials, review counts, star ratings, "trusted by" logos, customer numbers, years-in-business claims, turnaround guarantees, or sample prices. Where a real asset is required and missing, ship an explicit placeholder that names what the user must provide.
+**Still none:** store photography, examples of printed work on customers' own walls, testimonials, reviews, customer names and any figure that implies a track record.
+
+Nothing in the "still none" list may be fabricated. No invented testimonials, review counts, star ratings, "trusted by" logos, customer numbers, years-in-business claims, turnaround guarantees, or sample prices. Where a real asset is required and missing, ship an explicit placeholder that names what the user must provide.
 
 ## Product Principles
 
@@ -100,3 +110,5 @@ Nothing in this list may be fabricated. No invented testimonials, review counts,
 ## Accessibility & Inclusion
 
 No product-specific standard has been established. The general requirement follows from the audience: customers are non-technical, span a wide age range, and frequently buy on mobile — so touch targets, contrast, legible type at real sizes, and keyboard/screen-reader access through the upload and checkout flow are functional requirements of the ordering path, not a later polish item.
+
+One hard rule from the project owner: **no text element may be smaller than 16px on mobile.** Text under 16px in an input, textarea or select makes mobile Safari zoom in on tap, and the rule is applied to all text, not only form fields. Header icon controls are 44px targets.

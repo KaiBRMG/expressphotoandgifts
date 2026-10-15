@@ -1,0 +1,2676 @@
+/*
+ * Checkout: the photo step.
+ *
+ * The header's blue carries into a title band, as on a shelf. Under it, on
+ * white, every item that takes a photo is a white door holding its places,
+ * each drawn at its real proportions and outline; beside it, on blue, the
+ * customer's tray of photos. Amber marks the photo in hand, the places it can
+ * go, the gold actions and a print that will come out soft. No new colour:
+ * every warning is a glyph and words first.
+ */
+
+.ck {
+  --tray-w: 23.5rem;
+}
+
+/* ---- The band ---------------------------------------------------------- */
+
+.ckhead__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.25rem 2.5rem;
+}
+
+.ckhead__lede {
+  max-width: 52ch;
+  margin-top: 0.85rem;
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  line-height: 1.55;
+  color: var(--on-leather-soft);
+  text-wrap: pretty;
+}
+
+/* The count is the line worth remembering, so it carries the amber. */
+.ckhead__count {
+  display: grid;
+  justify-items: end;
+  font-size: 1rem;
+  color: var(--on-leather-soft);
+}
+
+.ckhead__count strong {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(2.2rem, 4.6vw, 3.6rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.ckhead__count strong span {
+  color: var(--on-leather-soft);
+}
+
+/* ---- The page ---------------------------------------------------------- */
+
+.ck__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(24px, 3vw, 44px);
+  padding-block: clamp(24px, 3vw, 44px) clamp(62px, 9vw, 130px);
+}
+
+@media (min-width: 62rem) {
+  .ck__grid {
+    grid-template-columns: minmax(0, 1fr) var(--tray-w);
+    align-items: start;
+  }
+}
+
+.ck__items {
+  display: grid;
+  gap: clamp(18px, 2vw, 26px);
+  min-width: 0;
+}
+
+.ck__none,
+.ck__empty p {
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.ck__empty {
+  display: grid;
+  justify-items: start;
+  gap: 1.4rem;
+  padding-block: clamp(48px, 7vw, 96px);
+}
+
+/* ---- An item ----------------------------------------------------------- */
+
+.pitem {
+  display: grid;
+  gap: 1.25rem;
+  padding: clamp(16px, 2vw, 26px);
+  border: 1px solid var(--rule-card);
+  border-radius: var(--radius);
+  background: var(--print);
+  box-shadow: var(--shadow-card);
+}
+
+.pitem__head {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.95rem;
+}
+
+.pitem__thumb {
+  position: relative;
+  width: 64px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--rule-card);
+  border-radius: var(--radius-sm);
+  background: rgb(1 38 186 / 0.05);
+}
+
+.pitem__thumb img {
+  object-fit: cover;
+}
+
+.pitem__name {
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.pitem__meta {
+  margin-top: 0.15rem;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.pitem__price {
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pitem__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem 1.75rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.pitem__qty {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.pitem__offer {
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.pitem__offer button {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* The product page's pills, held here as the photo step's own. */
+.pills {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pills__legend {
+  display: block;
+  margin-bottom: 0.5rem;
+  padding: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.pills__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.55rem 1.05rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--print);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.25s,
+    border-color 0.25s,
+    color 0.25s;
+}
+
+.pill input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.pill:hover {
+  border-color: var(--blue);
+}
+
+.pill:has(input:checked) {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--print);
+}
+
+.pill:has(input:focus-visible) {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+
+/* ---- A set of places --------------------------------------------------- */
+
+.pset {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.pset + .pset {
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.pset__title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.pset__title span {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.pset__fill {
+  justify-self: start;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.slots {
+  --slot-h: clamp(128px, 15vw, 176px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: 1.25rem 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.slots[data-many] {
+  --slot-h: clamp(96px, 10vw, 118px);
+  gap: 1rem;
+}
+
+.slot {
+  display: grid;
+  gap: 0.45rem;
+  /* As wide as the place it draws, and never too narrow for its notes. */
+  width: min(100%, max(10.5rem, calc(var(--slot-h) * var(--a))));
+}
+
+.slots[data-many] .slot {
+  width: max(64px, calc(var(--slot-h) * var(--a)));
+}
+
+/* The place itself, at the print's proportions. */
+.slot__face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(100%, calc(var(--slot-h) * var(--a)));
+  aspect-ratio: var(--a);
+  max-height: calc(var(--slot-h) * 1.6);
+  padding: 0;
+  overflow: hidden;
+  border: 1.5px dashed rgb(1 38 186 / 0.42);
+  border-radius: 10px;
+  background: rgb(1 38 186 / 0.045);
+  color: var(--ink-soft);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.25s,
+    background-color 0.25s,
+    box-shadow 0.45s var(--ease-out),
+    transform 0.45s var(--ease-out);
+}
+
+/* A place too narrow to be hit holds a little height, never less than a target. */
+.slots[data-many] .slot__face {
+  width: calc(var(--slot-h) * var(--a));
+  min-width: 64px;
+}
+
+.slot__face:hover {
+  border-color: var(--blue);
+  background: rgb(1 38 186 / 0.08);
+}
+
+.slot__face[data-filled] {
+  border: 0;
+  background: rgb(1 38 186 / 0.06);
+  box-shadow: var(--shadow-card);
+}
+
+.slot__face[data-filled]:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+/* The outlines a photo is cut to. */
+.slot[data-shape="round"] .slot__face {
+  border-radius: 50%;
+}
+
+.slot[data-shape="dome"] .slot__face {
+  border-radius: 50% 50% 10px 10px / 42% 42% 10px 10px;
+}
+
+.slot__add {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.slots[data-many] .slot__add {
+  font-size: 0;
+}
+
+.slots[data-many] .slot__add svg {
+  width: 20px;
+  height: 20px;
+}
+
+.slot__wait {
+  padding: 0.5rem;
+  font-size: 1rem;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+/* With a photo in hand, every place it can go lights in amber. */
+[data-armed] .slot__face {
+  border: 2px solid var(--gold);
+  background: rgb(255 183 42 / 0.12);
+  color: var(--ink);
+}
+
+[data-armed] .slot__face[data-filled] {
+  box-shadow:
+    0 0 0 3px var(--gold),
+    var(--shadow-card);
+}
+
+[data-armed] .slot__face:hover {
+  background: rgb(255 183 42 / 0.26);
+}
+
+.slot__bar,
+.thumb__bar {
+  position: absolute;
+  inset: auto 0 0;
+  height: 4px;
+  background: rgb(255 255 255 / 0.6);
+}
+
+.slot__bar::after,
+.thumb__bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--blue);
+  transform: scaleX(var(--p));
+  transform-origin: left;
+  transition: transform 0.3s var(--ease-out);
+}
+
+.slot__label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.slot__size {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.slots[data-many] .slot__label {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.slots[data-many] .slot__size {
+  display: none;
+}
+
+.slot__note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.slot__note > svg {
+  margin-top: 0.15rem;
+}
+
+.slot__note--quiet {
+  grid-template-columns: minmax(0, 1fr);
+  color: var(--ink-soft);
+}
+
+.slot__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1rem;
+  margin-top: 0.2rem;
+}
+
+.slot__note button,
+.slot__acts button {
+  color: inherit;
+}
+
+/* A checkbox drawn in the shop's own terms: a 22px square, blue when ticked. */
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.check input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--blue);
+  cursor: pointer;
+}
+
+/* The words a gift can carry. */
+.words {
+  display: grid;
+  gap: 0.45rem;
+  max-width: 34rem;
+}
+
+.words__label {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.words__label span {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.words__input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 1.05rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: var(--radius-sm);
+  background: var(--print);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  transition: border-color 0.25s;
+}
+
+.words__input:hover {
+  border-color: var(--blue);
+}
+
+.words__input:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.words__count {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  color: var(--ink-faint);
+}
+
+/* ---- A photo cut to its place ----------------------------------------- */
+
+/* White under the photo, so a zoomed-out photo shows the white borders it prints with. */
+.cropped {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background: var(--print);
+}
+
+/* A hairline round the print, so its white borders read as paper on the white card. */
+.cropped::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--rule-hair);
+  pointer-events: none;
+}
+
+.cropped__turn {
+  position: absolute;
+}
+
+.cropped__turn img {
+  position: absolute;
+  max-width: none;
+  user-select: none;
+}
+
+/* ---- A frame ----------------------------------------------------------- */
+
+.frameoffer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(18px, 3vw, 36px);
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--rule-paper);
+}
+
+/* The frame drawn empty, at its own proportions: a blue moulding round the print it wants. */
+.frameslot {
+  display: grid;
+  width: calc(clamp(112px, 13vw, 150px) * var(--a));
+  aspect-ratio: var(--a);
+  padding: 11px;
+  border-radius: 6px;
+  background: var(--blue);
+  box-shadow: var(--shadow-card);
+}
+
+.frameslot__print {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.2rem;
+  border: 1.5px dashed rgb(255 255 255 / 0.55);
+  background: rgb(255 255 255 / 0.08);
+  color: var(--print);
+}
+
+.frameslot__print[data-in] {
+  border-style: solid;
+  border-color: var(--gold);
+  background: rgb(255 183 42 / 0.16);
+  color: var(--gold);
+}
+
+.frameslot__size {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--print);
+  padding-inline: 0.2rem;
+}
+
+.frameoffer__copy {
+  display: grid;
+  gap: 0.6rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.frameoffer__title {
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.frameoffer__acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem 1.4rem;
+  margin-top: 0.3rem;
+}
+
+.frameoffer__acts .btn,
+.ck .btn {
+  font-size: 1rem;
+}
+
+.frameoffer__acts .inline-link,
+.frameoffer__copy .inline-link {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.frameoffer__done {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.5rem;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+@media (max-width: 30rem) {
+  .frameoffer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- What needs nothing ------------------------------------------------ */
+
+.plain {
+  padding-top: 0.4rem;
+}
+
+.plain__title {
+  margin-bottom: 0.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.plain ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plain li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.7rem;
+  border-top: 1px solid var(--rule-paper);
+  font-size: 1rem;
+}
+
+.plain__variant {
+  color: var(--ink-soft);
+}
+
+.plain__price {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- The tray ---------------------------------------------------------- */
+
+/* The blue panel beside the items: the photo tray, and the order slip it becomes on the details step. */
+.tray,
+.coslip {
+  display: grid;
+  gap: 1.1rem;
+  padding: clamp(18px, 2vw, 24px);
+  border-radius: 22px;
+  background: var(--leather);
+  color: var(--print);
+  box-shadow: var(--shadow-blue);
+  transition: box-shadow 0.3s;
+}
+
+.tray[data-dropping] {
+  box-shadow:
+    0 0 0 3px var(--gold),
+    var(--shadow-blue);
+}
+
+/* Beside the items the tray is a column held to the screen's height: only the
+   photo grid gives way and scrolls, so the panel and the foot keep their room. */
+@media (min-width: 62rem) {
+  .tray {
+    position: sticky;
+    top: calc(var(--header-h) + 20px);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - var(--header-h) - 40px);
+  }
+
+  .tray > * {
+    flex: none;
+  }
+
+  .tray > .tray__grid {
+    flex: 0 1 auto;
+    min-height: 96px;
+  }
+}
+
+.tray__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.tray__title,
+.coslip__title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: clamp(1.15rem, 2.2vw, 1.55rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.tray__n,
+.coslip__n {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--on-leather-soft);
+}
+
+.addphotos {
+  position: relative;
+}
+
+.addphotos:has(input:focus-visible) {
+  outline: 3px solid var(--print);
+  outline-offset: 3px;
+}
+
+.tray__hint {
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--on-leather-soft);
+}
+
+.tray__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+  padding: 2px;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-color: rgb(255 255 255 / 0.4) transparent;
+}
+
+.thumb {
+  position: relative;
+}
+
+.thumb__face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: rgb(255 255 255 / 0.1);
+  color: var(--on-leather-soft);
+  cursor: grab;
+  transition:
+    transform 0.45s var(--ease-out),
+    box-shadow 0.3s;
+}
+
+.thumb__face img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumb__face:hover {
+  transform: translateY(-2px);
+}
+
+.thumb[data-armed] .thumb__face {
+  box-shadow:
+    0 0 0 3px var(--gold),
+    0 14px 28px -14px rgb(255 183 42 / 0.9);
+  transform: translateY(-2px);
+}
+
+.thumb[data-error] .thumb__face img {
+  opacity: 0.45;
+}
+
+.thumb__none {
+  padding: 0.4rem;
+  font-size: 1rem;
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* How many places a photo is in, on a white disc. */
+.thumb__uses {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  min-width: 28px;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--print);
+  color: var(--ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  line-height: 1.5;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The edit mark: a white disc in the photo's corner, its target wider than it looks. */
+.thumb__edit {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--print);
+  color: var(--ink);
+  box-shadow: 0 6px 14px -8px rgb(1 38 186 / 0.9);
+  cursor: pointer;
+  transition: transform 0.45s var(--ease-out);
+}
+
+.thumb__edit::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+}
+
+.thumb__edit:hover {
+  transform: scale(1.08);
+}
+
+.thumb__edit:focus-visible {
+  outline-color: var(--gold);
+}
+
+.thumb__retry {
+  position: absolute;
+  inset: auto 6px 6px;
+  min-height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Starting over is a quiet link, never a button: it asks once before it acts. */
+.tray__reset {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--on-leather-soft);
+}
+
+.tray__reset .inline-link {
+  color: var(--print);
+  font-weight: 600;
+}
+
+.tray__reset .inline-link + .inline-link {
+  margin-left: 0.6rem;
+}
+
+.tray__armed {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-sm);
+  background: rgb(255 255 255 / 0.1);
+}
+
+.tray__armedText {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.tray__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tray__act {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--rule-dark);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--print);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.25s,
+    border-color 0.25s;
+}
+
+.tray__act:hover {
+  border-color: var(--print);
+  background: rgb(255 255 255 / 0.1);
+}
+
+.tray__act--done {
+  background: var(--print);
+  border-color: var(--print);
+  color: var(--ink);
+}
+
+.tray__act--done:hover {
+  background: var(--print);
+}
+
+.tray__foot {
+  display: grid;
+  gap: 0.85rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule-leather);
+}
+
+.tray__progress {
+  display: grid;
+  gap: 0.5rem;
+  font-size: 1rem;
+  color: var(--on-leather-soft);
+}
+
+.tray__progress strong {
+  color: var(--print);
+  font-variant-numeric: tabular-nums;
+}
+
+.tray__meter {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.18);
+}
+
+.tray__meter::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gold);
+  transform: scaleX(var(--p));
+  transform-origin: left;
+  transition: transform 0.6s var(--ease-out);
+}
+
+.tray__problems {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tray__problems button {
+  color: var(--print);
+  font-size: 1rem;
+  text-align: left;
+}
+
+.tray__excl {
+  font-weight: 400;
+  color: var(--on-leather-soft);
+}
+
+.tray__total {
+  color: var(--print);
+}
+
+.tray__send {
+  justify-content: center;
+}
+
+.tray__send[aria-disabled],
+.coslip__pay[aria-disabled] {
+  background: rgb(255 255 255 / 0.14);
+  color: var(--on-leather-soft);
+  box-shadow: none;
+}
+
+.tray__send[aria-disabled]:hover,
+.coslip__pay[aria-disabled]:hover {
+  transform: none;
+}
+
+.tray__note,
+.coslip__note {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--on-leather-soft);
+}
+
+/*
+ * On a phone and a tablet the tray docks at the foot of the screen, so a
+ * photo is always one tap from the place it should go: the head, a strip of
+ * photos, and the count beside the way out. The rest of the foot stays in the
+ * page's reach through the chooser and the slots' own notes.
+ */
+@media (max-width: 61.99rem) {
+  .ck__grid {
+    padding-bottom: calc(clamp(62px, 9vw, 130px) + 230px);
+  }
+
+  .tray,
+  .coslip {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 60;
+    gap: 0.7rem;
+    padding: 0.85rem var(--gutter) calc(0.85rem + env(safe-area-inset-bottom, 0px));
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -18px 40px -24px rgb(1 38 186 / 0.9);
+  }
+
+  .tray__title {
+    font-size: 1.1rem;
+  }
+
+  .tray .addphotos {
+    padding: 0.7rem 1.15rem;
+  }
+
+  .tray__drop {
+    display: none;
+  }
+
+  .tray__grid {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 2px;
+    scroll-snap-type: x proximity;
+  }
+
+  .thumb {
+    flex: none;
+    width: 80px;
+    scroll-snap-align: start;
+  }
+
+  .thumb__uses {
+    top: 3px;
+    right: 3px;
+    min-width: 24px;
+  }
+
+  /* The mark keeps to its corner, so a tap on the photo picks the photo up. */
+  .thumb__edit {
+    right: 3px;
+    bottom: 3px;
+    width: 28px;
+    height: 28px;
+  }
+
+  .thumb__edit::before {
+    inset: -4px;
+  }
+
+  /* The edit mark: a white disc in the photo's corner, its target wider than it looks. */
+.thumb__edit {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--print);
+  color: var(--ink);
+  box-shadow: 0 6px 14px -8px rgb(1 38 186 / 0.9);
+  cursor: pointer;
+  transition: transform 0.45s var(--ease-out);
+}
+
+.thumb__edit::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+}
+
+.thumb__edit:hover {
+  transform: scale(1.08);
+}
+
+.thumb__edit:focus-visible {
+  outline-color: var(--gold);
+}
+
+.thumb__retry {
+    inset: auto 2px 2px;
+    min-height: 28px;
+  }
+
+  /* With a photo in hand the actions are one row that scrolls, so the places stay in view. */
+  .tray__armed {
+    padding: 0;
+    background: none;
+  }
+
+  .tray__armedText {
+    display: none;
+  }
+
+  .tray__acts {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tray__act {
+    flex: none;
+  }
+
+  /* Putting the photo down is the action always in reach. */
+  .tray__act--done {
+    order: -1;
+  }
+
+  .tray__foot {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.6rem 1rem;
+    padding-top: 0.7rem;
+  }
+
+  .tray__progress {
+    gap: 0.35rem;
+  }
+
+  .tray__problems,
+  .tray__total,
+  .tray__note {
+    display: none;
+  }
+
+  .tray__send {
+    padding: 0.85rem 1.2rem;
+  }
+}
+
+@media (max-width: 30rem) {
+  .tray__sendMore {
+    display: none;
+  }
+}
+
+/* ---- Dialogs: the chooser and the editor ------------------------------- */
+
+.sheet,
+.editor {
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+}
+
+.sheet::backdrop,
+.editor::backdrop {
+  background: rgb(1 38 186 / 0.34);
+}
+
+html:has(.sheet[open]),
+html:has(.editor[open]) {
+  overflow: hidden;
+}
+
+/* The chooser: a sheet from the foot on a phone, a centred card from there. */
+.sheet {
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+}
+
+.sheet[open] {
+  animation: sheet-up 0.45s var(--ease-out);
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+.sheet__panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(86dvh, 720px);
+  border-radius: 22px 22px 0 0;
+  background: var(--print);
+  box-shadow: var(--shadow-card-hover);
+}
+
+@media (min-width: 46rem) {
+  .sheet {
+    inset: 0;
+    width: min(46rem, calc(100% - 2 * var(--gutter)));
+    height: fit-content;
+    margin: auto;
+  }
+
+  .sheet__panel {
+    border-radius: 22px;
+  }
+}
+
+.sheet__head,
+.editor__head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem clamp(18px, 3vw, 26px);
+  background: var(--leather);
+  color: var(--print);
+}
+
+.sheet__head {
+  border-radius: inherit;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.sheet__title,
+.editor__title {
+  display: grid;
+  font-size: clamp(1.15rem, 2.2vw, 1.4rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.sheet__title span,
+.editor__title span {
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--on-leather-soft);
+}
+
+.sheet__close,
+.editor__close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -0.35rem -0.5rem 0 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--print);
+  cursor: pointer;
+}
+
+.sheet__close:hover,
+.editor__close:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.sheet__close:focus-visible,
+.editor__close:focus-visible {
+  outline-color: var(--gold);
+}
+
+.sheet__body {
+  overflow-y: auto;
+  padding: clamp(16px, 3vw, 24px) clamp(18px, 3vw, 26px);
+}
+
+.sheet__hint {
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.sheet__foot {
+  padding: 1rem clamp(18px, 3vw, 26px) calc(1rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--rule-paper);
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.choice {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--rule-card);
+  border-radius: var(--radius-sm);
+  background: rgb(1 38 186 / 0.04);
+  cursor: pointer;
+  transition:
+    border-color 0.25s,
+    transform 0.45s var(--ease-out);
+}
+
+.choice:hover {
+  border-color: var(--blue);
+  transform: translateY(-2px);
+}
+
+.choice__face {
+  position: relative;
+  display: block;
+  width: min(100%, calc(100% * var(--a)));
+  aspect-ratio: var(--a);
+  max-height: 100%;
+  overflow: hidden;
+  border-radius: 6px;
+  box-shadow: var(--shadow-card);
+}
+
+.choice__face[data-shape="round"] {
+  border-radius: 50%;
+}
+
+.choice__face[data-shape="dome"] {
+  border-radius: 50% 50% 6px 6px / 42% 42% 6px 6px;
+}
+
+/* The editor: the whole screen on a phone, a wide panel from there. */
+.editor {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.editor[open] {
+  animation: sheet-up 0.45s var(--ease-out);
+}
+
+.editor__panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  background: var(--print);
+}
+
+@media (min-width: 62rem) {
+  .editor {
+    width: min(62rem, calc(100% - 2 * var(--gutter)));
+    height: min(52rem, calc(100dvh - 48px));
+    margin: auto;
+  }
+
+  .editor__panel {
+    overflow: hidden;
+    border-radius: 22px;
+    box-shadow: var(--shadow-card-hover);
+  }
+}
+
+/* The photo on the brand blue, everything outside the place let down under a blue veil. */
+.editor__stage {
+  position: relative;
+  overflow: hidden;
+  background: var(--leather);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.editor__stage:active {
+  cursor: grabbing;
+}
+
+.editor__stage:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: -3px;
+}
+
+.editor__photo {
+  position: absolute;
+}
+
+/* The paper under the photo, white where a zoomed-out photo leaves borders. */
+.editor__paper {
+  position: absolute;
+  border-radius: 4px;
+  background: var(--print);
+}
+
+.editor__paper[data-shape="round"] {
+  border-radius: 50%;
+}
+
+.editor__paper[data-shape="dome"] {
+  border-radius: 50% 50% 4px 4px / 42% 42% 4px 4px;
+}
+
+.editor__borders {
+  display: block;
+  margin-top: 0.15rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.editor__photo img {
+  position: absolute;
+  max-width: none;
+  pointer-events: none;
+}
+
+.editor__frame {
+  position: absolute;
+  border: 2px solid var(--print);
+  border-radius: 4px;
+  box-shadow: 0 0 0 100vmax rgb(1 38 186 / 0.7);
+  pointer-events: none;
+}
+
+.editor__frame[data-shape="round"] {
+  border-radius: 50%;
+}
+
+.editor__frame[data-shape="dome"] {
+  border-radius: 50% 50% 4px 4px / 42% 42% 4px 4px;
+}
+
+.editor__wait {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--on-leather-soft);
+  font-size: 1rem;
+}
+
+.editor__controls {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem clamp(18px, 3vw, 26px) calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+.editor__verdict {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.editor__verdict[data-quality="soft"] svg {
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.editor__dpi {
+  margin-left: 0.6rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.editor__shape {
+  margin-top: -0.4rem;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.editor__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.editor__zoom {
+  display: inline-flex;
+  flex: 1 1 13rem;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+}
+
+.editor__zoom input {
+  flex: 1;
+  height: 44px;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.editor__zoom input::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--blue) calc(var(--p) * 100%), rgb(1 38 186 / 0.16) 0);
+}
+
+.editor__zoom input::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--blue) calc(var(--p) * 100%), rgb(1 38 186 / 0.16) 0);
+}
+
+.editor__zoom input::-webkit-slider-thumb {
+  width: 24px;
+  height: 24px;
+  margin-top: -9px;
+  border: 3px solid var(--print);
+  border-radius: 999px;
+  appearance: none;
+  background: var(--blue);
+  box-shadow: var(--shadow-blue);
+}
+
+.editor__zoom input::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--print);
+  border-radius: 999px;
+  background: var(--blue);
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--print);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.25s,
+    border-color 0.25s,
+    color 0.25s;
+}
+
+.tool:hover {
+  border-color: var(--blue);
+}
+
+.tool[aria-pressed="true"] {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--print);
+}
+
+.tool--quiet {
+  border-color: transparent;
+  color: var(--ink-soft);
+}
+
+.editor__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.4rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.editor__foot .inline-link {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.editor__done {
+  margin-left: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot__face[data-filled]:hover,
+  .thumb__face:hover,
+  .thumb[data-armed] .thumb__face,
+  .choice:hover {
+    transform: none;
+  }
+}
+
+/* ======================================================================== */
+/*
+ * Checkout: details, delivery and payment.
+ *
+ * Three steps down the white, ruled rather than boxed, each opened by its
+ * number in a blue ring. Only the two ways an order reaches its person are
+ * doors, because they are the one choice on the page. Beside them, the blue
+ * slip that the photo tray becomes: lines, delivery, the total and the gold
+ * Pay. The review ends on the customer's own photos as small prints laid on
+ * the counter, each at a slight lean, the way the shop's signs lean.
+ */
+
+.ckhead__ref {
+  display: grid;
+  justify-items: end;
+  gap: 0.2rem;
+  font-size: 1rem;
+  color: var(--on-leather-soft);
+}
+
+/* Under the title on a phone, it reads from the left like everything else in the band. */
+@media (max-width: 46rem) {
+  .ckhead__ref {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+}
+
+.ckhead__ref strong {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(1.35rem, 2.6vw, 2rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--gold);
+}
+
+.co {
+  --tray-w: 24rem;
+}
+
+.co__steps {
+  display: grid;
+  min-width: 0;
+}
+
+.co__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+  padding: 0.95rem 1.15rem;
+  border-radius: var(--radius-sm);
+  background: rgb(1 38 186 / 0.06);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.co__notice svg {
+  flex: none;
+  margin-top: 0.1rem;
+}
+
+/* ---- A step ------------------------------------------------------------ */
+
+.costep {
+  display: grid;
+  gap: 1.15rem;
+  padding-block: clamp(26px, 3.2vw, 40px);
+  border-top: 1px solid var(--rule-paper);
+}
+
+.costep:first-of-type {
+  padding-top: clamp(8px, 1vw, 14px);
+  border-top: 0;
+}
+
+.costep__title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: clamp(1.2rem, 2.2vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* The step's number: the sequence is the information, so it stays, small and ringed. */
+.costep__n {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 1.5px solid var(--blue);
+  border-radius: 999px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* ---- Fields ------------------------------------------------------------ */
+
+.fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem 1.1rem;
+  max-width: 44rem;
+}
+
+@media (min-width: 40rem) {
+  .fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .field[data-wide] {
+    grid-column: 1 / -1;
+  }
+}
+
+.field {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.field__label {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.field__label span {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.field__input {
+  width: 100%;
+  min-height: 50px;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: var(--radius-sm);
+  background: var(--print);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  caret-color: var(--blue);
+  transition:
+    border-color 0.25s,
+    box-shadow 0.25s;
+}
+
+.field__input::placeholder {
+  color: var(--ink-faint);
+  opacity: 1;
+}
+
+.field__input:hover {
+  border-color: var(--blue);
+}
+
+.field__input:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.field[data-invalid] .field__input {
+  border-color: var(--blue);
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+
+.field__select {
+  appearance: none;
+  padding-right: 2.6rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%230126ba' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  cursor: pointer;
+}
+
+/* The error speaks in a glyph and words: the glyph sits on an amber disc, the words in ink. */
+.field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+/* A glyph that marks a note (a problem, or done) sits on an amber disc; the words beside it stay in ink. */
+.field__error svg,
+.services__none svg,
+.coslip__error svg,
+.receipt__paid svg,
+.receipt__saved svg {
+  flex: none;
+  box-sizing: content-box;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.receipt__paid svg {
+  padding: 4px;
+}
+
+/* ---- Account ----------------------------------------------------------- */
+
+.acct {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.acct strong {
+  color: var(--ink);
+}
+
+.acct--open {
+  display: grid;
+  gap: 0.9rem;
+  max-width: 44rem;
+  padding: clamp(14px, 2vw, 20px);
+  border-radius: var(--radius);
+  background: rgb(1 38 186 / 0.045);
+  color: var(--ink);
+}
+
+.acct__acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  font-size: 1rem;
+}
+
+.acct__acts .btn {
+  font-size: 1rem;
+}
+
+/* ---- Collect or deliver ------------------------------------------------ */
+
+.ways {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.85rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+@media (min-width: 46rem) {
+  .ways {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.way {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 0.6rem;
+  padding: clamp(16px, 2vw, 22px);
+  border: 1px solid var(--rule-card);
+  border-radius: var(--radius);
+  background: var(--print);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition:
+    border-color 0.25s,
+    background-color 0.25s,
+    box-shadow 0.45s var(--ease-out),
+    transform 0.45s var(--ease-out);
+}
+
+.way:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.way input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.way:has(input:focus-visible) {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+
+/* Picked: the brand blue round it and a breath of blue in it, as the size chart marks a picked print. */
+.way[data-on] {
+  border-color: var(--blue);
+  background: rgb(1 38 186 / 0.045);
+  box-shadow:
+    inset 0 0 0 1px var(--blue),
+    var(--shadow-card);
+}
+
+.way[data-off] {
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.way[data-off]:hover {
+  transform: none;
+}
+
+.way[data-off] input {
+  cursor: not-allowed;
+}
+
+.way[data-off] .way__head,
+.way[data-off] .way__body {
+  color: var(--ink-faint);
+}
+
+.way__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.way__name {
+  font-size: clamp(1.05rem, 1.6vw, 1.2rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.way__price {
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.way__body {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.way__hours {
+  display: grid;
+  gap: 0.1rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--rule-paper);
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.way__hours span {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.way__hours b {
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.deliver {
+  display: grid;
+  gap: 1.4rem;
+  padding-top: 0.4rem;
+}
+
+/* ---- The courier's services -------------------------------------------- */
+
+.services {
+  display: grid;
+  gap: 0.55rem;
+  max-width: 44rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.service {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  min-height: 56px;
+  padding: 0.75rem 1.15rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: var(--radius-sm);
+  background: var(--print);
+  cursor: pointer;
+  transition:
+    border-color 0.25s,
+    background-color 0.25s;
+}
+
+.service:hover {
+  border-color: var(--blue);
+}
+
+.service input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.service:has(input:focus-visible) {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+
+.service[data-on] {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: var(--print);
+}
+
+.service__name {
+  display: grid;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.service__name span {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.service[data-on] .service__name span {
+  color: var(--on-leather-soft);
+}
+
+.service__price {
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.services__wait {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.services__spin {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgb(1 38 186 / 0.18);
+  border-top-color: var(--blue);
+  border-radius: 999px;
+  animation: co-spin 0.8s linear infinite;
+}
+
+@keyframes co-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.services__none {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 44rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.services__none p:first-child {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.services__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+}
+
+/* ---- The order once more ----------------------------------------------- */
+
+.review {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review__line {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem 0.95rem;
+  padding-block: 1.1rem;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.review__line:first-child {
+  padding-top: 0.2rem;
+  border-top: 0;
+}
+
+.review__thumb {
+  position: relative;
+  width: 56px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--rule-card);
+  border-radius: var(--radius-sm);
+  background: rgb(1 38 186 / 0.05);
+}
+
+.review__thumb img {
+  object-fit: cover;
+}
+
+.review__name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.review__meta {
+  font-size: 1rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.review__price {
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.review__sets,
+.review__note {
+  grid-column: 2 / -1;
+}
+
+.review__sets {
+  display: grid;
+  gap: 0.9rem;
+  padding-top: 0.5rem;
+}
+
+.review__set {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.review__setName {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.review__words,
+.review__note {
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.review__change {
+  padding-top: 0.6rem;
+  font-size: 1rem;
+}
+
+@media (max-width: 30rem) {
+  .review__sets,
+  .review__note {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The customer's photos as small prints, laid on the counter at a slight lean. */
+.proofs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem 1.1rem;
+  margin: 0;
+  padding: 0.35rem 0.2rem 0;
+  list-style: none;
+}
+
+.proof {
+  --h: 92px;
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  width: max(64px, calc(var(--h) * var(--a)));
+  max-width: 100%;
+}
+
+.proof__face {
+  position: relative;
+  display: block;
+  width: min(100%, calc(var(--h) * var(--a)));
+  max-height: calc(var(--h) * 1.6);
+  aspect-ratio: var(--a);
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--print);
+  box-shadow: var(--shadow-card);
+  transform: rotate(-1.6deg);
+  transition:
+    transform 0.6s var(--ease-out),
+    box-shadow 0.6s var(--ease-out);
+}
+
+.proof:nth-child(even) .proof__face {
+  transform: rotate(1.2deg);
+}
+
+.proof:nth-child(3n) .proof__face {
+  transform: rotate(-0.6deg);
+}
+
+.proof:hover .proof__face {
+  box-shadow: var(--shadow-card-hover);
+  transform: rotate(0) translateY(-3px);
+}
+
+.proof[data-shape="round"] .proof__face {
+  border-radius: 50%;
+}
+
+.proof[data-shape="dome"] .proof__face {
+  border-radius: 50% 50% 8px 8px / 42% 42% 8px 8px;
+}
+
+.proof__label {
+  font-size: 1rem;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+/* ---- The slip ---------------------------------------------------------- */
+
+.coslip__title {
+  margin-bottom: 0.6rem;
+}
+
+@media (min-width: 62rem) {
+  .coslip {
+    position: sticky;
+    top: calc(var(--header-h) + 20px);
+  }
+}
+
+.coslip__lines ul {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 14rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-color: rgb(255 255 255 / 0.4) transparent;
+}
+
+.coslip__lines li,
+.coslip__sums div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.coslip__lines li span:first-child {
+  min-width: 0;
+  color: var(--on-leather-soft);
+}
+
+.coslip__lines li span:last-child,
+.coslip__sums dd {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.coslip__sums {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule-leather);
+}
+
+.coslip__sums dt {
+  min-width: 0;
+  color: var(--on-leather-soft);
+}
+
+.coslip__sums dd {
+  margin: 0;
+}
+
+.coslip__total strong {
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.coslip__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.8rem 0.95rem;
+  border-radius: var(--radius-sm);
+  background: var(--print);
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.coslip__problems {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  font-size: 1rem;
+  color: var(--on-leather-soft);
+  list-style: none;
+}
+
+.coslip__pay {
+  justify-content: center;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* On a phone the slip docks at the foot: the total beside Pay, and what stands in the way above them. */
+@media (max-width: 61.99rem) {
+  .co.ck__grid {
+    padding-bottom: calc(clamp(62px, 9vw, 130px) + 150px);
+  }
+
+  .coslip {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.6rem 1rem;
+  }
+
+  .coslip__lines,
+  .coslip__sums,
+  .coslip__note {
+    display: none;
+  }
+
+  .coslip__error,
+  .coslip__problems {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+
+  .coslip__total {
+    display: grid;
+    gap: 0;
+    font-weight: 400;
+    color: var(--on-leather-soft);
+  }
+
+  .coslip__total strong {
+    font-size: 1.5rem;
+    color: var(--print);
+  }
+
+  .coslip__pay {
+    padding: 0.85rem 1.3rem;
+  }
+}
+
+/* ---- The receipt ------------------------------------------------------- */
+
+.receipt {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(22px, 3vw, 40px);
+  padding-block: clamp(26px, 3.4vw, 48px) clamp(62px, 9vw, 130px);
+}
+
+@media (min-width: 62rem) {
+  .receipt {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .receipt__paid,
+  .receipt__wait,
+  .receipt__account {
+    grid-column: 1 / -1;
+  }
+}
+
+.receipt__paid,
+.receipt__wait {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.receipt__wait {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.receipt__slip,
+.receipt__where,
+.receipt__account {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  padding: clamp(18px, 2.4vw, 28px);
+  border: 1px solid var(--rule-card);
+  border-radius: var(--radius);
+  background: var(--print);
+  box-shadow: var(--shadow-card);
+}
+
+.receipt__lines {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.receipt__lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.receipt__lines li > span:first-child {
+  display: grid;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.receipt__lines small {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.receipt__lines li > span:last-child {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.receipt__sums {
+  border-top-color: var(--rule-paper);
+}
+
+.receipt__sums dt {
+  color: var(--ink-soft);
+}
+
+.receipt__total {
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.receipt__address {
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  line-height: 1.65;
+}
+
+.receipt__hours {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  font-size: 1rem;
+  list-style: none;
+}
+
+.receipt__hours li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 24rem;
+}
+
+.receipt__hours li span:first-child {
+  color: var(--ink-soft);
+}
+
+.receipt__soft {
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.receipt__where .inline-link {
+  justify-self: start;
+  font-size: 1rem;
+}
+
+.receipt__account {
+  max-width: 44rem;
+  box-shadow: none;
+  background: rgb(1 38 186 / 0.045);
+  border-color: transparent;
+}
+
+.saveacct {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.9rem;
+}
+
+.saveacct .field {
+  flex: 1 1 16rem;
+}
+
+.saveacct .btn {
+  font-size: 1rem;
+}
+
+.receipt__saved {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* ---- The account page -------------------------------------------------- */
+
+.account {
+  padding-block: clamp(18px, 2.4vw, 32px) clamp(62px, 9vw, 130px);
+}
+
+.account > * {
+  max-width: 50rem;
+}
+
+.account__list {
+  display: grid;
+  margin: 0;
+}
+
+.account__list div {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  gap: 1rem;
+  padding-block: 0.8rem;
+  border-top: 1px solid var(--rule-paper);
+  font-size: 1rem;
+}
+
+.account__list dt {
+  color: var(--ink-soft);
+}
+
+.account__list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 30rem) {
+  .account__list div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.1rem;
+  }
+}
+
+.account__out {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  justify-self: start;
+  font-size: 1rem;
+}
+
+.signin {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .way:hover {
+    transform: none;
+  }
+
+  .proof:hover .proof__face {
+    transform: rotate(0);
+  }
+
+  .services__spin {
+    animation-duration: 2.4s;
+  }
+}

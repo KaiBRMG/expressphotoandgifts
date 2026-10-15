@@ -1,10 +1,10 @@
 import type { CSSProperties } from "react";
 
-import Image from "next/image";
 import Link from "next/link";
 
 import { CAROUSEL } from "./data";
 import { ArrowLeft, ArrowRight } from "./icons";
+import { ProductImage } from "./ProductImage";
 
 /** The index that sits at the top of the arc when the wheel has not turned. */
 const MID = (CAROUSEL.length - 1) / 2;
@@ -68,8 +68,8 @@ export function Carousel() {
                   ? { tabIndex: -1, "aria-hidden": true as const }
                   : null)}
               >
-                <Image
-                  src={`/products/web/${print.src}.webp`}
+                <ProductImage
+                  code={print.src}
                   alt={repeat ? "" : print.alt}
                   width={640}
                   height={640}

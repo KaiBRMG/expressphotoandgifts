@@ -1,15 +1,6 @@
-import { ArrowRight, WhatsApp } from "./icons";
-import { whatsapp } from "./data";
-
-/**
- * Where the dock's primary action will point. The route does not exist yet,
- * so the control renders as a dead button: right size, right place, no
- * destination. Swap it for `<a href={SHOP_HREF}>` the day /shop ships.
- */
-const SHOP_HREF = "/shop";
-
-/** The shop's live channel, until the catalogue and checkout exist. */
-const CHAT_HREF = whatsapp("Hi! I have a question about…");
+import { CartDrawer, DockAction } from "./Cart";
+import { WhatsApp } from "./icons";
+import { CHAT_HREF } from "./data";
 
 /**
  * The persistent action, docked to the foot of the viewport.
@@ -28,29 +19,30 @@ const CHAT_HREF = whatsapp("Hi! I have a question about…");
  * buttons of its own, so this pair is the page's only standing action. At the
  * foot of the page it comes to rest in the footer's last row, which is sized
  * for it.
+ *
+ * Inside the shop the pill would point at the page it is on, so there the dock
+ * is the WhatsApp mark alone (`shopAction={false}`).
+ *
+ * Once the cart holds something the pill is the cart instead, at every width
+ * and on every page, carrying the count of units and opening the drawer.
  */
-export function OrderDock() {
+export function OrderDock({ shopAction = true }: { shopAction?: boolean }) {
   return (
-    <div className="dock">
-      <div className="dock__inner">
-        <button
-          type="button"
-          className="btn btn--gold on-gold dock__cta"
-          aria-disabled="true"
-          data-href={SHOP_HREF}
-        >
-          Shop now
-          <ArrowRight size={17} />
-        </button>
+    <>
+      <div className="dock">
+        <div className="dock__inner">
+          <DockAction shopAction={shopAction} />
 
-        <a
-          className="dock__chat"
-          href={CHAT_HREF}
-          aria-label="Message the shop on WhatsApp"
-        >
-          <WhatsApp size={21} />
-        </a>
+          <a
+            className="dock__chat"
+            href={CHAT_HREF}
+            aria-label="Message the shop on WhatsApp"
+          >
+            <WhatsApp size={21} />
+          </a>
+        </div>
       </div>
-    </div>
+      <CartDrawer />
+    </>
   );
 }

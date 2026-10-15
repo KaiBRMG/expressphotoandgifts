@@ -222,9 +222,9 @@ export const COVER_PRINTS: Print[] = [
 export type Category = {
   name: string;
   /**
-   * The category's own page under `/shop`. These routes do not exist yet — the
-   * catalogue arrives in a later pass — so the cards link with prefetching off
-   * and will 404 until those pages ship.
+   * The category's own page under `/shop`. Matches the Firestore category ID
+   * where there is one; a tile with no live products lands on that page's
+   * honest empty state rather than a 404.
    */
   slug: string;
   /**
@@ -237,10 +237,10 @@ export type Category = {
 
 /** In the order the client listed them: what the shop is, then what it also stocks. */
 export const CATEGORIES: Category[] = [
-  { name: "Photos", slug: "photos" },
-  { name: "Frames", slug: "frames" },
-  { name: "Personalised Gifts", slug: "personalised-gifts" },
-  { name: "Batteries", slug: "batteries" },
+  { name: "Photo Printing", slug: "photo-printing" },
+  { name: "Frames & Display", slug: "frames" },
+  { name: "Photo Gifts", slug: "photo-gifts" },
+  { name: "Add-ons & Supplies", slug: "add-ons" },
   { name: "Jewellery", slug: "jewellery" },
   { name: "Cameras", slug: "cameras" },
   { name: "Gift Wrapping", slug: "gift-wrapping" },
@@ -252,6 +252,7 @@ export const SHOP = {
   street: "135 Scott Street",
   town: "Scottburgh",
   region: "Ugu District Municipality, KwaZulu-Natal",
+  province: "KwaZulu-Natal",
   postcode: "4180",
   country: "South Africa",
   phoneDisplay: "076 491 2300",
@@ -276,6 +277,9 @@ export const HOURS: { days: string; time: string; closed?: boolean }[] = [
 export function whatsapp(message: string): string {
   return `https://wa.me/${SHOP.phoneE164}?text=${encodeURIComponent(message)}`;
 }
+
+/** The shop's general chat, opened from the dock and the footer. */
+export const CHAT_HREF = whatsapp("Hi! I have a question about…");
 
 /**
  * Every verified product photograph, for the cover wall. Order is deliberate:

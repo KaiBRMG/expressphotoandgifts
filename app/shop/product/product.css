@@ -1,0 +1,501 @@
+/*
+ * The product page: the shop's photograph beside the counter slip on white,
+ * the facts on the catalogue's blue, then more of the same shelf on white.
+ * Everything here is 16px or more at every width.
+ */
+
+/* ---- Breadcrumb -------------------------------------------------------- */
+
+.crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.crumbs li + li::before {
+  content: "/";
+  margin-inline: 0.55rem;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.crumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.crumbs a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.crumbs [aria-current="page"] {
+  color: var(--ink);
+}
+
+/* ---- Photograph and counter slip --------------------------------------- */
+
+.pdp {
+  padding-block: clamp(18px, 2.6vw, 32px) clamp(52px, 8vw, 100px);
+}
+
+.pdp__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(28px, 4vw, 64px);
+  margin-top: clamp(18px, 2.6vw, 32px);
+}
+
+/* Under 62rem the photograph stands alone above the column; capped so a
+   tablet does not stretch a 640px print past what it can hold sharply. */
+.pdp__media {
+  max-width: 38rem;
+}
+
+@media (min-width: 62rem) {
+  .pdp__grid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    align-items: start;
+  }
+
+  /* The column is the taller of the two, so the photograph is what holds
+     still while the choices scroll past it. */
+  .pdp__media {
+    position: sticky;
+    top: calc(var(--header-h) + 28px);
+    max-width: none;
+  }
+}
+
+.pdp__title {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.9rem, 4.4vw, 3.6rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+/* ---- Gallery ----------------------------------------------------------- */
+
+.gallery {
+  display: grid;
+  gap: 0.8rem;
+}
+
+/* A print, not a door: its corner and its lift, and no edge. */
+.gallery__main {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--print);
+  box-shadow: var(--shadow-card);
+}
+
+.gallery__main img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: gallery-in 0.6s var(--ease-out);
+}
+
+/* From an already-visible frame: a new photograph settles in, it does not
+   appear from nothing. */
+@keyframes gallery-in {
+  from {
+    opacity: 0.5;
+    transform: scale(1.02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery__main img {
+    animation: none;
+  }
+}
+
+.gallery__none {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-size: 1rem;
+  color: var(--ink-faint);
+  background: rgb(1 38 186 / 0.05);
+}
+
+.gallery__thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gallery__thumb {
+  display: block;
+  width: 76px;
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--rule-card);
+  border-radius: var(--radius-sm);
+  background: var(--print);
+  cursor: pointer;
+  transition: outline-color 0.25s var(--ease-out);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.gallery__thumb:hover {
+  outline-color: var(--rule-hair);
+}
+
+.gallery__thumb[aria-current="true"] {
+  outline-color: var(--blue);
+}
+
+.gallery__thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---- The buy column ---------------------------------------------------- */
+
+.buy {
+  display: grid;
+  gap: clamp(1.25rem, 2vw, 1.6rem);
+}
+
+.buy__price {
+  margin: 0;
+  font-size: clamp(1.2rem, 2.2vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.buy__desc {
+  margin: 0;
+  max-width: 52ch;
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  line-height: 1.62;
+  color: var(--ink-soft);
+}
+
+.buy__yours {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.buy__yours svg {
+  flex: none;
+  color: var(--blue);
+}
+
+.buy__yours strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---- Options ----------------------------------------------------------- */
+
+.opt {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Floated, so a fieldset's legend takes margin like any other block. */
+.opt > .opt__label {
+  float: left;
+  width: 100%;
+  margin: 0 0 0.75rem;
+  padding: 0;
+}
+
+.opt__label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.opt__label span {
+  margin-left: 0.35rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.opt__values {
+  clear: both;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.opt__pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 44px;
+  padding: 0.55rem 1.05rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--print);
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.25s var(--ease-out),
+    border-color 0.25s var(--ease-out),
+    color 0.25s var(--ease-out);
+}
+
+/* The radio fills the pill, so the whole shape is the target and the arrow
+   keys still walk the group. */
+.opt__pill input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  border-radius: inherit;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.opt__pill:hover {
+  border-color: var(--blue);
+}
+
+.opt__pill:has(input:checked) {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--print);
+}
+
+.opt__pill:has(input:focus-visible) {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+
+.opt__price {
+  font-weight: 400;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.opt__pill:has(input:checked) .opt__price {
+  color: var(--on-leather-soft);
+}
+
+/* The size chart, set on white: hair outlines at rest, the picked print in
+   the brand blue, since amber on white is too faint to carry a line. */
+.opt .chart {
+  clear: both;
+}
+
+.chart--paper .chart__print {
+  stroke: var(--rule-hair);
+}
+
+.chart--paper .chart__print[data-picked] {
+  stroke: var(--blue);
+  fill: rgb(1 38 186 / 0.07);
+}
+
+/* The label beside the "Size" heading and the list already name the size,
+   and the smallest prints are too narrow to hold it drawn. */
+.chart--paper .chart__tag {
+  display: none;
+}
+
+.chart--paper .chart__size {
+  border-color: var(--rule-paper);
+  color: var(--ink-soft);
+}
+
+.chart--paper .chart__size input {
+  border-color: var(--rule-hair);
+}
+
+.chart--paper .chart__size input::after {
+  background: var(--blue);
+}
+
+.chart--paper .chart__size input:checked {
+  border-color: var(--blue);
+}
+
+.chart--paper .chart__size input:focus-visible {
+  outline-color: var(--blue);
+}
+
+.chart--paper .chart__size:has(input:checked),
+.chart--paper .chart__size:hover {
+  color: var(--ink);
+}
+
+.chart--paper .chart__drawing {
+  max-height: 360px;
+}
+
+/* On a phone it stands above the list, low enough that the sizes and their
+   prices are still on screen under it. */
+@media (max-width: 35.99rem) {
+  .chart--paper .chart__drawing {
+    max-height: 220px;
+  }
+}
+
+/* ---- Quantity, the slip and the actions -------------------------------- */
+
+.buy__qty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.buy__actions {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.buy__actions .btn {
+  justify-content: center;
+  min-height: 54px;
+  white-space: normal;
+  text-align: center;
+}
+
+/* The cart is not open yet. It holds its place in the layout it will have,
+   but wears no amber and no glow, so it never reads as the way forward. */
+.btn--soon {
+  background: var(--print);
+  border-color: var(--rule-hair);
+  color: var(--ink-soft);
+  cursor: not-allowed;
+}
+
+.btn--soon:active {
+  transform: none;
+}
+
+.btn__soon {
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.buy__note {
+  margin: 0;
+  max-width: 52ch;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+/* ---- Details and care, on blue ----------------------------------------- */
+
+.details {
+  background: var(--leather);
+  color: var(--print);
+  padding-block: clamp(62px, 9vw, 130px);
+}
+
+.details__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(2.4rem, 5vw, 4.75rem);
+  align-items: center;
+}
+
+@media (min-width: 56rem) {
+  .details__grid--drawn {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.details__copy .h2 {
+  margin: 0 0 clamp(1.4rem, 2.6vw, 2.2rem);
+}
+
+.details__specs {
+  max-width: var(--measure);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.details__specs li {
+  padding-block: 0.85rem;
+  border-bottom: 1px solid var(--rule-leather);
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  line-height: 1.5;
+}
+
+.details__specs li:first-child {
+  border-top: 1px solid var(--rule-leather);
+}
+
+.details__care {
+  margin-top: clamp(1.8rem, 3vw, 2.4rem);
+}
+
+.details__careTitle {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--gold);
+}
+
+.details__care p {
+  max-width: 52ch;
+  margin: 0;
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  line-height: 1.62;
+  color: var(--on-leather-soft);
+}
+
+/* The shop's own drawing, as a print on the blue. */
+.details__diagram {
+  width: 100%;
+  max-width: 560px;
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--print);
+  justify-self: end;
+}
+
+.details__diagram img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 55.99rem) {
+  .details__diagram {
+    justify-self: start;
+  }
+}

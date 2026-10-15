@@ -1,0 +1,1239 @@
+/*
+ * The shop: the storefront at /shop and the catalogue under it.
+ *
+ * The homepage's world, carried on: brand-blue grounds own their sections
+ * whole, white is the reading ground, amber marks the action and the counted
+ * number. The storefront opens on the homepage's leaning sign; the catalogue
+ * is the same materials set for scanning — doors on white, a rail beside them.
+ *
+ * Every text element here is 16px or more at every width (The 16px Floor).
+ */
+
+/* ---- The sign ---------------------------------------------------------- */
+
+/* The homepage's device, as the storefront's headline: a brand-blue band
+   124% of the screen leaning -4deg, the lede on a slimmer band beneath. */
+.storefront__sign {
+  overflow-x: clip;
+  padding-block: clamp(46px, 6vw, 92px) 0;
+}
+
+.sign {
+  width: 124%;
+  margin-left: -12%;
+  transform: rotate(-4deg);
+  color: var(--print);
+  text-align: center;
+  filter: drop-shadow(0 18px 28px rgb(1 38 186 / 0.28));
+}
+
+.sign__title {
+  margin: 0;
+  padding: clamp(16px, 2.2vw, 28px) var(--gutter) clamp(14px, 1.8vw, 22px);
+  background: var(--leather);
+  font-size: clamp(2rem, 8.4vw, 4.75rem);
+  font-weight: 600;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+}
+
+.sign__line {
+  display: block;
+  white-space: nowrap;
+}
+
+.sign__gold {
+  color: var(--gold);
+}
+
+/* The overhang is 12% of the screen each side, about 9.7% of the band, so the
+   lede's gutter is measured from the screen's edge, not the band's. */
+.sign__lede {
+  margin: 0;
+  padding: clamp(12px, 1.4vw, 18px) var(--gutter) clamp(14px, 1.6vw, 20px);
+  padding-inline: max(calc(9.7% + var(--gutter)), calc((100% - 46ch) / 2));
+  background: var(--leather);
+  border-top: 1px solid var(--rule-leather);
+  font-size: clamp(1rem, 1.45vw, 1.2rem);
+  line-height: 1.55;
+  color: var(--on-leather-soft);
+  text-wrap: balance;
+}
+
+/* ---- Every shelf, one tap away ---------------------------------------- */
+
+/* Clear of the band's low left end, which sits tan(4deg) × 62vw under its
+   middle, before the strip's own space starts. */
+.shelves {
+  margin-top: calc(4.4vw + clamp(1.6rem, 3.4vw, 2.6rem));
+}
+
+.shelves ul {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.shelves ul::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 46rem) {
+  .shelves ul {
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow: visible;
+  }
+}
+
+.shelves a,
+.occasions a,
+.kinds button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding: 0.55rem 1.05rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--print);
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background-color 0.25s var(--ease-out),
+    border-color 0.25s var(--ease-out),
+    color 0.25s var(--ease-out);
+}
+
+/* The count is a counted thing, so it is set in the measuring hand. */
+.shelves__count,
+.rail__count,
+.occasions__count,
+.kinds__count {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (hover: hover) {
+  .shelves a:hover,
+  .occasions a:hover {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: var(--print);
+  }
+
+  .shelves a:hover .shelves__count,
+  .occasions a:hover .occasions__count {
+    color: var(--on-leather-soft);
+  }
+}
+
+/* ---- The photo board --------------------------------------------------- */
+
+/* One photograph and every product it can go on. Two across on a phone with
+   the portrait full width; three across with the portrait two-by-two from
+   46rem; six across from 62rem, so portrait, products and the way on fill
+   three whole rows. */
+.board {
+  padding-block: clamp(28px, 4vw, 52px) clamp(62px, 9vw, 130px);
+}
+
+.board__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(12px, 1.5vw, 20px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.board__grid > li {
+  display: flex;
+}
+
+.board__yours {
+  grid-column: span 2;
+}
+
+@media (min-width: 46rem) {
+  .board__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .board__yours {
+    grid-row: span 2;
+  }
+}
+
+@media (min-width: 62rem) {
+  .board__grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+/* The customer's picture is not a door, so it wears no card edge: just the
+   print, its corner, and the line under it. */
+.board__yours figure {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  width: 100%;
+  margin: 0;
+}
+
+.board__yours img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+.board__yours figcaption {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.board__yoursTitle {
+  font-size: clamp(1.2rem, 2.2vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.board__yoursText {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/* The way on: the one blue door in the board, the way Specials is the one
+   blue tile on the homepage. */
+.board__more a {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.2rem;
+  width: 100%;
+  min-height: 150px;
+  padding: clamp(16px, 1.6vw, 22px);
+  background: var(--blue);
+  color: var(--print);
+  border-radius: var(--radius);
+  font-size: clamp(1.05rem, 1.45vw, 1.3rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  text-decoration: none;
+  box-shadow: var(--shadow-blue);
+  transition:
+    transform 0.5s var(--ease-out),
+    box-shadow 0.5s var(--ease-out);
+}
+
+.board__moreGo,
+.door__go {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+  transition: transform 0.45s var(--ease-out);
+}
+
+@media (hover: hover) {
+  .board__more a:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-blue-hover);
+  }
+
+  .board__more a:hover .board__moreGo {
+    transform: rotate(-4deg) translateX(3px);
+  }
+}
+
+/* ---- The product card -------------------------------------------------- */
+
+/* The catalogue frame's door, set for a grid: the photograph flush to the
+   edges, one hairline, then the name, the price and whether it takes your
+   photo. It fills its cell, so a row of cards shares one floor. */
+.pcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  background: var(--print);
+  color: var(--ink);
+  border: 1px solid var(--rule-card);
+  border-radius: var(--radius);
+  text-decoration: none;
+  box-shadow: var(--shadow-card);
+  transition:
+    transform 0.5s var(--ease-out),
+    box-shadow 0.5s var(--ease-out);
+}
+
+.pcard__photo {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  border-bottom: 1px solid var(--rule-card-inner);
+}
+
+.pcard__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.7s var(--ease-out);
+}
+
+.pcard__nophoto {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+  color: var(--ink-faint);
+  background: rgb(1 38 186 / 0.05);
+  text-align: center;
+}
+
+/* A mark, not a region: the one amber shape on a card. */
+.pcard__special {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.pcard__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.8rem 0.95rem 0.95rem;
+}
+
+.pcard__name {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.pcard__price {
+  margin-top: 0.15rem;
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pcard__hint {
+  font-size: 1rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+/* Held to the card's floor, so in a row of cards the promise lines up. */
+.pcard__yours {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: auto;
+  padding-top: 0.6rem;
+  font-size: 1rem;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+
+.pcard__yours svg {
+  flex: none;
+  color: var(--blue);
+}
+
+/* Two-up on a phone leaves a card about 165px wide: the words fit on one
+   line at 16px, the glyph and the words together do not, so the glyph steps
+   out and the promise stays one line. */
+@media (max-width: 45.99rem) {
+  .pcard__yours svg {
+    display: none;
+  }
+}
+
+@media (hover: hover) {
+  .pcard:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .pcard:hover .pcard__photo img {
+    transform: scale(1.04);
+  }
+}
+
+/* The site's buttons are 0.95rem, under the floor on a phone. */
+.shop .btn {
+  font-size: 1rem;
+}
+
+/* ---- Shelves ----------------------------------------------------------- */
+
+.shelf {
+  padding-block: clamp(52px, 8vw, 100px);
+}
+
+.shelf + .shelf {
+  padding-top: 0;
+}
+
+.shelf__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem 2rem;
+  margin-bottom: clamp(1.4rem, 2.6vw, 2.2rem);
+}
+
+.shelf__head .h2 {
+  margin: 0;
+}
+
+.shelf__all {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* A swipeable row on a phone, bleeding off the right edge so the next card
+   shows it is there; a grid of four from 62rem. */
+.shelf__row,
+.prints__row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: min(64vw, 250px);
+  gap: clamp(12px, 1.5vw, 20px);
+  margin: 0 calc(var(--gutter) * -1);
+  padding: 4px var(--gutter) 40px;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--gutter);
+  scrollbar-width: none;
+}
+
+.shelf__row::-webkit-scrollbar,
+.prints__row::-webkit-scrollbar {
+  display: none;
+}
+
+.shelf__row > li,
+.prints__row > li {
+  display: flex;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 62rem) {
+  .shelf__row {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+}
+
+/* ---- Specials ---------------------------------------------------------- */
+
+.specials {
+  background: var(--leather);
+  color: var(--print);
+  padding-block: clamp(52px, 8vw, 100px);
+}
+
+/* ---- Shop by budget ---------------------------------------------------- */
+
+.budget {
+  padding-block: 0 clamp(62px, 9vw, 130px);
+}
+
+.budget .h2 {
+  margin: 0 0 clamp(1.4rem, 2.6vw, 2.2rem);
+}
+
+/* ---- Shop by occasion -------------------------------------------------- */
+
+/* The storefront's shelf pills again, wrapped: eleven days at most, and all
+   of them should be seen without a swipe. */
+.occasions {
+  padding-block: 0 clamp(62px, 9vw, 130px);
+}
+
+.occasions .h2 {
+  margin: 0 0 clamp(1.4rem, 2.6vw, 2.2rem);
+}
+
+.occasions ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.budget__doors {
+  display: grid;
+  gap: clamp(12px, 1.5vw, 20px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 56rem) {
+  .budget__doors {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.budget__doors > li {
+  display: flex;
+}
+
+/* A door to a price band: three of its cheapest faces, the band, and how many
+   products are in it. Under the pointer it turns into the catalogue's blue,
+   the way a category tile does on the homepage. */
+.door {
+  display: grid;
+  gap: 0.9rem;
+  width: 100%;
+  padding: clamp(16px, 1.8vw, 24px);
+  background: var(--print);
+  color: var(--ink);
+  border: 1px solid var(--rule-card);
+  border-radius: var(--radius);
+  text-decoration: none;
+  box-shadow: var(--shadow-card);
+  transition:
+    transform 0.5s var(--ease-out),
+    box-shadow 0.5s var(--ease-out),
+    background-color 0.35s var(--ease-out),
+    border-color 0.35s var(--ease-out),
+    color 0.35s var(--ease-out);
+}
+
+.door__faces {
+  display: flex;
+}
+
+.door__faces img {
+  width: clamp(64px, 6.4vw, 84px);
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid var(--rule-card);
+  border-radius: var(--radius-sm);
+  background: var(--print);
+}
+
+.door__faces img + img {
+  margin-left: -14px;
+}
+
+.door__label {
+  font-size: clamp(1.5rem, 3.4vw, 2.6rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.door__count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+@media (hover: hover) {
+  .door:hover {
+    transform: translateY(-4px);
+    background: var(--blue);
+    border-color: var(--blue);
+    color: var(--print);
+    box-shadow: var(--shadow-blue-hover);
+  }
+
+  .door:hover .door__count {
+    color: var(--on-leather-soft);
+  }
+
+  .door:hover .door__go {
+    transform: rotate(-4deg) translateX(3px);
+  }
+}
+
+/* ---- The size chart ---------------------------------------------------- */
+
+.sizes {
+  background: var(--leather);
+  color: var(--print);
+  padding-block: clamp(62px, 9vw, 130px);
+}
+
+.sizes__grid {
+  display: grid;
+  gap: clamp(2.4rem, 5vw, 4.75rem);
+  align-items: center;
+}
+
+/* On a phone: the words, the chart, then the frames it is about. From 62rem
+   the chart stands beside the words and the frames under them. */
+@media (min-width: 62rem) {
+  .sizes__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    grid-template-rows: auto auto;
+    row-gap: clamp(1.6rem, 3vw, 2.4rem);
+  }
+
+  .sizes__grid .chart {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .sizes__frames {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+  }
+}
+
+.sizes__copy {
+  align-self: end;
+}
+
+.sizes__copy .h2 {
+  margin: 0 0 1rem;
+}
+
+.sizes__frames {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(10px, 1.2vw, 16px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sizes__frames > li {
+  display: flex;
+}
+
+.sizes__frames .pcard__body {
+  padding: 0.65rem 0.75rem 0.8rem;
+}
+
+.chart {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+  gap: clamp(1.2rem, 3vw, 2.6rem);
+  align-items: end;
+}
+
+.chart__drawing {
+  display: block;
+  width: 100%;
+  max-height: 480px;
+  overflow: visible;
+}
+
+/* Each print is an outline at rest; the picked one fills a little and takes
+   the highlighter on its edge. The stroke holds its width at any scale. */
+.chart__print {
+  fill: transparent;
+  stroke: var(--rule-dark);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+  transition:
+    fill 0.35s var(--ease-out),
+    stroke 0.35s var(--ease-out);
+}
+
+/* The highlighter on its edge is the whole mark: a lighter fill inside it
+   would be a second blue, which this world does not have. */
+.chart__print[data-picked] {
+  stroke: var(--gold);
+  stroke-width: 2.5px;
+}
+
+.chart__tag {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1.7px;
+  fill: var(--print);
+  pointer-events: none;
+}
+
+/* Drawn in centimetres, the label falls under 16px on a phone; there the
+   radio list beside it already names the size, so the drawing goes unlabelled. */
+@media (max-width: 45.99rem) {
+  .chart__tag {
+    display: none;
+  }
+}
+
+.chart__sizes {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.chart__size {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 48px;
+  padding: 0.35rem 0.1rem;
+  border-bottom: 1px solid var(--rule-leather);
+  color: var(--on-leather-soft);
+  cursor: pointer;
+  transition: color 0.25s var(--ease-out);
+}
+
+.chart__size:first-of-type {
+  border-top: 1px solid var(--rule-leather);
+}
+
+.chart__size input {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border: 1.5px solid var(--rule-dark);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.25s var(--ease-out);
+}
+
+.chart__size input::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--gold);
+  transform: scale(0);
+  transition: transform 0.3s var(--ease-out);
+}
+
+.chart__size input:checked {
+  border-color: var(--gold);
+}
+
+.chart__size input:checked::after {
+  transform: scale(1);
+}
+
+.chart__size input:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.chart__size:has(input:checked),
+.chart__size:hover {
+  color: var(--print);
+}
+
+.chart__measure {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.chart__price {
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* On a phone the drawing goes above the list, at a height that still leaves
+   the list in view under it. */
+@media (max-width: 35.99rem) {
+  .chart {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chart__drawing {
+    max-height: 300px;
+  }
+}
+
+/* ---- Photos, and the prints not online yet ----------------------------- */
+
+.prints {
+  display: grid;
+  gap: clamp(1.6rem, 3vw, 2.6rem);
+}
+
+@media (min-width: 62rem) {
+  .prints {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 1.25fr);
+    align-items: start;
+  }
+
+  .prints__row {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+}
+
+/* Prose, not a box: it does not go anywhere itself, so it wears no card edge.
+   A hairline sets it apart from the cards beside it. */
+.prints__note {
+  display: grid;
+  justify-items: start;
+  gap: 0.9rem;
+  padding-top: clamp(1.4rem, 2.6vw, 2rem);
+  border-top: 1px solid var(--rule-paper);
+}
+
+@media (min-width: 62rem) {
+  .prints__note {
+    padding: 0.4rem 0 0 clamp(1.6rem, 2.6vw, 2.4rem);
+    border-top: 0;
+    border-left: 1px solid var(--rule-paper);
+  }
+}
+
+.prints__title {
+  margin: 0;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.prints__note p {
+  margin: 0;
+  max-width: 44ch;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.prints__note .btn {
+  margin-top: 0.4rem;
+}
+
+/* ---- The catalogue: rail and products ---------------------------------- */
+
+.catalog {
+  display: grid;
+  /* One track that may shrink below its content, or the pill strip's
+     max-content width becomes the page's width on a phone. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 clamp(30px, 4vw, 64px);
+  padding-block: 0 clamp(62px, 9vw, 130px);
+}
+
+@media (min-width: 62rem) {
+  .catalog {
+    grid-template-columns: 15.5rem minmax(0, 1fr);
+    padding-top: clamp(28px, 3vw, 44px);
+  }
+}
+
+/* On a phone and a tablet the rail is a strip of pills held under the header,
+   full bleed, so a category is one thumb-swipe away at any depth. */
+.rail {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 40;
+  margin-inline: calc(var(--gutter) * -1);
+  padding: 0.7rem var(--gutter);
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule-paper);
+}
+
+.rail ul {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.rail ul::-webkit-scrollbar {
+  display: none;
+}
+
+.rail a {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding: 0.55rem 1.05rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background-color 0.25s var(--ease-out),
+    border-color 0.25s var(--ease-out),
+    color 0.25s var(--ease-out);
+}
+
+.rail a[aria-current="page"] {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--print);
+}
+
+.rail a[aria-current="page"] .rail__count {
+  color: var(--on-leather-soft);
+}
+
+/* From 62rem it stands beside the products as a ruled list, held below the
+   header as the products scroll past it. */
+@media (min-width: 62rem) {
+  .rail {
+    align-self: start;
+    top: calc(var(--header-h) + 28px);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .rail ul {
+    flex-direction: column;
+    gap: 0.2rem;
+    overflow: visible;
+  }
+
+  .rail a {
+    justify-content: space-between;
+    padding: 0.7rem 0.95rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+  }
+
+  .rail a:not([aria-current="page"]):hover {
+    background: rgb(1 38 186 / 0.07);
+  }
+}
+
+.catalog__main {
+  min-width: 0;
+  padding-top: 20px;
+}
+
+@media (min-width: 62rem) {
+  .catalog__main {
+    padding-top: 0;
+  }
+}
+
+/* ---- Kinds: the shelf's types as one row of chips ---------------------- */
+
+/* The shelf pills, as buttons: a swipe on a phone, bleeding to the screen's
+   edges like the rail above it; wrapped from 46rem. Pressed is the rail's own
+   blue, so "where am I" reads the same at both levels. */
+.kinds {
+  margin: 0 calc(var(--gutter) * -1) 0.9rem;
+}
+
+.kinds ul {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0 var(--gutter);
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.kinds ul::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 46rem) {
+  .kinds {
+    margin-inline: 0;
+  }
+
+  .kinds ul {
+    flex-wrap: wrap;
+    padding: 0;
+    overflow: visible;
+  }
+}
+
+/* A button, not a link, so it takes the page's type rather than the UA's. */
+.kinds button {
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.kinds button[aria-pressed="true"] {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--print);
+}
+
+.kinds button[aria-pressed="true"] .kinds__count {
+  color: var(--on-leather-soft);
+}
+
+.kinds button:not([aria-pressed="true"]):hover {
+  border-color: var(--blue);
+}
+
+.kinds button:disabled {
+  cursor: default;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: clamp(1.2rem, 2.4vw, 1.8rem);
+}
+
+.toolbar__count {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.toolbar__count strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* On a phone: the photo toggle across the top, then price and sort side by
+   side, so the grid starts two rows down rather than three. */
+.toolbar__controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.toolbar__controls .toggle {
+  grid-column: 1 / -1;
+  justify-content: center;
+}
+
+.toolbar__controls .select select {
+  width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 46rem) {
+  .toolbar__controls {
+    display: flex;
+    flex-wrap: wrap;
+    width: auto;
+  }
+
+  .toolbar__controls .toggle {
+    justify-content: flex-start;
+  }
+
+  .toolbar__controls .select select {
+    width: auto;
+  }
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.5rem 1.05rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--print);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.25s var(--ease-out),
+    border-color 0.25s var(--ease-out),
+    color 0.25s var(--ease-out);
+}
+
+.toggle[aria-pressed="true"] {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--print);
+}
+
+.toggle:not([aria-pressed="true"]):hover {
+  border-color: var(--blue);
+}
+
+.select {
+  position: relative;
+  display: inline-flex;
+}
+
+/* A pill like every other control here, its chevron drawn in the shop's
+   stroke. 16px, so mobile Safari never zooms in when it is tapped. */
+.select select {
+  appearance: none;
+  min-height: 44px;
+  padding: 0.5rem 2.6rem 0.5rem 1.05rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--print)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230126ba' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 1rem center;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.25s var(--ease-out);
+}
+
+.select select:hover {
+  border-color: var(--blue);
+}
+
+.toggle:disabled,
+.select select:disabled {
+  cursor: default;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(12px, 1.6vw, 22px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid > li {
+  display: flex;
+}
+
+@media (min-width: 46rem) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 90rem) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ---- Nothing to show --------------------------------------------------- */
+
+.nomatch,
+.empty {
+  display: grid;
+  justify-items: start;
+  gap: 1rem;
+  padding-block: clamp(2rem, 5vw, 4rem);
+}
+
+.nomatch__title,
+.empty__title {
+  margin: 0;
+  font-size: clamp(1.5rem, 3.4vw, 2.6rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.nomatch__text,
+.empty__text {
+  margin: 0;
+  max-width: 52ch;
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  line-height: 1.62;
+  color: var(--ink-soft);
+}
+
+.empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.6rem;
+  margin-top: 0.6rem;
+}
+
+.empty__all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* ---- A search's results ------------------------------------------------ */
+
+/* What was searched for, said back above the shelf, with the way out of it. */
+.searched {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.searched__label {
+  margin: 0;
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  color: var(--ink-soft);
+}
+
+.searched__label strong {
+  font-weight: 600;
+  color: var(--ink);
+}
