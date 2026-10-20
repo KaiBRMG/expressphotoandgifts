@@ -24,8 +24,9 @@ export function rateLimit(limit: number, windowMs: number) {
 
 /**
  * The caller's address, as the host's proxy reports it, or null: from a
- * request, or from a server action's `headers()`. Vercel writes this header
- * itself, so a caller can't set it.
+ * request's headers, or a server action's `headers()`. Vercel writes this
+ * header itself, so a caller can't set it. (Takes the headers, not the
+ * request: Next's `headers()` object has a `headers` field of its own, so
+ * telling the two apart by shape picks the wrong one.)
  */
-export const callerIp = (from: Request | Pick<Headers, "get">) =>
-  ("headers" in from ? from.headers : from).get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+export const callerIp = (headers: Pick<Headers, "get">) => headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;

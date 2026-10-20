@@ -20,6 +20,7 @@ E-commerce website for a photo printing and gift shop. See `PRODUCT.md` for user
 - Mantine v9 is the primary UI library, with Tailwind v4 alongside it for layout. Mantine docs: https://mantine.dev/llms.txt
 - GSAP for motion.
 - Firebase (Firestore) holds the product catalogue and orders; Firebase Auth signs in staff and customers (server side only). Payments go through PayFast.
+- `package.json` pins `jwks-rsa` to 3.2.2 through `overrides`. `firebase-admin` 14 asks for `jwks-rsa` 4, whose `jose` 6 is ESM-only and loaded with `require()`; Vercel's Node 24 runtime refuses that (`ERR_REQUIRE_ESM`), so every page that loads `firebase-admin/auth` fails with a 500 there, though it works locally. `jwks-rsa` 3.2.2 uses `jose` 4, which ships CommonJS, and `firebase-admin` uses only its unchanged client (for App Check and phone-number tokens; sessions don't touch it). The override wins over whatever a newer `firebase-admin` asks for: when upgrading it, check what it needs, and remove the override only once loading works with `node --no-experimental-require-module node_modules/next/dist/bin/next start` (which reproduces Vercel's behaviour).
 
 ## Layout
 

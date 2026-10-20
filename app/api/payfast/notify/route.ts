@@ -18,7 +18,7 @@ import { callerIp } from "@/lib/rateLimit";
  * answer, so PayFast isn't kept waiting on them.
  */
 export async function POST(request: Request) {
-  const read = await readNotice(await request.text(), callerIp(request));
+  const read = await readNotice(await request.text(), callerIp(request.headers));
   if (!read.ok) console.error("PayFast notice refused:", read.reason, read.signed ? read.notice.attempt : "");
   if (!read.ok && !read.signed) return new Response("OK");
   if (!read.ok && read.retry) return new Response("Try again", { status: 503 });

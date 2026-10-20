@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
   const { ref } = (await request.json().catch(() => ({}))) as { ref?: unknown };
   if (typeof ref !== "string" || !REF.test(ref)) return Response.json({ error: "Bad order reference." }, { status: 400 });
-  if (!allowed(callerIp(request) ?? "unknown")) {
+  if (!allowed(callerIp(request.headers) ?? "unknown")) {
     return Response.json({ error: "That’s a lot of photos at once. Wait a little, then try again." }, { status: 429 });
   }
 
