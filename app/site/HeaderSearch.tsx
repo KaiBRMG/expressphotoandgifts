@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
-import { priceLabel, productHref, type Listing } from "@/lib/catalog/listing";
+import { priceLabel, productHref } from "@/lib/catalog/listing";
 import { queryWords, searchItems, searchShortcuts } from "@/lib/catalog/search";
+import type { SearchIndex } from "@/app/api/search/route";
 import { ArrowRight, Close, Search } from "./icons";
 import { ProductImage } from "./ProductImage";
 
@@ -13,12 +14,12 @@ import { ProductImage } from "./ProductImage";
 const SHOWN = 6;
 
 /** The index is the same for every page and every opening, so it is fetched once per visit. */
-let index: Promise<Listing[]> | null = null;
+let index: Promise<SearchIndex> | null = null;
 const loadIndex = () =>
   (index ??= fetch("/api/search")
     .then((r) => {
       if (!r.ok) throw new Error(`Search index: ${r.status}`);
-      return r.json() as Promise<Listing[]>;
+      return r.json() as Promise<SearchIndex>;
     })
     .catch((e) => {
       index = null; // let the next opening try again
@@ -40,7 +41,7 @@ export const seeAllHref = (query: string) => `/shop/all?q=${encodeURIComponent(q
 export function HeaderSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [items, setItems] = useState<Listing[] | null>(null);
+  const [loaded, setLoaded] = useState<SearchIndex | null>(null);
   const [failed, setFailed] = useState(false);
   const [active, setActive] = useState(-1);
 
@@ -60,7 +61,7 @@ export function HeaderSearch() {
   const openSearch = () => {
     setOpen(true);
     setFailed(false);
-    loadIndex().then(setItems, () => setFailed(true));
+    loadIndex().then(setLoaded, () => setFailed(true));
   };
 
   // Focus the field once it exists, the last search selected so typing
@@ -88,10 +89,10 @@ export function HeaderSearch() {
 
   const { products, shortcuts } = useMemo(
     () => ({
-      products: items ? searchItems(items, query) : [],
-      shortcuts: items ? searchShortcuts(items, query) : [],
+      products: loaded ? searchItems(loaded.listings, query, loaded.vocabulary) : [],
+      shortcuts: loaded ? searchShortcuts(loaded.listings, query, loaded.vocabulary) : [],
     }),
-    [items, query],
+    [loaded, query],
   );
   const top = products.slice(0, SHOWN);
   const typed = queryWords(query).length > 0;
@@ -186,7 +187,7 @@ export function HeaderSearch() {
                   Browse all products
                 </Link>
               </p>
-            ) : !items ? (
+            ) : !loaded ? (
               <p className="search__note" aria-live="polite">
                 Getting the shop ready…
               </p>

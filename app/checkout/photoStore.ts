@@ -13,16 +13,19 @@ import {
   type SlotNeed,
 } from "@/lib/catalog/checkout";
 import { photoCount } from "@/lib/catalog/listing";
+import { DAY_MS, KEEP_DAYS } from "@/lib/checkout/order";
 import { bake, readPhoto, sourceFor, upload } from "./images";
 
 /**
  * The photo step's state: the customer's tray of photos and where each is
  * placed. One small store read with `useSyncExternalStore`, as the cart is.
  *
- * What survives a reload is saved in localStorage: the order's reference, the
- * photos that finished uploading (by their Cloudinary ID) and every
- * placement. A photo still uploading when the page goes is lost, and says so
- * by being absent; its file never left the browser.
+ * What survives a reload is saved in localStorage: the order's reference and
+ * its key, the photos that finished uploading (by their Cloudinary ID) and
+ * every placement. A photo still uploading when the page goes is lost, and
+ * says so by being absent; its file never left the browser. An order not
+ * paid within `KEEP_DAYS` of starting begins again, a few days before the
+ * shop's daily sweep (`lib/checkout/uploads.ts`) deletes its photos.
  *
  * A place left as placed goes to the shop as the original upload. A place
  * the customer edited is rendered here at full resolution and uploaded as
@@ -63,6 +66,8 @@ export type LineState = {
   empty?: boolean;
   /** A frame whose print is not on sale online, which the customer asked the shop to quote for. */
   quote?: boolean;
+  /** The customer's note to the shop about this line, left at the details step. */
+  note?: string;
 };
 
 /** An edited place's own file: being rendered and sent, sent, or failed. */
@@ -73,6 +78,10 @@ export type At = { sku: string; set: number; slot: number };
 
 export type PhotoState = {
   ref: string;
+  /** The ref's secret: placing the order proves it, so nobody else can rewrite it. Never shown. */
+  key: string;
+  /** When this order's photos began, in ms: past `KEEP_DAYS` it starts over. */
+  startedAt: number;
   photos: Photo[];
   lines: Record<string, LineState>;
   /** Edited places' files, by `editKey`. */
@@ -83,8 +92,10 @@ export type PhotoState = {
   said: { text: string; n: number };
 };
 
-const KEY = "epg:photos:v1";
-const SERVER: PhotoState = { ref: "", photos: [], lines: {}, bakes: {}, armed: null, said: { text: "", n: 0 } };
+const KEY = "epg:photos:v2";
+/** Unclaimed, so dropped: saved before orders had keys. */
+const OLD_KEY = "epg:photos:v1";
+const SERVER: PhotoState = { ref: "", key: "", startedAt: 0, photos: [], lines: {}, bakes: {}, armed: null, said: { text: "", n: 0 } };
 const PARALLEL = 3;
 
 let state: PhotoState | null = null;
@@ -96,12 +107,19 @@ const listeners = new Set<() => void>();
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
-/** "EPG-7K2QX9": what the shop finds the order and its folder of photos by. */
-function newRef() {
+/**
+ * A new order: "EPG-7K2QX9", what the shop finds it and its folder of photos
+ * by, and the key that proves this browser made it.
+ */
+function newOrder() {
   const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = crypto.getRandomValues(new Uint8Array(6));
-  return `EPG-${Array.from(bytes, (b) => abc[b % abc.length]).join("")}`;
+  const ref = `EPG-${Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => abc[b % abc.length]).join("")}`;
+  const key = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+  return { ref, key, startedAt: Date.now() };
 }
+
+/** An empty order under a new ref. */
+const fresh = (): PhotoState => ({ ...SERVER, ...newOrder() });
 
 const EMPTY_LINE: LineState = { each: false, sets: [], words: [] };
 
@@ -117,14 +135,16 @@ const withSlot = (l: LineState, t: At, fn: (p: Placed | null) => Placed | null):
 
 function load(): PhotoState {
   try {
+    window.localStorage.removeItem(OLD_KEY);
     const raw = JSON.parse(window.localStorage.getItem(KEY) ?? "null");
-    if (raw && typeof raw.ref === "string" && Array.isArray(raw.photos) && typeof raw.lines === "object") {
-      return { ...SERVER, ref: raw.ref, photos: raw.photos, lines: raw.lines, bakes: raw.bakes ?? {} };
+    const fresh = typeof raw?.startedAt === "number" && Date.now() - raw.startedAt < KEEP_DAYS * DAY_MS;
+    if (fresh && typeof raw.ref === "string" && typeof raw.key === "string" && Array.isArray(raw.photos) && typeof raw.lines === "object") {
+      return { ...SERVER, ref: raw.ref, key: raw.key, startedAt: raw.startedAt, photos: raw.photos, lines: raw.lines, bakes: raw.bakes ?? {} };
     }
   } catch {
     // Unreadable: start a fresh order.
   }
-  return { ...SERVER, ref: newRef() };
+  return fresh();
 }
 
 function save() {
@@ -137,7 +157,7 @@ function save() {
     const lines = mapPlacements(s.lines, (p) => (p && kept.has(p.photo) ? p : null));
     // Only finished renders: one cut short by the page going is simply made again.
     const bakes = Object.fromEntries(Object.entries(s.bakes).filter(([, b]) => b.status === "done"));
-    window.localStorage.setItem(KEY, JSON.stringify({ ref: s.ref, photos, lines, bakes }));
+    window.localStorage.setItem(KEY, JSON.stringify({ ref: s.ref, key: s.key, startedAt: s.startedAt, photos, lines, bakes }));
   } catch {
     // Private mode or a full disk: the step still works for this visit.
   }
@@ -380,8 +400,8 @@ export const photos = {
 
   /**
    * Starts the photos over: every photo out of the tray and out of every
-   * place, uploads still waiting dropped. The customer's words and frame
-   * choices stay; the cart is untouched.
+   * place, uploads still waiting dropped. The customer's words, notes and
+   * frame choices stay; the cart is untouched.
    */
   reset() {
     dropUploads();
@@ -393,12 +413,12 @@ export const photos = {
   },
 
   /**
-   * The order is paid: forget its photos, places and words, and start the
+   * The order is paid: forget its photos, places, words and notes, and start the
    * next order under a new reference. The files stay in Cloudinary for the shop.
    */
   finish() {
     dropUploads();
-    set({ ref: newRef(), photos: [], lines: {}, bakes: {}, armed: null });
+    set({ ...fresh(), said: current().said });
   },
 
   arm(id: string | null) {
@@ -457,8 +477,8 @@ export const photos = {
     writeLine(sku, (l) => ({ ...l, words: l.words.map((w, i) => (i === set ? text : w)) }), quantity, slots);
   },
 
-  /** A frame's choice: take it empty, or ask for a quote on its print. */
-  flag(sku: string, patch: Pick<LineState, "empty" | "quote">) {
+  /** A frame's choice (take it empty, or ask for a quote on its print), or the line's note to the shop. */
+  flag(sku: string, patch: Pick<LineState, "empty" | "quote" | "note">) {
     const lines = current().lines;
     set({ lines: { ...lines, [sku]: { ...(lines[sku] ?? EMPTY_LINE), ...patch } } });
   },

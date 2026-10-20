@@ -1,17 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button, Loader, SegmentedControl, TextInput } from "@mantine/core";
-import type { ProductDraft } from "@/lib/catalog/edit";
+import { Button, Loader, SegmentedControl, TextInput, Tooltip } from "@mantine/core";
+import { LIMITS, type ProductDraft } from "@/lib/catalog/edit";
 import type { MediaRole, ProductMedia } from "@/lib/catalog/types";
+import { photoCode } from "@/lib/catalog/listing";
 import { ProductImage } from "@/app/site/ProductImage";
 import { ArrowLeft, ArrowRight, Grip, Trash, Upload } from "@/app/site/icons";
 import type { Update } from "./ProductEditor";
 import { ACCEPT, uploadPhoto } from "./uploads";
+import { Where } from "./Where";
 
 type Pending = { id: string; name: string; url: string };
-
-const code = (publicId: string) => publicId.replace(/^products\//, "");
 
 /**
  * The product's photographs and size diagrams, in the order the shop shows
@@ -34,12 +34,14 @@ export function PhotosTab({
   const [over, setOver] = useState(false);
 
   const media = draft.media;
+  const room = LIMITS.media - media.length - pending.length;
   const mainIndex = media.findIndex((m) => m.role === "photo");
 
   const setMedia = (next: ProductMedia[]) => update({ media: next });
 
   const add = (files: File[]) => {
-    const images = files.filter((f) => f.type.startsWith("image/"));
+    const images = files.filter((f) => f.type.startsWith("image/")).slice(0, Math.max(0, room));
+    if (files.length && room <= 0) return setErrors([`A product can have up to ${LIMITS.media} images. Remove one to add another.`]);
     if (!images.length) return;
     setErrors([]);
     for (const file of images) {
@@ -82,6 +84,13 @@ export function PhotosTab({
 
   return (
     <div className="panel">
+      <p className="hint">
+        <Where>
+          product photos fill its gallery in this order, and the first is the one on its card. A size diagram shows only on its
+          product page, in its “Details and care” section.
+        </Where>
+      </p>
+
       <div
         id="photos-add"
         className={over ? "drop drop--over" : "drop"}
@@ -102,9 +111,11 @@ export function PhotosTab({
         <Upload size={28} />
         <div>
           <p className="drop__title">Drag photos here, paste them, or</p>
-          <p className="hint">JPG, PNG or WebP.</p>
+          <p className="hint">
+            JPG, PNG or WebP, up to {LIMITS.media} images. Square photos fill the card best.
+          </p>
         </div>
-        <Button variant="light" onClick={() => input.current?.click()} disabled={!draft.code}>
+        <Button variant="light" onClick={() => input.current?.click()} disabled={!draft.code || room <= 0}>
           Choose photos
         </Button>
         <input
@@ -120,7 +131,7 @@ export function PhotosTab({
         />
       </div>
 
-      {!draft.code ? <p className="hint hint--warn">Add the shop code under Details first.</p> : null}
+      {!draft.code ? <p className="hint hint--warn">Add the product code under Shop records first.</p> : null}
 
       <div role="alert">
         {errors.map((e) => (
@@ -132,7 +143,7 @@ export function PhotosTab({
 
       {media.length === 0 && pending.length === 0 ? (
         <p className="empty__lede">
-          No photos yet. The first product photo becomes the main one on the card.
+          No photos yet. Until it has one, its card shows “Photo to come” and it can’t be put in the shop.
         </p>
       ) : (
         <ol id="photos-list" className="photos" aria-label="Photos, in the order the shop shows them">
@@ -158,8 +169,14 @@ export function PhotosTab({
               }}
             >
               <div className="photo__image">
-                <ProductImage code={code(m.publicId)} alt="" width={400} height={400} sizes="240px" />
-                {i === mainIndex ? <span className="photo__main">Main photo</span> : null}
+                <ProductImage code={photoCode(m.publicId)} alt="" width={400} height={400} sizes="240px" />
+                {i === mainIndex ? (
+                  <Tooltip label="The first product photo is the one on its card. Move another before it to change it.">
+                    <span className="photo__main" tabIndex={0}>
+                      Main photo
+                    </span>
+                  </Tooltip>
+                ) : null}
                 <span className="photo__grip" aria-hidden="true">
                   <Grip size={20} />
                 </span>
@@ -178,9 +195,10 @@ export function PhotosTab({
                 />
                 <TextInput
                   size="sm"
-                  label="Describe it"
-                  description="For people who can’t see it."
+                  label="Describe the photo"
+                  description="Read aloud on its product page to shoppers who use a screen reader."
                   value={m.alt}
+                  maxLength={LIMITS.alt}
                   onChange={(e) => patch(i, { alt: e.currentTarget.value })}
                   error={!m.alt.trim() ? "Describe it before saving" : undefined}
                 />
@@ -221,9 +239,6 @@ export function PhotosTab({
         </ol>
       )}
 
-      {media.length > 0 ? (
-        <p className="hint">Size diagrams show only on the product page.</p>
-      ) : null}
     </div>
   );
 }

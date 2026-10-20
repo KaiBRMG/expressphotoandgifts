@@ -4,7 +4,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { DecodedIdToken } from "firebase-admin/auth";
 import { auth } from "@/lib/firebase";
-import { adminAllowlist, checkPassword, sendPasswordReset, sessionCookie } from "@/lib/identity";
+import { checkPassword, isStaffEmail, sendPasswordReset, sessionCookie } from "@/lib/identity";
 
 /**
  * Staff sign-in for /admin.
@@ -33,7 +33,7 @@ export type Admin = { uid: string; email: string };
  * never for a listed address (`lib/account/auth.ts`).
  */
 const isAdmin = (t: DecodedIdToken) =>
-  t.admin === true || (!!t.email && adminAllowlist().includes(t.email.toLowerCase()));
+  t.admin === true || (!!t.email && isStaffEmail(t.email));
 
 /** Signs a member of staff in and sets the session cookie, or says why not. */
 export async function signIn(email: string, password: string): Promise<{ error: string } | null> {

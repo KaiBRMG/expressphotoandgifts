@@ -12,7 +12,7 @@ export function orderLines(rows: Row[], photos: Photo[], bakes: Record<string, B
   const byId = new Map(photos.map((p) => [p.id, p]));
 
   return rows.map(({ line, needs, state }) => {
-    const out: LineInput = { sku: line.sku, quantity: line.quantity, sets: [] };
+    const out: LineInput = { sku: line.sku, quantity: line.quantity, sets: [], note: state.note ?? "" };
     if (needs?.frame) out.frame = { empty: Boolean(state.empty), quote: Boolean(state.quote) };
 
     const photo = needs?.photo;

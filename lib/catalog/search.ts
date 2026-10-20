@@ -1,5 +1,5 @@
 import { shelfHref, type Listing } from "./listing";
-import { FACET_LABELS, FILTER_FACETS, tagValues, termCounts, termLabel } from "./tags";
+import { FACET_LABELS, FILTER_FACETS, tagValues, termCounts, termLabel, type Vocabulary } from "./tags";
 
 /**
  * Catalogue search: a product matches when every word typed starts a word in
@@ -23,7 +23,7 @@ function normalise(s: string): string {
 }
 
 /** Words, with a plural "s" dropped so "mug" finds "Mugs" and "mugs" finds "Mug". */
-function words(s: string): string[] {
+export function words(s: string): string[] {
   return normalise(s)
     .split(/[^a-z0-9]+/)
     .filter(Boolean)
@@ -31,8 +31,8 @@ function words(s: string): string[] {
 }
 
 /** The tag labels a product answers to, e.g. ["Mugs", "Birthday", "For him"]. */
-function tagLabels(item: Listing): string[] {
-  return FILTER_FACETS.flatMap((f) => tagValues(item.tags, f).map((v) => termLabel(f, v)));
+export function tagLabels(item: { tags: readonly string[] }, vocab: Vocabulary): string[] {
+  return FILTER_FACETS.flatMap((f) => tagValues(item.tags, f).map((v) => termLabel(vocab, f, v)));
 }
 
 /**
@@ -44,16 +44,19 @@ export function queryWords(query: string): string[] {
   return all.join("").length < 2 ? [] : all;
 }
 
+/** True when every query word starts one of the words. */
+export const startsWords = (haystack: readonly string[], q: readonly string[]) => q.every((w) => haystack.some((x) => x.startsWith(w)));
+
 /**
  * 0 when the item does not match; otherwise higher for a better match. Each
  * word scores by the strongest field it starts a word in: the product's own
  * name 3, its category 2, a tag 1.
  */
-function score(item: Listing, q: string[]): number {
+function score(item: Listing, q: string[], vocab: Vocabulary): number {
   const fields: [number, string[]][] = [
     [3, words(item.name)],
     [2, words(item.category)],
-    [1, tagLabels(item).flatMap(words)],
+    [1, tagLabels(item, vocab).flatMap(words)],
   ];
   let total = 0;
   for (const w of q) {
@@ -65,11 +68,11 @@ function score(item: Listing, q: string[]): number {
 }
 
 /** Matching products, best first; ties keep the shop's featured order. */
-export function searchItems<T extends Listing>(items: T[], query: string): T[] {
+export function searchItems<T extends Listing>(items: T[], query: string, vocab: Vocabulary): T[] {
   const q = queryWords(query);
   if (q.length === 0) return [];
   return items
-    .map((item) => ({ item, s: score(item, q) }))
+    .map((item) => ({ item, s: score(item, q, vocab) }))
     .filter((x) => x.s > 0)
     .sort((a, b) => b.s - a.s || a.item.rank - b.item.rank)
     .map((x) => x.item);
@@ -83,7 +86,7 @@ export type SearchShortcut = { label: string; kind: string; href: string };
  * Birthday, "frames" → Frames & Display), but only those with something on
  * them, so a shortcut never opens on an empty page.
  */
-export function searchShortcuts(items: Listing[], query: string): SearchShortcut[] {
+export function searchShortcuts(items: Listing[], query: string, vocab: Vocabulary): SearchShortcut[] {
   const q = queryWords(query);
   if (q.length === 0) return [];
   const named = (label: string) => {
@@ -97,7 +100,7 @@ export function searchShortcuts(items: Listing[], query: string): SearchShortcut
 
   // A type is a slice of its one category; occasions and people cut across the shop.
   const terms = FILTER_FACETS.flatMap((facet) =>
-    termCounts(items, facet)
+    termCounts(vocab, items, facet)
       .filter((t) => t.count > 0 && named(t.label))
       .map((t) => ({ label: t.label, kind: FACET_LABELS[facet], href: shelfHref(t.category ?? "all", facet, t.value) })),
   );

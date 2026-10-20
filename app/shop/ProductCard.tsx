@@ -9,15 +9,20 @@ import { YourPhoto } from "@/app/site/icons";
  * ways it comes, and — the thing this shop is for — whether it takes the
  * customer's own photo. Everything under the picture is 16px or more, so a
  * phone never has to be zoomed to read a price.
+ *
+ * On a shelf where every product takes a photo the line tells the visitor
+ * nothing and lowers every price, so such a shelf passes `yours={false}`.
  */
 export function ProductCard({
   listing,
   sizes = "(max-width: 46rem) 46vw, (max-width: 90rem) 24vw, 260px",
   eager = false,
+  yours = true,
 }: {
   listing: Listing;
   sizes?: string;
   eager?: boolean;
+  yours?: boolean;
 }) {
   const { slug, name, photo, hint, personalisable, special } = listing;
   return (
@@ -44,7 +49,7 @@ export function ProductCard({
         <span className="pcard__name">{name}</span>
         <span className="pcard__price">{priceLabel(listing)}</span>
         {hint ? <span className="pcard__hint">{hint}</span> : null}
-        {personalisable ? (
+        {personalisable && yours ? (
           <span className="pcard__yours">
             <YourPhoto size={18} />
             Takes your photo
@@ -57,11 +62,12 @@ export function ProductCard({
 
 /** A shelf of cards: a swipeable row on a phone, a grid of four from 62rem. */
 export function Shelf({ listings }: { listings: Listing[] }) {
+  const mixed = !listings.every((l) => l.personalisable);
   return (
     <ul className="shelf__row">
       {listings.map((l) => (
         <li key={l.slug}>
-          <ProductCard listing={l} />
+          <ProductCard listing={l} yours={mixed} />
         </li>
       ))}
     </ul>

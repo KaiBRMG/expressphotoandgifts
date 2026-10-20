@@ -135,7 +135,10 @@ export function photoCount(n: number): string {
 
 /** The Cloudinary code of a product's first photograph, as `ProductImage` takes it. */
 export const primaryPhoto = (p: Pick<Product, "media">) =>
-  p.media.find((m) => m.role === "photo")?.publicId.replace(/^products\//, "") ?? null;
+  photoCode(p.media.find((m) => m.role === "photo")?.publicId ?? "") || null;
+
+/** "products/BM1" → "BM1": a photo's Cloudinary id as ProductImage takes it. */
+export const photoCode = (publicId: string) => publicId.replace(/^products\//, "");
 
 /** "1 product", "16 products". */
 export function productCount(n: number): string {

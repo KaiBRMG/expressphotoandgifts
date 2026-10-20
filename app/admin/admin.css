@@ -26,6 +26,12 @@
   font-weight: 500;
 }
 
+/* "In the shop:" leads a field's help, so where it shows is read before how to fill it. */
+.where__lead {
+  font-weight: 600;
+  color: var(--ink);
+}
+
 .admin-error {
   margin: 0;
   font-size: 1rem;
@@ -79,6 +85,8 @@
 
 .stack {
   display: grid;
+  /* minmax(0, …): long content wraps inside the column rather than widening it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
 }
 
@@ -118,10 +126,6 @@
   flex-wrap: wrap;
   gap: 16px 20px;
   align-items: flex-start;
-}
-
-.row__narrow {
-  flex: 0 1 13rem;
 }
 
 .row__grow {
@@ -422,6 +426,161 @@
   color: var(--ink-soft);
 }
 
+/* ---- Dashboard ------------------------------------------------------------ */
+
+/* Widgets find their own columns; each keeps its own height. */
+.dash {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+  align-items: start;
+  gap: 20px;
+}
+
+/* Flat, like every surface that holds no photograph: a hairline, not a lift. The order page's parts share it. */
+.widget,
+.osec {
+  border: 1px solid var(--rule-card);
+  border-radius: 18px;
+  background: var(--paper);
+}
+
+.widget {
+  padding: 16px 12px 12px;
+}
+
+.widget__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 8px 10px;
+}
+
+.widget__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.widget__total {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 8px 0 12px;
+  border-radius: 999px;
+  background: rgb(1 38 186 / 0.08);
+  color: var(--ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  transition: background-color 0.15s var(--ease-out);
+}
+
+.widget__total svg {
+  transition: translate 0.2s var(--ease-out);
+}
+
+.widget__total:hover {
+  background: rgb(1 38 186 / 0.13);
+}
+
+.widget__total:hover svg {
+  translate: 2px 0;
+}
+
+.widget__total:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.widget__note {
+  padding: 8px 8px 0;
+  color: var(--ink-soft);
+}
+
+.hidden__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hidden__list li + li {
+  border-top: 1px solid var(--rule-card-inner);
+}
+
+/* Reason over fix on the left, the count on the right; the whole line is the door. */
+.hidden__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 16px;
+  padding: 9px 8px;
+  border-radius: 12px;
+  color: var(--ink);
+  transition: background-color 0.15s var(--ease-out);
+}
+
+.hidden__row:hover {
+  background: rgb(1 38 186 / 0.05);
+}
+
+.hidden__row:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: -3px;
+}
+
+.hidden__why {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.hidden__why svg {
+  flex: none;
+  color: var(--mantine-color-red-8);
+}
+
+.hidden__row--ready .hidden__why svg {
+  color: var(--blue);
+}
+
+/* Under the reason, lined up with its words rather than its mark. */
+.hidden__fix {
+  grid-column: 1;
+  padding-left: 26px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.hidden__n {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.0625rem;
+  font-weight: 500;
+}
+
+.hidden__row:hover .hidden__why {
+  text-decoration: underline 2px var(--gold);
+  text-underline-offset: 0.2em;
+}
+
+.hidden__clear {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 6px;
+  color: var(--ink-soft);
+}
+
+.hidden__clear svg {
+  color: var(--blue);
+}
+
 /* ---- Products list -------------------------------------------------------- */
 
 .plist__tools {
@@ -443,6 +602,30 @@
 .plist__status {
   flex: none;
   max-width: 100%;
+}
+
+.plist__statusSelect {
+  display: none;
+  flex: 1 1 12rem;
+}
+
+.plist__kbd {
+  display: none;
+  min-width: 24px;
+  padding: 1px 6px;
+  border: 1px solid var(--rule-hair);
+  border-radius: 6px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--ink-faint);
+}
+
+@media (min-width: 62rem) {
+  .plist__kbd {
+    display: inline-block;
+  }
 }
 
 .plist__wrap {
@@ -516,6 +699,41 @@
   object-fit: cover;
 }
 
+.plist__nophoto {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--ink-faint);
+}
+
+.plist__check {
+  width: 44px;
+  padding-inline: 12px 0;
+}
+
+/* Above the row's link, so choosing a row doesn't open it. */
+.plist__check .mantine-Checkbox-root {
+  position: relative;
+  z-index: 1;
+}
+
+.plist__row[aria-selected="true"] {
+  background: rgb(1 38 186 / 0.06);
+}
+
+/* Retired: kept for past orders, and stepped back from the work. */
+.plist__row--archived .plist__thumb {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.plist__row--archived .plist__name,
+.plist__row--archived .plist__num {
+  font-weight: 500;
+  color: var(--ink-faint);
+}
+
 .plist__name {
   font-weight: 600;
   line-height: 1.3;
@@ -538,9 +756,14 @@
   outline-offset: -3px;
 }
 
+/* Above the row's link, so a code or SKU can be selected and copied. */
 .plist__code {
+  position: relative;
+  z-index: 1;
   display: block;
+  width: fit-content;
   margin-top: 2px;
+  cursor: text;
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 13.5px;
   color: var(--ink-soft);
@@ -553,13 +776,43 @@
   margin-top: 8px;
 }
 
+/* A need: what keeps the product out of the shop, and the door to its fix. Above the row's own link. */
 .flag {
-  padding: 2px 10px;
-  border: 1px solid var(--rule-hair);
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px 2px 8px;
   border-radius: 999px;
-  font-size: 0.875rem;
-  line-height: 1.5;
+  background: rgb(1 38 186 / 0.08);
   color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s var(--ease-out),
+    text-decoration-color 0.15s var(--ease-out);
+}
+
+.flag svg {
+  flex: none;
+  color: var(--mantine-color-red-8);
+}
+
+.flag:hover {
+  background: rgb(1 38 186 / 0.13);
+  text-decoration-color: var(--gold);
+}
+
+.flag:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
 }
 
 .plist__num {
@@ -635,6 +888,14 @@
   margin-bottom: 8px;
 }
 
+.editor__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px 20px;
+}
+
 .editor__view {
   min-height: 44px;
 }
@@ -696,6 +957,8 @@
 
 .editor__body {
   display: grid;
+  /* minmax(0, …): the tab strip scrolls inside the column rather than widening it past a phone's screen. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 40px;
   margin-top: 28px;
 }
@@ -752,6 +1015,7 @@
 
 .panel {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 32px;
   max-width: 56rem;
   padding-top: 28px;
@@ -759,6 +1023,7 @@
 
 .group {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-content: start;
 }
@@ -996,6 +1261,305 @@
   width: 13rem;
 }
 
+.choice__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.prices__summary {
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.prices__summary strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* A label with a circled "i" after it. */
+.label-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* One block per choice of the first option: its name, how many lines and what they cost, then the lines. */
+.prices__groupHead th {
+  padding: 22px 12px 8px 0;
+  border-bottom: 1px solid var(--rule-hair);
+  color: var(--ink);
+}
+
+.prices__group:first-of-type .prices__groupHead th {
+  padding-top: 14px;
+}
+
+.prices__groupTitle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-right: 12px;
+}
+
+.prices__groupName {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.prices__groupMeta {
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.prices__fill {
+  vertical-align: baseline;
+}
+
+/* Lines under a group sit in from its name, so the grouping reads without rules. */
+.prices__group .prices__row td:first-child {
+  padding-left: 16px;
+}
+
+.prices__row--empty td:not(.prices__price) {
+  color: var(--ink-faint);
+}
+
+/* On a phone the code column goes, and the code sits under the choice instead. */
+.prices__codeInline {
+  display: none;
+}
+
+@media (max-width: 46rem) {
+  .prices th.prices__code,
+  .prices td.prices__code {
+    display: none;
+  }
+
+  .prices__codeInline {
+    display: block;
+    margin-top: 2px;
+    font-size: 1rem;
+    color: var(--ink-soft);
+  }
+
+  .prices__price {
+    width: 9.5rem;
+  }
+}
+
+/* ---- Goes with this ------------------------------------------------------------ */
+
+/* What the row will hold once saved, as a strip of small cards. */
+.goes__now {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgb(1 38 186 / 0.04);
+}
+
+.goes__strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.goes__strip li {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 6px;
+  border: 1px solid var(--rule-card);
+  border-radius: 999px;
+  background: var(--print);
+  font-weight: 500;
+}
+
+.goes__strip .pick__thumb {
+  width: 36px;
+  border-radius: 999px;
+}
+
+.picks {
+  display: grid;
+  width: 100%;
+  max-width: 44rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.pick {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule-paper);
+}
+
+.pick__thumb {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  width: 48px;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  border: 1px solid var(--rule-card);
+  background: var(--print);
+  color: var(--ink-faint);
+}
+
+.pick__thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pick__text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pick__name {
+  display: block;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.pick__meta {
+  display: block;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+/* Why a product won't show: said in words beside the glyph, never by colour alone. */
+.pick__why,
+.pick__ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.pick__why {
+  color: var(--ink);
+}
+
+.pick__ok {
+  color: var(--ink-soft);
+}
+
+.pick__actions {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.pick--matched .pick__name {
+  font-weight: 500;
+}
+
+.goes__add {
+  width: 100%;
+  max-width: 30rem;
+  margin-top: 10px;
+}
+
+.pickopt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pickopt .pick__thumb {
+  width: 40px;
+}
+
+.goes__sizes {
+  margin-top: 14px;
+}
+
+.goes__sizes summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.goes__sizes[open] {
+  display: grid;
+  gap: 14px;
+}
+
+@media (max-width: 46rem) {
+  .pick {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .pick__actions,
+  .pick > .mantine-Button-root {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+/* The circled "i" beside a label. */
+.tip {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -6px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-faint);
+  cursor: help;
+}
+
+.tip:hover,
+.tip:focus-visible {
+  color: var(--ink);
+  background: rgb(1 38 186 / 0.06);
+}
+
+.tip:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+
+/* "+ Add a type" ends its row of chips, drawn as a chip's outline so it reads as one more of them. */
+.addterm {
+  border-style: dashed;
+  border-color: var(--rule-hair);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.addterm__count {
+  font-size: 0.875rem;
+  color: var(--ink-faint);
+}
+
+.mantine-Tooltip-tooltip {
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
 /* Measurements, under Details */
 .specs {
   justify-self: stretch;
@@ -1124,6 +1688,342 @@
   box-shadow: var(--shadow-card);
 }
 
+/* The tabs, then the shop's records under every one of them. */
+.editor__main {
+  display: grid;
+  /* minmax(0, …), as in .editor__body: the tab strip scrolls rather than widening the column. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 48px;
+  align-content: start;
+  min-width: 0;
+}
+
+.records {
+  display: grid;
+  gap: 18px;
+  max-width: 56rem;
+  padding: 24px;
+  border-radius: 18px;
+  background: rgb(1 38 186 / 0.04);
+}
+
+.records__grid {
+  display: grid;
+  gap: 18px;
+}
+
+@media (min-width: 48rem) {
+  .records__grid {
+    grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+  }
+}
+
+/* ---- Preview views: the part of the shop the open tab changes --------------- */
+
+.pv {
+  display: grid;
+  gap: 12px;
+}
+
+/* The shelf's name, as the catalogue heads it. */
+.pv__shelf {
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.pv__kinds {
+  margin: 0;
+}
+
+.pv__kinds ul {
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0;
+  overflow: visible;
+}
+
+.pv__kinds button {
+  min-height: 36px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.9375rem;
+}
+
+.pv__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.pv__note,
+.pv__faint {
+  font-size: 0.9375rem;
+  color: var(--ink-faint);
+}
+
+.pv__missing {
+  padding: 12px 14px;
+  border: 1px dashed var(--rule-hair);
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.pv__found {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.pv__found div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+}
+
+.pv__found dt {
+  font-weight: 600;
+}
+
+.pv__found dt::after {
+  content: ":";
+}
+
+.pv__found dd {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.pv__thumbs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pv__thumb {
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  border: 1px solid var(--rule-card);
+  background: var(--print);
+}
+
+/* The first product photo is the card's: ringed in blue. */
+.pv__thumb--main {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.pv__thumb img,
+.pv__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The product page, top to bottom, each part a way into the control that changes it. */
+.pv__page {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+  border: 1px solid var(--rule-card);
+  border-radius: 18px;
+  background: var(--print);
+  box-shadow: var(--shadow-card);
+}
+
+.pv__page li + li {
+  border-top: 1px solid var(--rule-paper);
+}
+
+.pv__part {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  opacity: 0.45;
+  transition:
+    opacity 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pv__part--here {
+  opacity: 1;
+}
+
+.pv__part .pv__label {
+  grid-column: 1;
+}
+
+.pv__body {
+  grid-column: 1;
+  min-width: 0;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.pv__go {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: var(--ink-faint);
+  opacity: 0;
+  transition: opacity 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pv__part:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+  opacity: 1;
+}
+
+.pv__part:focus-visible .pv__go {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .pv__part:hover {
+    opacity: 1;
+    background: rgb(1 38 186 / 0.04);
+  }
+
+  .pv__part:hover .pv__go {
+    opacity: 1;
+  }
+}
+
+.pv__photo {
+  display: block;
+  overflow: hidden;
+  width: 64px;
+  aspect-ratio: 1;
+  border-radius: 8px;
+}
+
+.pv__clamp {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.pv__options {
+  display: grid;
+  gap: 2px;
+}
+
+.pv__takes {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.pv__layouts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pv__layouts button {
+  min-height: 36px;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--print);
+  font: inherit;
+  font-size: 0.9375rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.pv__layouts button[aria-pressed="true"] {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: var(--print);
+}
+
+/* Photo spaces as checkout draws them: empty, dashed blue on a blue wash, at the print's proportions. */
+.pv__slots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pv__slots li {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+.pv__slot {
+  display: grid;
+  place-items: center;
+  border: 1.5px dashed var(--blue);
+  border-radius: 10px;
+  background: rgb(1 38 186 / 0.045);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.pv__slot--round {
+  border-radius: 50%;
+}
+
+.pv__slot--dome {
+  border-radius: 50% 50% 10px 10px / 40% 40% 10px 10px;
+}
+
+.pv__slotName {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.pv__slotSize {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.pv__words {
+  padding: 12px 14px;
+  border: 1px solid var(--rule-hair);
+  border-radius: 12px;
+  background: var(--print);
+  font-size: 0.9375rem;
+  color: var(--ink-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pv__part,
+  .pv__go {
+    transition: none;
+  }
+}
+
 /* ---- Save bar ------------------------------------------------------------ */
 
 .savebar {
@@ -1218,6 +2118,301 @@
   }
 }
 
+.savebar__queue {
+  display: block;
+  margin-top: 2px;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* What a save does to the shop itself, under the line naming what changed. */
+.savebar__reach {
+  margin: 4px 0 0 20px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.savebar__prices {
+  display: grid;
+  gap: 2px;
+  margin: 4px 0 0;
+  padding-left: 1.1rem;
+  color: var(--ink);
+}
+
+.savebar__jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 10px;
+  font-weight: 600;
+  color: var(--mantine-color-red-8);
+}
+
+/* ---- Bulk bar: the list's chosen rows ----------------------------------------- */
+
+.bulkbar {
+  position: sticky;
+  bottom: 16px;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-top: 24px;
+  padding: 12px 12px 12px 20px;
+  border: 1px solid var(--rule-hair);
+  border-radius: 18px;
+  background: var(--paper);
+  box-shadow: 0 18px 40px -22px rgb(1 38 186 / 0.6);
+}
+
+.bulkbar--asking {
+  border-color: var(--blue);
+  box-shadow:
+    inset 0 0 0 1px var(--blue),
+    0 18px 40px -22px rgb(1 38 186 / 0.6);
+}
+
+.bulkbar--alert .bulkbar__line svg {
+  color: var(--mantine-color-red-8);
+}
+
+.bulkbar__text {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.bulkbar__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px 10px;
+  margin: 0;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.bulkbar__line svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--blue);
+}
+
+.bulkbar__count {
+  align-items: baseline;
+  gap: 4px 16px;
+}
+
+.bulkbar__ask {
+  font-weight: 600;
+}
+
+.bulkbar__skipped {
+  display: grid;
+  gap: 2px;
+  margin: 6px 0 0 30px;
+  padding-left: 1.1rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.bulkbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---- Loading ------------------------------------------------------------------ */
+
+.loading {
+  display: grid;
+  gap: 14px;
+}
+
+.loading__bar,
+.loading__row {
+  display: block;
+  border-radius: 12px;
+  background: rgb(1 38 186 / 0.06);
+  animation: loading-pulse 1.4s var(--ease-out) infinite alternate;
+}
+
+.loading__bar--title {
+  width: 11rem;
+  height: 36px;
+  margin-bottom: 14px;
+}
+
+.loading__bar--tools {
+  width: min(100%, 40rem);
+  height: 44px;
+  margin-bottom: 8px;
+}
+
+.loading__row {
+  height: 64px;
+}
+
+@keyframes loading-pulse {
+  to {
+    background: rgb(1 38 186 / 0.11);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading__bar,
+  .loading__row {
+    animation: none;
+  }
+}
+
+/* ---- Phones: a top bar for the rail, rows as stacked cards ---------------------- */
+
+@media (max-width: 46rem) {
+  .console {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+
+  .sidebar {
+    z-index: 30;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    height: auto;
+    padding: 6px 8px 6px 14px;
+  }
+
+  .sidebar__brand {
+    display: flex;
+    align-items: center;
+    margin-right: auto;
+    padding: 0;
+  }
+
+  .sidebar__logo {
+    width: 128px;
+  }
+
+  .sidebar__where {
+    display: none;
+  }
+
+  .sidebar__nav {
+    display: flex;
+  }
+
+  .sidebar__item {
+    width: auto;
+    min-height: 44px;
+    padding: 0 10px;
+  }
+
+  /* The page in hand keeps its name; the other two are named by their icons' tooltips. */
+  .sidebar__item[aria-current="page"] .sidebar__label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+
+  .sidebar__me {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .plist__status {
+    display: none;
+  }
+
+  .plist__statusSelect {
+    display: block;
+  }
+
+  .plist__wrap {
+    overflow-x: visible;
+  }
+
+  .plist thead {
+    display: none;
+  }
+
+  .plist,
+  .plist tbody {
+    display: block;
+  }
+
+  .plist__row {
+    display: grid;
+    grid-template-columns: 32px 44px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "check thumb main main"
+      "check thumb price status";
+    align-items: start;
+    gap: 6px 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule-paper);
+  }
+
+  .plist td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+
+  .plist td.plist__wide {
+    display: none;
+  }
+
+  .plist__check {
+    grid-area: check;
+    width: auto;
+    padding-top: 10px;
+  }
+
+  .plist__thumbCol {
+    grid-area: thumb;
+    width: auto;
+  }
+
+  .plist__thumb {
+    width: 44px;
+    height: 44px;
+  }
+
+  .plist__main {
+    grid-area: main;
+  }
+
+  .plist__priceCol {
+    grid-area: price;
+  }
+
+  .plist__statusCol {
+    grid-area: status;
+    justify-self: end;
+    text-align: right;
+  }
+
+  .plist__name {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  /* More tabs to the right: the strip fades out before its edge. */
+  .editor__tabs .mantine-Tabs-list {
+    padding-inline-end: 48px;
+    mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+  }
+}
+
 /* ---- Mantine, in the shop's terms ------------------------------------------ */
 
 .mantine-InputWrapper-label {
@@ -1251,6 +2446,292 @@
   font-weight: 600;
 }
 
+/* ---- Orders --------------------------------------------------------------- */
+
+.olist__jump {
+  margin: -8px 0 16px;
+}
+
+.olist__refund {
+  display: block;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+/* The stage's dot fills as the order moves along: hollow when new, solid once done. */
+.ostage--new::before {
+  border-color: var(--gold);
+  background: var(--gold);
+}
+
+.ostage--making::before {
+  background: linear-gradient(90deg, var(--blue) 50%, transparent 50%);
+}
+
+.ostage--ready::before {
+  background: var(--blue);
+}
+
+.ostage--done {
+  color: var(--ink-faint);
+}
+
+.ostage--done::before {
+  border-color: var(--ink-faint);
+  background: var(--ink-faint);
+}
+
+.ostage {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.order .back {
+  margin-bottom: 8px;
+}
+
+.order__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (min-width: 75rem) {
+  .order__grid {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+}
+
+.order__side {
+  display: grid;
+  gap: 20px;
+}
+
+/* A part of the order: a widget's card (see .widget), with room for reading. */
+.osec {
+  padding: 18px 20px;
+}
+
+.order > .osec {
+  margin-bottom: 20px;
+}
+
+.osec__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.osec__sub {
+  margin: 18px 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.osec__soft {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+.osec__lines {
+  line-height: 1.6;
+}
+
+.osec__more {
+  margin-top: 14px;
+}
+
+/* Something the shop must look at: the one red-edged part of the order. */
+.issues {
+  border-color: var(--mantine-color-red-8);
+}
+
+.issues .osec__title svg {
+  color: var(--mantine-color-red-8);
+}
+
+.issues__list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+  line-height: 1.5;
+}
+
+.oitems {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oitem {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule-paper);
+}
+
+.oitem:first-child {
+  padding-top: 0;
+}
+
+.oitem__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.oitem__name {
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.oitem__note,
+.oitem__words {
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.oset {
+  margin-top: 12px;
+}
+
+.oset__title {
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.ophotos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ophoto {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+.ophoto__link {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--rule-card);
+  border-radius: 12px;
+  background: rgb(1 38 186 / 0.05);
+}
+
+.ophoto__link img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.ophoto__link:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.ophoto__label {
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+
+.ophoto__open {
+  width: fit-content;
+  font-size: 0.9375rem;
+}
+
+.osums {
+  display: grid;
+  gap: 4px;
+  margin: 16px 0 0;
+}
+
+.osums div,
+.ofacts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.osums dd,
+.ofacts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.osums__total {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule-hair);
+  font-weight: 600;
+}
+
+.ofacts {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.ofacts dt {
+  color: var(--ink-soft);
+}
+
+.olog {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  line-height: 1.45;
+}
+
+.olog .osec__soft {
+  display: block;
+}
+
+.oresend {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-left: 10px;
+}
+
+.oform {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+@media (max-width: 46rem) {
+  .ostage {
+    justify-items: stretch;
+    width: 100%;
+  }
+
+  .osec {
+    padding: 16px;
+  }
+
+  .oresend {
+    display: flex;
+    margin: 4px 0 0;
+  }
+}
+
 /* ---- The 16px floor ---------------------------------------------------------
    No text under 16px on a phone, controls included: mobile Safari zooms into
    any field set smaller. */
@@ -1268,8 +2749,31 @@
   .address__prefix,
   .photo__main,
   .cards__hint,
+  .prices__groupMeta,
+  .pick__meta,
+  .pick__why,
+  .pick__ok,
+  .addterm__count,
+  .mantine-Tooltip-tooltip,
+  .pv__kinds button,
+  .pv__label,
+  .pv__note,
+  .pv__faint,
+  .pv__missing,
+  .pv__found,
+  .pv__body,
+  .pv__takes,
+  .pv__layouts button,
+  .pv__slot,
+  .pv__slotName,
+  .pv__slotSize,
+  .pv__words,
   .sidebar__where,
   .login__where,
+  .olist__refund,
+  .osec__soft,
+  .ophoto__label,
+  .ophoto__open,
   .mantine-InputWrapper-description {
     font-size: 1rem;
   }

@@ -7,7 +7,7 @@ import { LoginForm } from "./LoginForm";
 export const metadata: Metadata = { title: "Sign in" };
 
 export default async function LoginPage() {
-  if (await currentAdmin()) redirect("/admin/products");
+  if (await currentAdmin()) redirect("/admin");
 
   return (
     <main className="login">

@@ -4,10 +4,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { cart } from "@/app/site/cartStore";
-import { PASSWORD_MIN } from "@/lib/checkout/details";
 import { Check } from "@/app/site/icons";
 import { createAccountFromOrder, type AccountState } from "@/app/account/actions";
-import { Field, inputProps } from "../Field";
+import { NewPasswordField } from "../Field";
 import { photos, usePhotos } from "../photoStore";
 import { receiptStatus } from "./actions";
 
@@ -117,16 +116,7 @@ export function SaveAccount({ ref_, token, email }: { ref_: string; token: strin
         }}
       >
         <input type="email" name="username" autoComplete="username" value={email} readOnly hidden />
-        <Field id="new-password" label="Password" hint={`at least ${PASSWORD_MIN} characters`} error={state?.error}>
-          <input
-            {...inputProps("new-password", state?.error)}
-            type="password"
-            autoComplete="new-password"
-            minLength={PASSWORD_MIN}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </Field>
+        <NewPasswordField id="new-password" label="Password" value={password} error={state?.error} onChange={setPassword} />
         <button type="submit" className="btn btn--blue" aria-disabled={busy || undefined}>
           {busy ? "Saving…" : "Save my details"}
         </button>

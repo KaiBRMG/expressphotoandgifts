@@ -54,7 +54,7 @@ export const liveLines = (lines: CartLine[], prices: PriceList | null) =>
   prices ? lines.filter((l) => prices[l.sku] != null) : lines;
 
 /** Units, not lines: two mugs and a frame are 3. */
-export const cartUnits = (lines: CartLine[]) => lines.reduce((n, l) => n + l.quantity, 0);
+export const cartUnits = (lines: Pick<CartLine, "quantity">[]) => lines.reduce((n, l) => n + l.quantity, 0);
 
 export const cartSubtotal = (lines: Pick<CartLine, "price" | "quantity">[]) => lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
 

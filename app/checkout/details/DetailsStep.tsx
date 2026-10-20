@@ -14,11 +14,12 @@ import {
   EMPTY_CONTACT,
   hasErrors,
   LIMITS,
+  passwordError,
   PROVINCES,
   type Address,
   type Contact,
 } from "@/lib/checkout/details";
-import type { DeliveryOption, OrderInput, Quote } from "@/lib/checkout/order";
+import { MIN_PAYMENT, type DeliveryOption, type OrderInput, type Quote } from "@/lib/checkout/order";
 import type { SavedDetails } from "@/lib/account/auth";
 import { cart, useCart } from "@/app/site/cartStore";
 import { HOURS, SHOP } from "@/app/site/data";
@@ -29,7 +30,7 @@ import { problems, progress, rowsFor, useHydrated } from "../model";
 import { orderLines } from "../order";
 import { usePhotos } from "../photoStore";
 import { placeOrder, quoteDelivery } from "./actions";
-import { Field, inputProps } from "../Field";
+import { Field, inputProps, NewPasswordField } from "../Field";
 import { pay } from "./pay";
 import { Review } from "./Review";
 
@@ -53,7 +54,7 @@ const merge = <T extends object>(base: T, ...from: (Partial<T> | null | undefine
   ) as T;
 
 /** The fields in the order they are read, so the first one wrong is the one focused. */
-const FIELD_ORDER = ["firstName", "lastName", "email", "phone", "street", "suburb", "city", "province", "code", "notes"] as const;
+const FIELD_ORDER = ["firstName", "lastName", "email", "password", "phone", "street", "suburb", "city", "province", "code", "notes"] as const;
 
 const CANCELLED = "Payment cancelled. Nothing was charged, and your order is just as you left it.";
 
@@ -71,6 +72,8 @@ type Props = {
   courier: boolean;
   payments: boolean;
   onsite: boolean;
+  /** Payments go to PayFast's sandbox: said beside the Pay button, so nobody mistakes a test for a sale. */
+  sandbox: boolean;
   cancelled: boolean;
 };
 
@@ -78,7 +81,7 @@ export function DetailsStep(props: Props) {
   return useHydrated() ? <Details {...props} /> : <CheckoutHead step="details" title="Your details" />;
 }
 
-function Details({ needs, account: initialAccount, courier, payments, onsite, cancelled }: Props) {
+function Details({ needs, account: initialAccount, courier, payments, onsite, sandbox, cancelled }: Props) {
   const router = useRouter();
   const { lines, prices } = useCart();
   const store = usePhotos();
@@ -99,6 +102,11 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, ca
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(cancelled ? CANCELLED : null);
   const [paidAlready, setPaidAlready] = useState(false);
+  // "Save my details": an account made as they pay. The password is never kept on this device.
+  const [saveAccount, setSaveAccount] = useState(false);
+  const [password, setPassword] = useState("");
+  // The server's word on the account, for the email and password it was given; it lapses when either changes.
+  const [refused, setRefused] = useState<{ error: string; email: string; password: string } | null>(null);
   useEffect(() => {
     try {
       window.localStorage.setItem(DRAFT_KEY, JSON.stringify({ contact, address, method } satisfies Draft));
@@ -121,6 +129,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, ca
   const cErrors = contactErrors(contact);
   const aErrors = addressErrors(address);
   const addressDone = !hasErrors(aErrors);
+  const makingAccount = saveAccount && !account;
 
   // A courier price for the address as typed, once it is complete; asked again when the cart changes.
   const quoteKey = JSON.stringify([address, live.map((l) => [l.sku, l.quantity])]);
@@ -151,19 +160,24 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, ca
     else if (!current || current.status === "loading") blockers.push({ text: "Getting delivery prices…" });
     else if (!current.quote.ok) blockers.push({ text: "No delivery price for this address" });
   }
+  if (total !== null && total < MIN_PAYMENT) blockers.push({ text: `Orders paid online start at ${rands(MIN_PAYMENT)}`, href: "/shop" });
   if (!payments) blockers.push({ text: "Online payment isn’t switched on yet" });
 
   const show = (field: string) => tried || touched.has(field);
   const touch = (field: string) => setTouched((t) => (t.has(field) ? t : new Set(t).add(field)));
   const cErr = (k: keyof Contact) => (show(k) ? cErrors[k] : undefined);
   const aErr = (k: keyof Address) => (show(k) ? aErrors[k] : undefined);
+  const stillRefused = refused && refused.email === contact.email && refused.password === password ? refused.error : undefined;
+  const pErrors = makingAccount ? { password: passwordError(password) ?? stillRefused } : {};
+  const pErr = show("password") ? pErrors.password : undefined;
+  const errors = { ...cErrors, ...(method === "courier" ? aErrors : {}), ...pErrors };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setTried(true);
     setError(null);
     setNotice(null);
-    const bad = FIELD_ORDER.find((k) => k in cErrors || (method === "courier" && k in aErrors));
+    const bad = FIELD_ORDER.find((k) => errors[k]);
     if (bad) {
       document.getElementById(bad)?.focus();
       return;
@@ -173,12 +187,13 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, ca
     setBusy(true);
     const input: OrderInput = {
       ref: store.ref,
+      key: store.key,
       contact,
       fulfilment: method === "courier" && chosen ? { method: "courier", address, service: chosen.code } : { method: "collect" },
       lines: orderLines(rows, store.photos, store.bakes),
       shownTotal: total,
     };
-    const placed = await placeOrder(input, onsite && window.location.protocol === "https:").catch(() => null);
+    const placed = await placeOrder(input, onsite && window.location.protocol === "https:", makingAccount ? password : undefined).catch(() => null);
     if (!placed) {
       setBusy(false);
       setError("We couldn’t reach the shop’s server. Check your connection and try again.");
@@ -193,7 +208,16 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, ca
         setQuoted(null);
       }
       if (placed.field === "delivery") setQuoted(null);
+      if (placed.field === "password") {
+        setRefused({ error: placed.error, email: contact.email, password });
+        document.getElementById("password")?.focus();
+      }
       return;
+    }
+    // Their account is made and they're signed in; paying again won't make another.
+    if (makingAccount) {
+      setAccount({ email: contact.email.trim().toLowerCase(), saved: null });
+      setPassword("");
     }
     const outcome = await pay(placed.checkout);
     if (outcome === "paid") {
@@ -292,6 +316,16 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, ca
                   onBlur={() => touch("email")}
                 />
               </Field>
+              {makingAccount ? (
+                <NewPasswordField
+                  id="password"
+                  label="Create a password"
+                  value={password}
+                  error={pErr}
+                  onChange={setPassword}
+                  onBlur={() => touch("password")}
+                />
+              ) : null}
               <Field id="phone" label="Mobile number" hint="so we can reach you" error={cErr("phone")}>
                 <input
                   {...inputProps("phone", cErr("phone"))}
@@ -306,6 +340,20 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, ca
                 />
               </Field>
             </div>
+            {account ? null : (
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={saveAccount}
+                  onChange={(e) => {
+                    setSaveAccount(e.target.checked);
+                    // Straight to the new field, so ticking reads as the start of a task.
+                    if (e.target.checked) requestAnimationFrame(() => document.getElementById("password")?.focus());
+                  }}
+                />
+                Save my details for next time
+              </label>
+            )}
           </section>
 
           <section className="costep" aria-labelledby="co-way">
@@ -516,6 +564,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, ca
           <p id="coslip-note" className="coslip__note">
             Secure payment by PayFast. The shop starts on your order once it&rsquo;s paid.
           </p>
+          {sandbox ? <p className="coslip__note">Sandbox mode enabled</p> : null}
         </aside>
       </form>
 

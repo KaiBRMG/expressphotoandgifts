@@ -33,7 +33,7 @@ import type {
 } from "../lib/catalog/types";
 import { photoSpec } from "../lib/catalog/photos.ts";
 import { optionKey, parseCm } from "../lib/catalog/sizes.ts";
-import { findTerm, isKnownFilterTag, tag } from "../lib/catalog/tags.ts";
+import { findTerm, isKnownFilterTag, tag, VOCABULARY } from "../lib/catalog/tags.ts";
 import { MERCHANDISING, PHOTO_SPECS, type Merchandising } from "./catalog-merchandising.mts";
 
 const WORKBOOK = "Express Photo Website Catalogue.xlsx";
@@ -188,7 +188,7 @@ function buildTags(code: string, m: Merchandising, options: ProductOption[], pro
     ...(m.occasions ?? []).map((v) => tag("occasion", v)),
     ...(m.for ?? []).map((v) => tag("for", v)),
   ];
-  for (const t of shown) if (!isKnownFilterTag(t)) throw new Error(`${code}: "${t}" is not in lib/catalog/tags.ts`);
+  for (const t of shown) if (!isKnownFilterTag(VOCABULARY, t)) throw new Error(`${code}: "${t}" is not in lib/catalog/tags.ts`);
   const sizeFacet = PRINT_SIZE_FACET[m.type];
   const sizes = sizeFacet
     ? (options.find((o) => o.name === "Size")?.values ?? []).flatMap((v) => {
@@ -294,8 +294,8 @@ function combinations(options: ProductOption[]): Record<string, string>[] {
 
 // ─── Build ────────────────────────────────────────────────────────────────────
 
-/** `special` is the shop's to set, so the importer never writes it. */
-type Draft = Omit<Product, "createdAt" | "updatedAt" | "special">;
+/** `special` and `related` are the shop's to set, so the importer never writes them. */
+type Draft = Omit<Product, "createdAt" | "updatedAt" | "special" | "related">;
 type Asset = { width: number; height: number };
 /** A coded catalogue row plus the uncoded extra-size rows below it. */
 type Group = { row: Row; role: MediaRole; sizes: { measurements: string; price: string }[] };
@@ -402,7 +402,7 @@ async function build(): Promise<{ products: Draft[]; warnings: string[] }> {
     const { name, tags: processTags } = splitProcess(o.name ?? field(code, "Product Name"));
     const categoryId = o.categoryId ?? CATEGORY_ALIASES[group.row["categorie"].toLowerCase()];
     if (!categoryId) throw new Error(`${code}: unknown category "${group.row["categorie"]}"`);
-    const typeCategory = findTerm("type", merch.type)?.category;
+    const typeCategory = findTerm(VOCABULARY, "type", merch.type)?.category;
     if (typeCategory !== categoryId) throw new Error(`${code}: type "${merch.type}" belongs to ${typeCategory}, not ${categoryId}`);
 
     const members = o.merge ? Object.keys(o.merge.members) : [code];

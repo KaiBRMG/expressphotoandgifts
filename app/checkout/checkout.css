@@ -514,10 +514,12 @@
   outline-offset: 2px;
 }
 
-.words__count {
+/* What is left of a field's limit, near the end of it. */
+.chars-left {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 1rem;
   color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---- A photo cut to its place ----------------------------------------- */
@@ -1112,41 +1114,7 @@
     inset: -4px;
   }
 
-  /* The edit mark: a white disc in the photo's corner, its target wider than it looks. */
-.thumb__edit {
-  position: absolute;
-  right: 5px;
-  bottom: 5px;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: var(--print);
-  color: var(--ink);
-  box-shadow: 0 6px 14px -8px rgb(1 38 186 / 0.9);
-  cursor: pointer;
-  transition: transform 0.45s var(--ease-out);
-}
-
-.thumb__edit::before {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  border-radius: inherit;
-}
-
-.thumb__edit:hover {
-  transform: scale(1.08);
-}
-
-.thumb__edit:focus-visible {
-  outline-color: var(--gold);
-}
-
-.thumb__retry {
+  .thumb__retry {
     inset: auto 2px 2px;
     min-height: 28px;
   }
@@ -1278,6 +1246,26 @@ html:has(.editor[open]) {
   color: var(--print);
 }
 
+.editor__heading {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+/* Swapping or emptying the place: about the place the title names, so beside it. */
+.editor__swap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.2rem;
+  margin: 0;
+}
+
+.editor__swap .inline-link {
+  min-height: 44px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
 .sheet__head {
   border-radius: inherit;
   border-bottom-left-radius: 0;
@@ -1391,6 +1379,7 @@ html:has(.editor[open]) {
 
 /* The editor: the whole screen on a phone, a wide panel from there. */
 .editor {
+  --ed-pad: clamp(18px, 3vw, 26px);
   position: fixed;
   inset: 0;
   width: 100%;
@@ -1502,7 +1491,7 @@ html:has(.editor[open]) {
 .editor__controls {
   display: grid;
   gap: 0.85rem;
-  padding: 1rem clamp(18px, 3vw, 26px) calc(1rem + env(safe-area-inset-bottom, 0px));
+  padding: 1rem var(--ed-pad) calc(1rem + env(safe-area-inset-bottom, 0px));
 }
 
 .editor__verdict {
@@ -1543,7 +1532,8 @@ html:has(.editor[open]) {
 
 .editor__zoom {
   display: inline-flex;
-  flex: 1 1 13rem;
+  flex: 1 1 auto;
+  min-width: 0;
   align-items: center;
   gap: 0.6rem;
   min-height: 44px;
@@ -1624,23 +1614,62 @@ html:has(.editor[open]) {
   color: var(--ink-soft);
 }
 
+/* The zoom runs up to Done: the last thing set, then the way out. */
 .editor__foot {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0.6rem 1.4rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid var(--rule-paper);
-}
-
-.editor__foot .inline-link {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--ink);
+  gap: 1.2rem;
 }
 
 .editor__done {
+  flex: none;
   margin-left: auto;
+}
+
+/*
+ * On a phone the photo keeps most of the screen: the tools are one row that
+ * scrolls sideways off the panel's edge, and the verdict keeps to its line
+ * (the borders note is still spoken, and the white paper on the stage shows it).
+ */
+@media (max-width: 46rem) {
+  .editor__head {
+    padding-block: 0.75rem 0.25rem;
+  }
+
+  .editor__controls {
+    gap: 0.7rem;
+    padding-top: 0.85rem;
+  }
+
+  .editor__tools {
+    flex-wrap: nowrap;
+    margin-inline: calc(-1 * var(--ed-pad));
+    padding: 2px var(--ed-pad);
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-padding-inline: var(--ed-pad);
+  }
+
+  .editor__tools::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tool {
+    flex: none;
+  }
+
+  .editor__borders {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .editor__foot {
+    gap: 0.9rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2236,9 +2265,34 @@ html:has(.editor[open]) {
   font-size: 1rem;
 }
 
+/* A note to the shop under a line: a quiet offer until it is taken up. */
+.memo {
+  grid-column: 2 / -1;
+  display: grid;
+  gap: 0.45rem;
+  max-width: 34rem;
+}
+
+.memo__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  margin-block: -0.35rem -0.6rem;
+}
+
+/* Grows with the note where the browser can, so nothing written scrolls out of sight. */
+.memo__input {
+  min-height: calc(3lh + 1.4rem);
+  field-sizing: content;
+  resize: vertical;
+  line-height: 1.5;
+}
+
 @media (max-width: 30rem) {
   .review__sets,
-  .review__note {
+  .review__note,
+  .memo {
     grid-column: 1 / -1;
   }
 }

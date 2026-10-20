@@ -1,6 +1,7 @@
 import "server-only";
 
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
+import { api, signedForm, uploadTicket as ticket, type UploadTicket } from "@/lib/cloudinary";
 
 /**
  * Product photographs in Cloudinary, from the admin. Uploads go straight from
@@ -9,56 +10,21 @@ import { createHash, randomBytes } from "node:crypto";
  * the shop shows.
  */
 
-function credentials() {
-  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const apiKey = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY;
-  const secret = process.env.CLOUDINARY_API_SECRET;
-  if (!cloud || !apiKey || !secret) throw new Error("Cloudinary is not set up.");
-  return { cloud, apiKey, secret };
-}
-
-/** Cloudinary signs the parameters in alphabetical order, joined as a query string. */
-function sign(params: Record<string, string | number>, secret: string): string {
-  const query = Object.keys(params)
-    .sort()
-    .map((k) => `${k}=${params[k]}`)
-    .join("&");
-  return createHash("sha1").update(query + secret).digest("hex");
-}
-
-export type UploadTicket = {
-  url: string;
-  fields: Record<string, string>;
-};
+export type { UploadTicket };
 
 /**
  * One signed upload of a product photograph, filed as `products/<code>-<random>`
  * beside the imported `products/<code>`. The browser has already scaled it to
  * the largest size the shop shows.
  */
-export function uploadTicket(code: string): UploadTicket {
-  const { cloud, apiKey, secret } = credentials();
-  const params = {
-    allowed_formats: "jpg,jpeg,png,webp",
-    public_id: `products/${code}-${randomBytes(3).toString("hex")}`,
-    tags: "admin",
-    timestamp: Math.floor(Date.now() / 1000),
-  };
-  return {
-    url: `https://api.cloudinary.com/v1_1/${cloud}/image/upload`,
-    fields: { ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])), api_key: apiKey, signature: sign(params, secret) },
-  };
-}
+export const uploadTicket = (code: string): UploadTicket =>
+  ticket({ allowed_formats: "jpg,jpeg,png,webp", public_id: `products/${code}-${randomBytes(3).toString("hex")}`, tags: "admin" });
 
 /** Deletes photographs nothing shows any more. Best effort: a failure leaves a stray file, not a broken page. */
 export async function destroyImages(publicIds: string[]): Promise<void> {
   if (publicIds.length === 0) return;
-  const { cloud, apiKey, secret } = credentials();
+  const { base } = api();
   await Promise.allSettled(
-    publicIds.map((public_id) => {
-      const params = { invalidate: "true", public_id, timestamp: Math.floor(Date.now() / 1000) };
-      const body = new URLSearchParams({ ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])), api_key: apiKey, signature: sign(params, secret) });
-      return fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/destroy`, { method: "POST", body });
-    }),
+    publicIds.map((public_id) => fetch(`${base}/destroy`, { method: "POST", body: signedForm({ invalidate: "true", public_id }) })),
   );
 }

@@ -29,15 +29,37 @@ const useIsomorphicLayoutEffect =
  *   5. the catalogue wheel, geared to the page's own scroll
  *   6. the same wheel turned by hand: a swipe on a phone, arrows on desktop
  */
+/**
+ * The targets whose top still sits below `line` (a fraction of the viewport
+ * height down from its top), so their entrance has not been reached. Anything
+ * already above it, because the page loaded scrolled or the browser restored
+ * a position, was painted in place before this ran and is left alone: hiding
+ * it now only to bring it back would read as a flicker, not an entrance.
+ */
+function ahead(targets: string, line: number) {
+  const y = window.innerHeight * line;
+  return gsap.utils
+    .toArray<HTMLElement>(targets)
+    .filter((el) => el.getBoundingClientRect().top > y);
+}
+
 /** The page's one reveal grammar: rise and fade in, once, as each arrives. */
 function reveal(targets: string) {
-  ScrollTrigger.batch(targets, {
+  const pending = ahead(targets, 0.88);
+  if (!pending.length) return;
+
+  // Hidden now, while still below the fold, rather than in onEnter: tweening
+  // from hidden only once an element crosses the line meant it was drawn
+  // whole as it scrolled into view, then blinked out and faded back in.
+  gsap.set(pending, { y: 30, autoAlpha: 0 });
+
+  ScrollTrigger.batch(pending, {
     start: "top 88%",
     once: true,
     onEnter: (batch) =>
-      gsap.from(batch, {
-        y: 30,
-        autoAlpha: 0,
+      gsap.to(batch, {
+        y: 0,
+        autoAlpha: 1,
         duration: 0.9,
         ease: "expo.out",
         stagger: 0.08,
@@ -248,17 +270,20 @@ export function Motion() {
 
         // The gifting sign runs in along its lean as it arrives, the way the
         // cover's does on load: the same band, the second time.
-        gsap.from(".gifting__title, .gifting__lede", {
-          xPercent: -100,
-          duration: 1.3,
-          ease: "expo.out",
-          stagger: 0.12,
-          scrollTrigger: {
-            trigger: ".gifting",
-            start: "top 78%",
-            once: true,
-          },
-        });
+        const giftingSign = ahead(".gifting__title, .gifting__lede", 0.78);
+        if (giftingSign.length) {
+          gsap.from(giftingSign, {
+            xPercent: -100,
+            duration: 1.3,
+            ease: "expo.out",
+            stagger: 0.12,
+            scrollTrigger: {
+              trigger: ".gifting",
+              start: "top 78%",
+              once: true,
+            },
+          });
+        }
 
         /* 5. The catalogue wheel ------------------------------------- */
 
@@ -302,8 +327,7 @@ export function Motion() {
         }
 
         // The marked line fills in as it arrives, like a highlighter stroke.
-        const marked = gsap.utils.toArray<HTMLElement>(".marked");
-        marked.forEach((el) => {
+        ahead(".marked", 0.86).forEach((el) => {
           gsap.from(el, {
             backgroundSize: "0% 100%",
             duration: 0.9,
@@ -491,6 +515,11 @@ export function Motion() {
         unwire();
       };
     });
+
+    // Every entrance state is set by now, so the cover's band can be shown:
+    // it is either off to the left waiting to run in, or motion is reduced
+    // and it simply sits in place.
+    document.documentElement.classList.remove("entrance-pending");
 
     return () => mm.revert();
   }, []);

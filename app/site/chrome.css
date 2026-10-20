@@ -110,8 +110,14 @@ button.inline-link {
   color: var(--gold);
 }
 
+/* A crumb is a 44px target; the negative margin keeps the line as tall as
+   its text, so the trail does not push the title down. */
 .shelfhead__crumbs a,
 .shelfhead__crumbs button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-block: -12px;
   padding: 0;
   border: 0;
   background: none;
@@ -644,11 +650,13 @@ button.inline-link {
   line-height: 1.65;
 }
 
+/* Padded to a 44px target; the margin gives back what the padding adds. */
 .shop__link {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 1rem;
+  min-height: 44px;
+  margin-top: calc(1rem - 10px);
   font-weight: 600;
   text-decoration: underline;
   text-decoration-color: var(--gold);
@@ -759,7 +767,9 @@ button.inline-link {
   .footer__base {
     grid-template-columns: 1.15fr 2fr;
     gap: clamp(2.2rem, 4.5vw, 4rem);
-    align-items: center;
+    /* Top, not centre: the form grows a password line, and the copy beside
+       it should stay where it was read rather than drift down with it. */
+    align-items: start;
   }
 }
 
@@ -787,22 +797,93 @@ button.inline-link {
   color: var(--on-leather-soft);
 }
 
-/* The sign-up field: one rule under the line, the submit sitting on its end,
-   so the whole thing reads as a line to write on rather than a boxed form. */
-.newsletter {
+/* The sign-up: email first, then a password line that opens under it once
+   the email is known. Each line is one rule under the field with the submit
+   sitting on its end, so the whole thing reads as lines to write on rather
+   than a boxed form. */
+.newsletter__line {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 0.6rem;
+  min-height: 44px;
   border-bottom: 1px solid var(--rule-leather);
   transition: border-color 0.2s;
 }
 
-.newsletter:focus-within {
+.newsletter__line:focus-within {
   border-color: var(--gold);
 }
 
+/* The password line, folded to nothing until the email above it is known.
+   The grid row is what animates, so the content keeps its own height. */
+.newsletter__more {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.4s var(--ease-out),
+    opacity 0.3s var(--ease-out);
+}
+
+.newsletter__more > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.newsletter[data-open] .newsletter__more {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+/* What the lookup found, said under the email line: new, or already an
+   account. Empty, it holds no space. */
+.newsletter__status {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--on-leather-soft);
+}
+
+.newsletter__status:not(:empty) {
+  padding-block: 0.75rem 0.15rem;
+}
+
+.newsletter__status[data-exists] {
+  color: var(--gold);
+}
+
+.newsletter__forgot {
+  margin-top: 0.7rem;
+  min-height: 44px;
+  font-size: 14.5px;
+  color: var(--on-leather-soft);
+}
+
+.newsletter__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0.75rem 0 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--print);
+}
+
+.newsletter__error svg {
+  flex: none;
+  margin-top: 0.15em;
+  color: var(--gold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .newsletter__more {
+    transition: none;
+  }
+}
+
 .newsletter__input {
+  min-width: 0;
   padding: 0.55rem 0;
   border: 0;
   background: none;
@@ -853,6 +934,17 @@ button.inline-link {
 .newsletter__submit:hover {
   background: var(--gold);
   color: var(--ink);
+}
+
+/* Waiting on the server: the arrow stays put but stops inviting a press. */
+.newsletter__submit[aria-disabled] {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.newsletter__submit[aria-disabled]:hover {
+  background: none;
+  color: var(--print);
 }
 
 /* The consent line under the rule. */
@@ -1062,8 +1154,11 @@ button.inline-link {
   cursor: default;
 }
 
+/* As tall as the steps beside it, so the number is a 44px target too. */
 .qty__input {
   width: 3.4ch;
+  min-width: 44px;
+  height: 44px;
   padding: 0;
   border: 0;
   border-radius: var(--radius-sm);
@@ -1467,4 +1562,35 @@ html:has(.cart[open]) {
 
 .skip:focus {
   left: 0;
+}
+
+/* ---- The phone floor ---------------------------------------------------- */
+
+/*
+ * Nothing on a phone is smaller than 16px: the owner's rule, and the size
+ * under which mobile Safari zooms a field on tap. The footer's small print,
+ * its mono labels and the buttons are set finer above this width, where a
+ * desktop reading distance carries them; here they all come up to the floor.
+ * The mono labels lose some tracking as they grow, so they stay a label.
+ */
+@media (max-width: 45.99rem) {
+  .btn,
+  .header__actions > .btn,
+  .hours th,
+  .hours td,
+  .contacts a,
+  .footer__signup-sub,
+  .newsletter__fine,
+  .newsletter__done,
+  .newsletter__status,
+  .newsletter__error,
+  .newsletter__forgot,
+  .footer__colophon {
+    font-size: 1rem;
+  }
+
+  .shop__block h3 {
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+  }
 }

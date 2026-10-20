@@ -49,6 +49,17 @@ export function ArrowRight(props: IconProps) {
   );
 }
 
+/** A circled "i": more about the thing beside it. */
+export function Info(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="9" {...stroke} />
+      <path d="M12 11v5.5" {...stroke} />
+      <path d="M12 7.6v.1" {...stroke} strokeWidth={2.2} />
+    </Svg>
+  );
+}
+
 export function ArrowLeft(props: IconProps) {
   return (
     <Svg {...props}>
@@ -120,6 +131,18 @@ export function Menu(props: IconProps) {
   return (
     <Svg {...props}>
       <path d="M4 7h16M4 12h16M4 17h16" {...stroke} />
+    </Svg>
+  );
+}
+
+/** Filters: three sliders, each with its knob. */
+export function Filter(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h7M15 18h5" {...stroke} />
+      <circle cx="15" cy="6" r="2" {...stroke} />
+      <circle cx="9" cy="12" r="2" {...stroke} />
+      <circle cx="13" cy="18" r="2" {...stroke} />
     </Svg>
   );
 }
@@ -415,6 +438,18 @@ export function Pencil(props: IconProps) {
 }
 
 /* ---- Admin console --------------------------------------------------------- */
+
+/** Four panels of unequal size: the dashboard. */
+export function Panels(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="4" y="4" width="7" height="9" rx="1.5" {...stroke} />
+      <rect x="13" y="4" width="7" height="5" rx="1.5" {...stroke} />
+      <rect x="4" y="15" width="7" height="5" rx="1.5" {...stroke} />
+      <rect x="13" y="11" width="7" height="9" rx="1.5" {...stroke} />
+    </Svg>
+  );
+}
 
 export function Box(props: IconProps) {
   return (

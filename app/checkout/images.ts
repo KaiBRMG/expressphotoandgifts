@@ -2,28 +2,17 @@
 
 import type { Edit, Pixels, SlotNeed } from "@/lib/catalog/checkout";
 import { cropBox } from "@/lib/catalog/checkout";
+import type { UploadTicket } from "@/lib/cloudinary";
+import { fittedUrl, jpgUrl, WORKING } from "@/lib/checkout/photoUrls";
 
 /**
- * The photo step's dealings with image files: reading one in the browser,
- * keeping it under Cloudinary's upload limit, and the two addresses a stored
- * photo is seen at.
+ * The photo step's dealings with image files: reading one in the browser and
+ * keeping it under Cloudinary's upload limit. Where a stored photo is seen
+ * is `lib/checkout/photoUrls.ts`, which holds the sizes the step asks for.
  */
-
-const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
 /** Cloudinary's free plan refuses an image file over 10 MB. */
 const UPLOAD_LIMIT = 10 * 1024 * 1024;
-
-/** The long edge of the local preview and of the copy Cloudinary serves back: sharp in the editor, small in memory. */
-const PREVIEW_EDGE = 1600;
-
-/**
- * The only two sizes the photo step asks Cloudinary for: the tray's thumbnail
- * and the slot and editor's working copy. Each distinct size is a derived
- * image on the free plan, so there are two and no more.
- */
-export const THUMB = 400;
-export const WORKING = PREVIEW_EDGE;
 
 type ReadPhoto = {
   /** Upright pixel size, the camera's orientation applied; null when the browser cannot decode the file (HEIC outside Safari). */
@@ -55,7 +44,7 @@ export async function readPhoto(file: File): Promise<ReadPhoto> {
   }
 
   const px = { w: bitmap.width, h: bitmap.height };
-  const scale = Math.min(1, PREVIEW_EDGE / Math.max(px.w, px.h));
+  const scale = Math.min(1, WORKING / Math.max(px.w, px.h));
   const small = await toBlob(draw(bitmap, scale), 0.86);
 
   // Over the limit: the same pixels at high JPEG quality usually fit; if not, as few pixels lost as will.
@@ -78,14 +67,6 @@ export async function readPhoto(file: File): Promise<ReadPhoto> {
   bitmap.close();
   return { px, preview: small ? URL.createObjectURL(small) : null, upload };
 }
-
-/** A stored photo, no wider or taller than `edge`, in the browser's best format. */
-const cloudUrl = (publicId: string, version: number, edge: number) =>
-  `https://res.cloudinary.com/${CLOUD}/image/upload/c_limit,w_${edge},h_${edge},f_auto,q_auto/v${version}/${publicId}`;
-
-/** A stored file exactly as it was uploaded: no resizing, no format change, nothing applied. */
-export const rawUrl = (publicId: string, version: number) =>
-  `https://res.cloudinary.com/${CLOUD}/image/upload/v${version}/${publicId}`;
 
 /** The browser keeps a canvas to about 16.7 million pixels (iPhone Safari's limit); a render past it is scaled to fit. */
 const CANVAS_MAX = 16_000_000;
@@ -147,54 +128,35 @@ export async function bake(source: Blob, px: Pixels, slot: SlotNeed, edit: Edit)
 export async function sourceFor(local: Blob | undefined, publicId: string | undefined, version: number | undefined) {
   if (local) return local;
   if (!publicId || !version) throw new Error("The photo is not uploaded yet.");
-  const res = await fetch(`https://res.cloudinary.com/${CLOUD}/image/upload/f_jpg,q_100/v${version}/${publicId}`);
+  const res = await fetch(jpgUrl(publicId, version));
   if (!res.ok) throw new Error("The photo could not be fetched to apply your edit.");
   return res.blob();
 }
 
-type Signed = { cloud: string; apiKey: string; signature: string; allowed_formats: string; folder: string; tags: string; timestamp: number };
-
-let signed: { ref: string; at: number; value: Promise<Signed> } | null = null;
-
-/**
- * A signature lasts an hour at Cloudinary; one is reused for half that. The
- * request itself is shared, so uploads starting together ask for one.
- */
-function sign(ref: string): Promise<Signed> {
-  if (signed && signed.ref === ref && Date.now() - signed.at < 30 * 60 * 1000) return signed.value;
-  const value = fetch("/api/uploads/sign", {
+/** A signed upload for one file: each names the file it lets in, so none is reused. */
+async function sign(ref: string): Promise<UploadTicket> {
+  const res = await fetch("/api/uploads/sign", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ ref }),
-  }).then((res) => {
-    if (!res.ok) throw new Error("The upload could not be started.");
-    return res.json() as Promise<Signed>;
   });
-  signed = { ref, at: Date.now(), value };
-  // A failed request is not kept, so the next upload asks again.
-  value.catch(() => {
-    if (signed?.value === value) signed = null;
-  });
-  return value;
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(typeof body?.error === "string" ? body.error : "The upload could not be started.");
+  return body as UploadTicket;
 }
 
 type Uploaded = { publicId: string; version: number; px: Pixels };
 
-/** Sends one photo to the order's folder, reporting progress from 0 to 1. */
+/** Sends one photo to the order's folder under the name its signature gives, reporting progress from 0 to 1. */
 export async function upload(ref: string, blob: Blob, name: string, onProgress: (p: number) => void): Promise<Uploaded> {
-  const s = await sign(ref);
+  const ticket = await sign(ref);
   const form = new FormData();
+  for (const [k, v] of Object.entries(ticket.fields)) form.append(k, v);
   form.append("file", blob, name);
-  form.append("api_key", s.apiKey);
-  form.append("timestamp", String(s.timestamp));
-  form.append("signature", s.signature);
-  form.append("folder", s.folder);
-  form.append("tags", s.tags);
-  form.append("allowed_formats", s.allowed_formats);
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", `https://api.cloudinary.com/v1_1/${s.cloud}/image/upload`);
+    xhr.open("POST", ticket.url);
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
     xhr.onerror = () => reject(new Error("The connection dropped."));
     xhr.onload = () => {
@@ -212,4 +174,4 @@ export async function upload(ref: string, blob: Blob, name: string, onProgress: 
 
 /** Where to draw a photo from: the local preview this visit, Cloudinary's copy after a reload. */
 export const photoSrc = (p: { preview?: string; publicId?: string; version?: number }, edge: number) =>
-  p.preview ?? (p.publicId && p.version ? cloudUrl(p.publicId, p.version, edge) : null);
+  p.preview ?? (p.publicId && p.version ? fittedUrl(p.publicId, p.version, edge) : null);

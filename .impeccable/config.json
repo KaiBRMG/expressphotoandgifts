@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          "lib/checkout/emails.ts"
+        ],
+        "createdAt": "2026-10-20T19:16:55.302Z",
+        "reason": "Claude: order emails render in mail clients, which can't load the site's web fonts; a system font stack is the email-safe choice"
+      },
+      {
+        "rule": "overused-font",
+        "value": "*",
+        "files": [
+          "lib/checkout/emails.ts"
+        ],
+        "createdAt": "2026-10-20T19:30:12.148Z",
+        "reason": "Claude: order emails render in mail clients, which can't load web fonts; Arial/Helvetica is the email-safe stack"
+      }
+    ]
+  }
+}

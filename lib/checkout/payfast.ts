@@ -1,32 +1,36 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { lookup } from "node:dns/promises";
 
 import { SHOP } from "@/app/site/data";
-import type { Checkout, Order } from "./order";
+import { receiptPath, type Attempt, type Checkout, type Notice } from "./order";
+import { siteUrl } from "./site";
 
 /**
  * PayFast (developers.payfast.co.za): the payment, signed here so the
  * passphrase never leaves the server, and the payment notice (ITN) checked
  * here before an order counts as paid.
  *
- * Settings: PAYFAST_MERCHANT_ID, PAYFAST_MERCHANT_KEY, PAYFAST_PASSPHRASE,
- * PAYFAST_SANDBOX=true for sandbox.payfast.co.za, and PAYFAST_ONSITE=false to
- * always use PayFast's own page instead of its Onsite window. SITE_URL is the
- * public address PayFast returns the customer to and posts notices to; it
- * must be reachable from the internet for notices to arrive.
+ * Settings: PAYFAST_MERCHANT_ID, PAYFAST_MERCHANT_KEY, PAYFAST_PASSPHRASE (the
+ * one set in PayFast's dashboard; required, since without it the signature is
+ * a hash anyone can work out), PAYFAST_SANDBOX=true for sandbox.payfast.co.za,
+ * and PAYFAST_ONSITE=false to always use PayFast's own page instead of its
+ * Onsite window. SITE_URL is the public address PayFast returns the customer
+ * to and posts notices to; it must be reachable from the internet for notices
+ * to arrive.
  */
 
 function config() {
-  const merchantId = process.env.PAYFAST_MERCHANT_ID;
-  const merchantKey = process.env.PAYFAST_MERCHANT_KEY;
-  const site = process.env.SITE_URL?.replace(/\/$/, "");
-  if (!merchantId || !merchantKey || !site) return null;
+  const merchantId = process.env.PAYFAST_MERCHANT_ID?.trim();
+  const merchantKey = process.env.PAYFAST_MERCHANT_KEY?.trim();
+  const passphrase = process.env.PAYFAST_PASSPHRASE?.trim();
+  const site = siteUrl();
+  if (!merchantId || !merchantKey || !passphrase || !site) return null;
   return {
     merchantId,
     merchantKey,
-    passphrase: process.env.PAYFAST_PASSPHRASE?.trim() || null,
+    passphrase,
     site,
     host: process.env.PAYFAST_SANDBOX === "true" ? "sandbox.payfast.co.za" : "www.payfast.co.za",
     onsite: process.env.PAYFAST_ONSITE !== "false",
@@ -34,6 +38,9 @@ function config() {
 }
 
 export const payfastReady = () => config() !== null;
+
+/** Whether payments go to PayFast's sandbox (PAYFAST_SANDBOX=true), where no money moves. */
+export const payfastSandbox = () => config()?.host === "sandbox.payfast.co.za";
 
 /** Whether checkout should offer PayFast's Onsite window. */
 export const payfastOnsite = () => config()?.onsite ?? false;
@@ -54,21 +61,34 @@ export const pfEncode = (value: string) =>
 const paramString = (fields: [string, string][]) => fields.map(([k, v]) => `${k}=${pfEncode(v)}`).join("&");
 
 /** The MD5 of a parameter string, salted with the passphrase. */
-const sign = (params: string, passphrase: string | null) =>
-  createHash("md5")
-    .update(passphrase ? `${params}&passphrase=${pfEncode(passphrase)}` : params)
-    .digest("hex");
+const sign = (params: string, passphrase: string) => createHash("md5").update(`${params}&passphrase=${pfEncode(passphrase)}`).digest("hex");
+
+/** A form POST to PayFast, as its Onsite and validate endpoints take one. */
+const postForm = (url: string, body: string) =>
+  fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+  });
+
+/** Two signatures compared without giving away, by how long it takes, how much of one matched. */
+const sameSignature = (given: string | undefined, expected: string) =>
+  given !== undefined && given.length === expected.length && timingSafeEqual(Buffer.from(given), Buffer.from(expected));
 
 /**
- * Builds the payment for an order: the redirect form, and with `onsite`, an
- * Onsite identifier as well. PayFast's field order is fixed (merchant, then
- * customer, then transaction, then options) and never alphabetical; blanks
- * are left out, and values are trimmed, as PayFast signs them.
+ * Builds the payment for one attempt: the redirect form, and with `onsite`,
+ * an Onsite identifier as well. The attempt's ID goes to PayFast as
+ * `m_payment_id`, so its notice says exactly which frozen order was paid for.
+ * PayFast's field order is fixed (merchant, then customer, then transaction,
+ * then options) and never alphabetical; blanks are left out, and values are
+ * trimmed, as PayFast signs them.
  */
-export async function startPayment(order: Order, onsite: boolean): Promise<Checkout | null> {
+export async function startPayment(attempt: Attempt, token: string, onsite: boolean): Promise<Checkout | null> {
   const c = config();
   if (!c) return null;
-  const receipt = `${c.site}/checkout/done?ref=${order.ref}&t=${order.token}`;
+  const receipt = c.site + receiptPath(attempt.ref, token);
 
   const fields = (urls: boolean): [string, string][] =>
     (
@@ -77,13 +97,13 @@ export async function startPayment(order: Order, onsite: boolean): Promise<Check
         ["merchant_key", c.merchantKey],
         ...(urls ? [["return_url", receipt], ["cancel_url", `${c.site}/checkout/details?cancelled=1`]] : []),
         ["notify_url", `${c.site}/api/payfast/notify`],
-        ["name_first", order.contact.firstName],
-        ["name_last", order.contact.lastName],
-        ["email_address", order.contact.email],
-        ["cell_number", order.contact.phone],
-        ["m_payment_id", order.ref],
-        ["amount", pfAmount(order.total)],
-        ["item_name", `${SHOP.name} order ${order.ref}`],
+        ["name_first", attempt.contact.firstName],
+        ["name_last", attempt.contact.lastName],
+        ["email_address", attempt.contact.email],
+        ["cell_number", attempt.contact.phone],
+        ["m_payment_id", attempt.id],
+        ["amount", pfAmount(attempt.total)],
+        ["item_name", `${SHOP.name} order ${attempt.ref}`],
         ["email_confirmation", "1"],
         ["confirmation_address", SHOP.email],
       ] as [string, string][]
@@ -99,13 +119,7 @@ export async function startPayment(order: Order, onsite: boolean): Promise<Check
     // Onsite closes its window and reports back to the page, so it carries no return or cancel address.
     const params = paramString(fields(false));
     try {
-      const res = await fetch(`https://${c.host}/onsite/process`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `${params}&signature=${sign(params, c.passphrase)}`,
-        cache: "no-store",
-        signal: AbortSignal.timeout(10_000),
-      });
+      const res = await postForm(`https://${c.host}/onsite/process`, `${params}&signature=${sign(params, c.passphrase)}`);
       const data = (await res.json().catch(() => ({}))) as { uuid?: unknown };
       uuid = typeof data.uuid === "string" ? data.uuid : null;
       if (!uuid) console.error("PayFast Onsite gave no identifier", res.status);
@@ -121,14 +135,43 @@ export async function startPayment(order: Order, onsite: boolean): Promise<Check
   };
 }
 
+/** An IPv4 address as a number, or null for anything else. */
+function ipv4(ip: string): number | null {
+  const parts = ip.split(".");
+  if (parts.length !== 4 || !parts.every((p) => /^\d{1,3}$/.test(p) && Number(p) <= 255)) return null;
+  return parts.reduce((n, p) => n * 256 + Number(p), 0);
+}
+
+/** The addresses PayFast says its notices come from (Dev Docs, "Ports and IP Addresses"), as first and last address. */
+const PAYFAST_RANGES = (
+  [
+    ["197.97.145.144", 28],
+    ["41.74.179.192", 27],
+    ["102.216.36.0", 28],
+    ["102.216.36.128", 28],
+    ["144.126.193.139", 32],
+  ] as const
+).map(([first, bits]) => {
+  const from = ipv4(first)!;
+  return { from, to: from + 2 ** (32 - bits) - 1 };
+});
+
 /** The hosts a notice may come from, as PayFast lists them. */
 const PAYFAST_HOSTS = ["www.payfast.co.za", "w1w.payfast.co.za", "w2w.payfast.co.za", "sandbox.payfast.co.za"];
 const HOSTS_FRESH_MS = 10 * 60 * 1000;
 let known: { ips: Set<string>; at: number } | null = null;
 
-/** Whether an address is one of PayFast's; its hosts are looked up again every ten minutes, or for an address not seen. */
-async function fromPayfast(ip: string | null): Promise<boolean> {
+/**
+ * Whether an address is PayFast's: in one of its published ranges, or one its
+ * hosts resolve to (the docs give both, and the hosts reach a little past the
+ * ranges). The hosts are looked up again every ten minutes, or for an address
+ * not seen.
+ */
+async function fromPayfast(raw: string | null): Promise<boolean> {
+  const ip = raw?.replace(/^::ffff:/, "") ?? null;
   if (!ip) return false;
+  const n = ipv4(ip);
+  if (n !== null && PAYFAST_RANGES.some((r) => n >= r.from && n <= r.to)) return true;
   if (!known || Date.now() - known.at > HOSTS_FRESH_MS || !known.ips.has(ip)) {
     const found = await Promise.all(PAYFAST_HOSTS.map((h) => lookup(h, { all: true }).catch(() => [])));
     known = { ips: new Set(found.flat().map((a) => a.address)), at: Date.now() };
@@ -139,56 +182,57 @@ async function fromPayfast(ip: string | null): Promise<boolean> {
 /** PayFast's own word that it sent the notice. */
 async function confirmedByPayfast(host: string, params: string): Promise<boolean | "unreachable"> {
   try {
-    const res = await fetch(`https://${host}/eng/query/validate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: params,
-      cache: "no-store",
-      signal: AbortSignal.timeout(10_000),
-    });
+    const res = await postForm(`https://${host}/eng/query/validate`, params);
+    if (!res.ok) return "unreachable";
     return (await res.text()).trim() === "VALID";
   } catch {
     return "unreachable";
   }
 }
 
-export type Notice = { ref: string; pfPaymentId: string; status: string; amountGross: string };
+export type ReadNotice =
+  | { ok: true; notice: Notice }
+  /** `signed`: the signature held, so the notice is PayFast's (only it and the shop know the passphrase) and is worth recording; another check failed. */
+  | { ok: false; reason: string; signed: false }
+  | { ok: false; reason: string; signed: true; notice: Notice; retry?: boolean };
 
 /**
  * Reads a notice's raw body and runs the checks that need no order: the
  * signature over every field posted before it, the merchant, where it came
  * from, and PayFast's own confirmation that it sent it. The amount is checked
- * against the order by the caller (`amountMatches`).
+ * against the attempt by the caller (`amountMatches`).
  */
-export async function readNotice(
-  body: string,
-  ip: string | null,
-): Promise<{ ok: true; notice: Notice } | { ok: false; reason: string; ref?: string; retry?: boolean }> {
+export async function readNotice(body: string, ip: string | null): Promise<ReadNotice> {
   const c = config();
-  if (!c) return { ok: false, reason: "PayFast is not set up" };
+  if (!c) return { ok: false, reason: "PayFast is not set up", signed: false };
 
   const pairs = [...new URLSearchParams(body)];
   const fields = Object.fromEntries(pairs);
-  const ref = fields.m_payment_id;
 
   // Signed as posted: in PayFast's order, values untrimmed, blanks kept.
   const at = pairs.findIndex(([k]) => k === "signature");
   const params = paramString(at === -1 ? pairs : pairs.slice(0, at));
-  if (fields.signature !== sign(params, c.passphrase)) return { ok: false, reason: "signature mismatch", ref };
-  if (fields.merchant_id !== c.merchantId) return { ok: false, reason: "wrong merchant", ref };
+  if (!sameSignature(fields.signature, sign(params, c.passphrase))) return { ok: false, reason: "signature mismatch", signed: false };
+
+  const notice: Notice = {
+    attempt: fields.m_payment_id ?? "",
+    pfPaymentId: fields.pf_payment_id ?? "",
+    status: fields.payment_status ?? "",
+    amountGross: fields.amount_gross ?? "",
+    amountFee: fields.amount_fee ?? "",
+    amountNet: fields.amount_net ?? "",
+  };
+  if (fields.merchant_id !== c.merchantId) return { ok: false, reason: `for another merchant (${fields.merchant_id ?? "none"})`, signed: true, notice };
 
   const [source, confirmed] = await Promise.all([fromPayfast(ip), confirmedByPayfast(c.host, params)]);
-  if (!source) return { ok: false, reason: `not from PayFast (${ip ?? "no address"})`, ref };
+  if (!source) return { ok: false, reason: `not from a PayFast address (${ip ?? "none"})`, signed: true, notice };
   // Ours to retry: answering with an error has PayFast send the notice again.
-  if (confirmed === "unreachable") return { ok: false, reason: "PayFast's confirmation was unreachable", ref, retry: true };
-  if (!confirmed) return { ok: false, reason: "PayFast did not confirm it", ref };
+  if (confirmed === "unreachable") return { ok: false, reason: "PayFast’s confirmation was unreachable", signed: true, notice, retry: true };
+  if (!confirmed) return { ok: false, reason: "PayFast did not confirm it", signed: true, notice };
 
-  return {
-    ok: true,
-    notice: { ref, pfPaymentId: fields.pf_payment_id ?? "", status: fields.payment_status ?? "", amountGross: fields.amount_gross ?? "" },
-  };
+  return { ok: true, notice };
 }
 
-/** PayFast's own tolerance: the gross within a cent of what the order asked for. */
-export const amountMatches = (order: Pick<Order, "total">, amountGross: string) =>
-  Math.abs(Number(amountGross) - Number(pfAmount(order.total))) <= 0.01;
+/** The gross PayFast reported, to the cent, against what was asked for (cents). */
+export const amountMatches = (cents: number, amountGross: string) =>
+  /^\d{1,9}(\.\d{1,2})?$/.test(amountGross) && Math.round(Number(amountGross) * 100) === cents;

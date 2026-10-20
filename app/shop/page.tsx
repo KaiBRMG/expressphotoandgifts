@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { getProducts } from "@/lib/catalog/queries";
+import { getProducts, getVocabulary } from "@/lib/catalog/queries";
 import { PRICE_BANDS, productCount, shelfHref, type Listing } from "@/lib/catalog/listing";
 import { tag, termCounts } from "@/lib/catalog/tags";
 import { ProductImage } from "@/app/site/ProductImage";
@@ -24,39 +24,29 @@ export const metadata: Metadata = {
 /** The sample customer portrait the homepage already uses as "your" picture. */
 const YOUR_PHOTO = CUSTOMER_PHOTOS[0];
 
-/**
- * The board opens on the things the sign's lede names, so the first doors
- * after "Your photo" are photographs printed on objects. The coaster's shot
- * carries the shop's logo rather than a photo, so it goes to the end.
- */
-const BOARD_LEAD = ["coffee-mug", "puzzle", "polymer-keyring", "photo-snow-globes"];
-const BOARD_LAST = ["rubber-coaster"];
-
-function boardOrder(listings: Listing[]): Listing[] {
-  const place = (l: Listing) => {
-    const lead = BOARD_LEAD.indexOf(l.slug);
-    if (lead !== -1) return lead - BOARD_LEAD.length;
-    return BOARD_LAST.includes(l.slug) ? 1 : 0;
-  };
-  // Stable: everything else keeps the shop's featured order.
-  return [...listings].sort((a, b) => place(a) - place(b));
-}
-
 /** "A, B and C", the way the shop would say it. */
 const NAMES = new Intl.ListFormat("en-ZA", { type: "conjunction" });
+
+/** How many occasions show before "More occasions". */
+const OCCASIONS_SHOWN = 6;
 
 /** How many products a shelf shows before handing over to its full page. */
 const SHELF_SIZE = 8;
 
 export default async function ShopPage() {
-  const [products, listings] = await Promise.all([getProducts(), getListings()]);
-  const yours = boardOrder(listings.filter((l) => l.personalisable));
+  const [products, listings, vocabulary] = await Promise.all([getProducts(), getListings(), getVocabulary()]);
+  // Already in the featured order, which opens on the lede's own products.
+  const yours = listings.filter((l) => l.personalisable);
   const specials = listings.filter((l) => l.special);
   const frames = listings.filter((l) => l.categoryId === "frames");
   const printing = listings.filter((l) => l.categoryId === "photo-printing");
   // Albums live under Add-ons, but they are where the prints go.
   const photos = [...printing, ...listings.filter((l) => l.tags.includes(tag("type", "albums")))];
-  const occasions = termCounts(listings, "occasion").filter((o) => o.count > 0);
+  const occasions = termCounts(vocabulary, listings, "occasion").filter((o) => o.count > 0);
+  // The days with the most to choose from, kept in the vocabulary's order.
+  const busiest = new Set(
+    [...occasions].sort((a, b) => b.count - a.count).slice(0, OCCASIONS_SHOWN).map((o) => o.value),
+  );
   const family = sizeFamily(products);
   const familySlugs = new Set(family?.products.map((p) => p.slug));
   const inFamily = (l: Listing) => familySlugs.has(l.slug);
@@ -119,6 +109,7 @@ export default async function ShopPage() {
             <li key={l.slug}>
               <ProductCard
                 listing={l}
+                yours={false}
                 eager={i < 6}
                 sizes="(max-width: 46rem) 46vw, (max-width: 62rem) 30vw, 220px"
               />
@@ -153,6 +144,28 @@ export default async function ShopPage() {
             </div>
             <Shelf listings={specials.slice(0, SHELF_SIZE)} />
           </div>
+        </section>
+      ) : null}
+
+      {/* ---- Shop by occasion ----------------------------------------- */}
+      {/* Most gifts here are bought for a day, not a category, so this comes
+          before budget. Each is a filtered view of the whole shop, so the
+          link can be shared as is. The busiest days show; the rest wait
+          behind one more tap, so the row is a choice, not a wall. */}
+      {occasions.length > 0 ? (
+        <section className="occasions shell" aria-labelledby="occasions-title">
+          <h2 id="occasions-title" className="h2">
+            Shop by occasion
+          </h2>
+          <OccasionList occasions={occasions.filter((o) => busiest.has(o.value))} />
+          {occasions.length > busiest.size ? (
+            <details className="occasions__more">
+              <summary>
+                More occasions <span className="occasions__count">{occasions.length - busiest.size}</span>
+              </summary>
+              <OccasionList occasions={occasions.filter((o) => !busiest.has(o.value))} />
+            </details>
+          ) : null}
         </section>
       ) : null}
 
@@ -194,27 +207,6 @@ export default async function ShopPage() {
           })}
         </ul>
       </section>
-
-      {/* ---- Shop by occasion ----------------------------------------- */}
-      {/* Most gifts here are bought for a day, not a category. Each is a
-          filtered view of the whole shop, so the link can be shared as is. */}
-      {occasions.length > 0 ? (
-        <section className="occasions shell" aria-labelledby="occasions-title">
-          <h2 id="occasions-title" className="h2">
-            Shop by occasion
-          </h2>
-          <ul>
-            {occasions.map((o) => (
-              <li key={o.value}>
-                <Link href={shelfHref("all", "occasion", o.value)}>
-                  <span>{o.label}</span>
-                  <span className="occasions__count">{o.count}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
 
       {/* ---- The size chart ------------------------------------------- */}
       {family ? (
@@ -298,5 +290,21 @@ export default async function ShopPage() {
         </div>
       </section>
     </>
+  );
+}
+
+/** A wrapped row of occasion pills, each a filtered view of the whole shop. */
+function OccasionList({ occasions }: { occasions: { value: string; label: string; count: number }[] }) {
+  return (
+    <ul>
+      {occasions.map((o) => (
+        <li key={o.value}>
+          <Link href={shelfHref("all", "occasion", o.value)}>
+            <span>{o.label}</span>
+            <span className="occasions__count">{o.count}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

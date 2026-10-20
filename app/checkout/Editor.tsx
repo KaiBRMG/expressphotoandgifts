@@ -17,7 +17,8 @@ import {
 } from "@/lib/catalog/checkout";
 import { Alert, Check, Close, Crop, Greyscale, Rotate, Turn, ZoomIn } from "@/app/site/icons";
 import { TurnedImg } from "./Cropped";
-import { photoSrc, WORKING } from "./images";
+import { WORKING } from "@/lib/checkout/photoUrls";
+import { photoSrc } from "./images";
 import { allTargets, type Row } from "./model";
 import { photos, type Target, type PhotoState } from "./photoStore";
 
@@ -77,6 +78,8 @@ export function Editor({
 
   useEffect(() => {
     ref.current?.showModal();
+    // Focus starts on the photo, the thing to set, not on swapping it out.
+    stageRef.current?.focus({ preventScroll: true });
   }, []);
 
   useEffect(() => {
@@ -98,8 +101,38 @@ export function Editor({
       const e = base(d);
       return e && px ? clampEdit(px, need, fn(e)) : e;
     });
-  // `clampEdit` holds the zoom between the whole photo and the closest crop.
-  const zoomTo = (zoom: number) => update((e) => ({ ...e, zoom }));
+  /**
+   * Zooms to `to(current zoom)`, held between the whole photo and the closest
+   * crop. Given a point on the stage, the part of the photo under it stays
+   * under it, the way a pinch or a scroll over a photo is expected to zoom.
+   */
+  const zoomBy = (to: (zoom: number) => number, at?: { x: number; y: number }) =>
+    update((e) => {
+      const b = cropBox(px!, need, e);
+      const zoom = Math.min(MAX_ZOOM, Math.max(b.minZoom, to(b.zoom)));
+      if (!at) return { ...e, zoom };
+      const fw = frameOn(stage, b.aspect).w;
+      const fx = (stage.w - fw) / 2;
+      const fy = (stage.h - fw / b.aspect) / 2;
+      const k = fw / b.w;
+      const w = (b.w * b.zoom) / zoom;
+      const k2 = fw / w;
+      // The photo pixel under the point, before and after.
+      const ux = b.x + (at.x - fx) / k;
+      const uy = b.y + (at.y - fy) / k;
+      return {
+        ...e,
+        zoom,
+        x: (ux - (at.x - fx) / k2 + w / 2) / b.W,
+        y: (uy - (at.y - fy) / k2 + w / b.aspect / 2) / b.H,
+      };
+    });
+  const zoomTo = (zoom: number) => zoomBy(() => zoom);
+  /** A point on the page, as a point on the stage. */
+  const onStage = (x: number, y: number) => {
+    const r = stageRef.current!.getBoundingClientRect();
+    return { x: x - r.left, y: y - r.top };
+  };
   const moveBy = (dx: number, dy: number) =>
     update((e) => {
       const b = cropBox(px!, need, e);
@@ -108,13 +141,15 @@ export function Editor({
     });
 
   // The wheel zooms; React's wheel listener is passive, so this one is attached by hand.
-  const wheelZoom = useEffectEvent((dy: number) => update((cur) => ({ ...cur, zoom: cur.zoom * Math.exp(-dy * 0.0015) })));
+  const wheelZoom = useEffectEvent((e: WheelEvent) =>
+    zoomBy((z) => z * Math.exp(-e.deltaY * 0.0015), onStage(e.clientX, e.clientY)),
+  );
   useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      wheelZoom(e.deltaY);
+      wheelZoom(e);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
@@ -126,6 +161,10 @@ export function Editor({
     const [a, b] = [...pointers.current.values()];
     return Math.hypot(a.x - b.x, a.y - b.y);
   };
+  const between = () => {
+    const [a, b] = [...pointers.current.values()];
+    return onStage((a.x + b.x) / 2, (a.y + b.y) / 2);
+  };
   const onPointerDown = (e: PointerEvent) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -136,7 +175,10 @@ export function Editor({
     if (!prev) return;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 1) moveBy(e.clientX - prev.x, e.clientY - prev.y);
-    else if (pinch.current) zoomTo((pinch.current.zoom * spread()) / pinch.current.d);
+    else if (pinch.current) {
+      const { zoom, d } = pinch.current;
+      zoomBy(() => (zoom * spread()) / d, between());
+    }
   };
   const onPointerUp = (e: PointerEvent) => {
     pointers.current.delete(e.pointerId);
@@ -144,11 +186,12 @@ export function Editor({
   };
   const onKeyDown = (e: KeyboardEvent) => {
     const step = e.shiftKey ? 40 : 12;
+    // The photo goes the way the arrow points, as it would under a finger.
     const moves: Record<string, [number, number]> = {
-      ArrowLeft: [step, 0],
-      ArrowRight: [-step, 0],
-      ArrowUp: [0, step],
-      ArrowDown: [0, -step],
+      ArrowLeft: [-step, 0],
+      ArrowRight: [step, 0],
+      ArrowUp: [0, -step],
+      ArrowDown: [0, step],
     };
     if (moves[e.key]) moveBy(...moves[e.key]);
     else if (e.key === "+" || e.key === "=") zoomTo((edit?.zoom ?? 1) * 1.15);
@@ -188,6 +231,7 @@ export function Editor({
 
   let stageView = null;
   let verdict = null;
+  let said = "";
   if (px && edit && stage.w > 0) {
     const src = photoSrc(photo!, WORKING);
     const b = box!;
@@ -222,34 +266,73 @@ export function Editor({
     );
 
     const f = fit(px, need, edit);
-    const line = qualityLine(f.quality, size);
+    const line =
+      f.quality === "sharp"
+        ? `Prints sharply${size ? ` at ${size}` : ""}.`
+        : f.quality === "unknown"
+          ? "The shop hasn’t given this item’s print size yet, so sharpness can’t be checked."
+          : qualityLine(f.quality, size);
+    const borders = f.bordered ? "The whole photo shows, with white borders filling the rest." : null;
+    // Spoken only when the verdict changes, not at every step of a zoom: the dpi stays out of it.
+    said = [line, borders].filter(Boolean).join(" ");
     verdict = (
-      <p className="editor__verdict" data-quality={f.quality} aria-live="polite">
+      <p className="editor__verdict" data-quality={f.quality}>
         {f.quality === "sharp" ? <Check size={20} /> : f.quality === "unknown" ? null : <Alert size={20} />}
         <span>
-          {f.quality === "sharp"
-            ? `Prints sharply${size ? ` at ${size}` : ""}.`
-            : f.quality === "unknown"
-              ? "The shop hasn’t given this item’s print size yet, so sharpness can’t be checked."
-              : line}
+          {line}
           {f.dpi ? <span className="editor__dpi">{Math.round(f.dpi)} dpi</span> : null}
-          {f.bordered ? <span className="editor__borders">The whole photo shows, with white borders filling the rest.</span> : null}
+          {borders ? <span className="editor__borders">{borders}</span> : null}
         </span>
       </p>
     );
   }
 
+  const zoomText = !box
+    ? undefined
+    : whole
+      ? "Whole photo"
+      : Math.abs(box.zoom - 1) < 0.01
+        ? "Filling the place"
+        : `${Math.round(box.zoom * 100)}%`;
+
   return (
     <dialog ref={ref} className="editor" aria-labelledby="editor-title" onClose={onClose}>
       <div className="editor__panel">
-        <header className="editor__head">
-          <h2 id="editor-title" className="editor__title">
-            {need.label}
-            <span>
-              {row?.line.name}
-              {size ? ` · ${size}` : ""}
-            </span>
-          </h2>
+        <header className="editor__head on-dark">
+          <div className="editor__heading">
+            <h2 id="editor-title" className="editor__title">
+              {need.label}
+              <span>
+                {row?.line.name}
+                {size ? ` · ${size}` : ""}
+              </span>
+            </h2>
+            <p className="editor__swap">
+              <button
+                type="button"
+                className="inline-link"
+                onClick={() => {
+                  // Closed first, so focus goes back to where the editor was opened from.
+                  close();
+                  onReplace();
+                }}
+              >
+                Use another photo
+              </button>
+              {pending ? null : (
+                <button
+                  type="button"
+                  className="inline-link"
+                  onClick={() => {
+                    photos.clear(target);
+                    close();
+                  }}
+                >
+                  Empty this place
+                </button>
+              )}
+            </p>
+          </div>
           <button type="button" className="editor__close" aria-label="Close without saving" onClick={close}>
             <Close size={22} />
           </button>
@@ -281,21 +364,12 @@ export function Editor({
           ) : null}
           {SHAPE_NOTE[need.shape] ? <p className="editor__shape">{SHAPE_NOTE[need.shape]}</p> : null}
 
+          <p className="visually-hidden" aria-live="polite">
+            {said}
+          </p>
+
           {edit && px ? (
             <div className="editor__tools" role="group" aria-label="Edit">
-              <label className="editor__zoom">
-                <ZoomIn size={20} />
-                <span className="visually-hidden">Zoom</span>
-                <input
-                  type="range"
-                  min={box!.minZoom}
-                  max={MAX_ZOOM}
-                  step={0.01}
-                  value={box!.zoom}
-                  onChange={(e) => zoomTo(Number(e.target.value))}
-                  style={{ "--p": (box!.zoom - box!.minZoom) / (MAX_ZOOM - box!.minZoom) } as CSSProperties}
-                />
-              </label>
               {box!.minZoom < 0.999 ? (
                 <button
                   type="button"
@@ -352,21 +426,22 @@ export function Editor({
           ) : null}
 
           <div className="editor__foot">
-            <button type="button" className="inline-link" onClick={onReplace}>
-              Use another photo
-            </button>
-            {pending ? null : (
-              <button
-                type="button"
-                className="inline-link"
-                onClick={() => {
-                  photos.clear(target);
-                  close();
-                }}
-              >
-                Empty this place
-              </button>
-            )}
+            {edit && px ? (
+              <label className="editor__zoom">
+                <ZoomIn size={20} />
+                <span className="visually-hidden">Zoom</span>
+                <input
+                  type="range"
+                  min={box!.minZoom}
+                  max={MAX_ZOOM}
+                  step={0.01}
+                  value={box!.zoom}
+                  aria-valuetext={zoomText}
+                  onChange={(e) => zoomTo(Number(e.target.value))}
+                  style={{ "--p": (box!.zoom - box!.minZoom) / (MAX_ZOOM - box!.minZoom) } as CSSProperties}
+                />
+              </label>
+            ) : null}
             <button type="button" className="btn btn--gold on-gold editor__done" onClick={done}>
               <Check size={19} />
               Done

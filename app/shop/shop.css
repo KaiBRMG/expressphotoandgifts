@@ -82,6 +82,14 @@
   display: none;
 }
 
+/* On a phone the strip runs off the right edge; fading it there says there
+   is more to swipe to, where a hard cut read as the end of the list. */
+@media (max-width: 45.99rem) {
+  .shelves ul {
+    mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+  }
+}
+
 @media (min-width: 46rem) {
   .shelves ul {
     flex-wrap: wrap;
@@ -219,6 +227,17 @@
   color: var(--ink-soft);
 }
 
+/* On a phone the square portrait took the whole first screen, so the first
+   product sat a full scroll down. Here it is a landscape crop of the same
+   print, tall enough to read as someone's photo, short enough that the first
+   row of products shows beneath it. */
+@media (max-width: 45.99rem) {
+  .board__yours img {
+    aspect-ratio: 16 / 10;
+    object-position: 50% 40%;
+  }
+}
+
 /* The way on: the one blue door in the board, the way Specials is the one
    blue tile on the homepage. */
 .board__more a {
@@ -232,7 +251,7 @@
   background: var(--blue);
   color: var(--print);
   border-radius: var(--radius);
-  font-size: clamp(1.05rem, 1.45vw, 1.3rem);
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.015em;
@@ -421,7 +440,12 @@
   margin: 0;
 }
 
+/* Padded to a 44px target, the margin giving back what it adds. */
 .shelf__all {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-block: -10px;
   font-size: 1rem;
   font-weight: 600;
 }
@@ -484,10 +508,54 @@
 
 /* ---- Shop by occasion -------------------------------------------------- */
 
-/* The storefront's shelf pills again, wrapped: eleven days at most, and all
-   of them should be seen without a swipe. */
+/* The storefront's shelf pills again, wrapped: the busiest six, and the rest
+   behind one pill that opens them in place. */
 .occasions {
   padding-block: 0 clamp(62px, 9vw, 130px);
+}
+
+/* After the blue Specials band the next section needs its own top space;
+   after the white board the board's foot already gives it. */
+.specials + section {
+  padding-top: clamp(62px, 9vw, 130px);
+}
+
+.occasions__more {
+  margin-top: 0.5rem;
+}
+
+.occasions__more summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding: 0.55rem 1.05rem;
+  border: 1px dashed var(--rule-hair);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+  transition: border-color 0.25s var(--ease-out);
+}
+
+.occasions__more summary::-webkit-details-marker {
+  display: none;
+}
+
+.occasions__more summary:hover {
+  border-color: var(--blue);
+}
+
+.occasions__more summary:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+
+/* Open, the pill has done its job; the rest of the days join the row. */
+.occasions__more[open] summary {
+  display: none;
 }
 
 .occasions .h2 {
@@ -861,7 +929,9 @@
      max-content width becomes the page's width on a phone. */
   grid-template-columns: minmax(0, 1fr);
   gap: 0 clamp(30px, 4vw, 64px);
-  padding-block: 0 clamp(62px, 9vw, 130px);
+  /* At least the dock's height, so the last row of cards can be scrolled
+     out from under the floating WhatsApp mark. */
+  padding-block: 0 max(clamp(62px, 9vw, 130px), var(--dock-h));
 }
 
 @media (min-width: 62rem) {
@@ -1048,8 +1118,9 @@
   font-weight: 600;
 }
 
-/* On a phone: the photo toggle across the top, then price and sort side by
-   side, so the grid starts two rows down rather than three. */
+/* On a phone: Filter and sort side by side, and the filters fold beneath
+   them until Filter is pressed, so the grid starts one row down rather than
+   three. From 46rem the filters sit in the row and the Filter pill goes. */
 .toolbar__controls {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1057,8 +1128,46 @@
   width: 100%;
 }
 
-.toolbar__controls .toggle {
+.toolbar__filter {
+  justify-content: center;
+}
+
+.toolbar__filter[aria-expanded="true"] {
+  border-color: var(--blue);
+}
+
+/* How many filters are set, on the same disc the cart's count wears. */
+.toolbar__applied {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  padding-inline: 0.35rem;
+  border-radius: 999px;
+  background: var(--blue);
+  color: var(--print);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.toolbar__filters {
+  display: none;
   grid-column: 1 / -1;
+  grid-row: 2;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgb(1 38 186 / 0.05);
+}
+
+.toolbar__filters[data-open] {
+  display: grid;
+}
+
+.toolbar__filters .toggle {
   justify-content: center;
 }
 
@@ -1075,13 +1184,81 @@
     width: auto;
   }
 
-  .toolbar__controls .toggle {
+  .toolbar__controls .toolbar__filter {
+    display: none;
+  }
+
+  .toolbar__filters,
+  .toolbar__filters[data-open] {
+    display: contents;
+  }
+
+  .toolbar__filters .toggle {
     justify-content: flex-start;
   }
 
   .toolbar__controls .select select {
     width: auto;
   }
+}
+
+/* The filters in force, each a pill that removes itself. On a phone they
+   stand in for the folded selects; from 46rem the selects show their own
+   values, so only a filter with no control of its own (a type with no chip
+   row) is listed. */
+.applied {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: calc(clamp(1.2rem, 2.4vw, 1.8rem) * -0.5) 0 clamp(1.2rem, 2.4vw, 1.8rem);
+  padding: 0;
+  list-style: none;
+}
+
+.applied button:not(.applied__all) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.5rem 0.85rem 0.5rem 1.05rem;
+  border: 1px solid var(--blue);
+  border-radius: 999px;
+  background: rgb(1 38 186 / 0.06);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.25s var(--ease-out);
+}
+
+.applied button:not(.applied__all):hover {
+  background: rgb(1 38 186 / 0.12);
+}
+
+.applied__all {
+  min-height: 44px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+@media (min-width: 46rem) {
+  .applied li[data-folded] {
+    display: none;
+  }
+
+  .applied:not(:has(li:not([data-folded]))) {
+    display: none;
+  }
+}
+
+/* An address with a filter the shop does not know: said once, plainly. */
+.ignored {
+  margin: 0 0 clamp(1.2rem, 2.4vw, 1.8rem);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
 }
 
 .toggle {
@@ -1212,8 +1389,23 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  min-height: 44px;
   font-size: 1rem;
   font-weight: 600;
+}
+
+/* What to look at instead of an empty search: a grid as wide as the shelf. */
+.nomatch__picks {
+  justify-self: stretch;
+  margin-top: clamp(1.4rem, 3vw, 2.4rem);
+}
+
+.nomatch__picksTitle {
+  margin: 0 0 clamp(1rem, 2vw, 1.4rem);
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
 }
 
 /* ---- A search's results ------------------------------------------------ */

@@ -1,3 +1,5 @@
+import { rands } from "@/lib/catalog/listing";
+
 /**
  * Who the order is for and how it reaches them: the shapes and the checks,
  * shared by the details step in the browser and the server that places the
@@ -43,13 +45,34 @@ export const EMPTY_CONTACT: Contact = { firstName: "", lastName: "", email: "", 
 export const EMPTY_ADDRESS: Address = { street: "", suburb: "", city: "", province: "", code: "", notes: "" };
 
 /** Field limits, held on both sides: PayFast takes 100 characters a name and an email. */
-export const LIMITS = { name: 100, email: 100, line: 120, notes: 200 } as const;
+export const LIMITS = { name: 100, email: 100, line: 120, notes: 200, lineNote: 200 } as const;
 
-/** "0764912300" from "076 491 2300", "+27 76 491 2300" or "27764912300"; null when it is not a mobile number. */
+/** "0764912300" from "076 491 2300", "+27 76 491 2300", "0027…" or "27764912300", whatever it is. */
+const national = (raw: string) => {
+  const digits = raw.replace(/[\s().-]/g, "").replace(/^(\+|00)/, "");
+  return digits.startsWith("27") && digits.length === 11 ? `0${digits.slice(2)}` : digits;
+};
+
+/**
+ * South African mobiles: 06x, 07x and 081–084. 080 (toll-free), 086
+ * (share-call) and 087 (VoIP) share the 08 prefix but can't take an SMS.
+ */
+const MOBILE = /^0(?:[67]\d|8[1-4])\d{7}$/;
+
+/** A South African mobile number in its national form, or null. */
 export function nationalPhone(raw: string): string | null {
-  const digits = raw.replace(/[\s()-]/g, "").replace(/^\+/, "");
-  const national = digits.startsWith("27") ? `0${digits.slice(2)}` : digits;
-  return /^0[6-8]\d{8}$/.test(national) ? national : null;
+  const n = national(raw);
+  return MOBILE.test(n) ? n : null;
+}
+
+/** Why a typed number isn't a mobile, in the customer's terms, or nothing when it is one. */
+function phoneProblem(raw: string): string | undefined {
+  const n = national(raw);
+  if (MOBILE.test(n)) return undefined;
+  if (!/^\d+$/.test(n)) return "Use digits only, like 076 491 2300.";
+  if (n.length !== 10) return "South African numbers have 10 digits, like 076 491 2300.";
+  if (/^0[1-5]/.test(n)) return "That looks like a landline. We need a mobile, so we can SMS you about your order.";
+  return "That isn’t a mobile number. Use one that can get an SMS, like 076 491 2300.";
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -57,6 +80,9 @@ export const isEmail = (s: string) => EMAIL.test(s.trim());
 
 /** The shortest password a customer account takes; Firebase's own floor is 6. */
 export const PASSWORD_MIN = 8;
+
+/** What's wrong with a new password, or nothing. */
+export const passwordError = (p: string) => (p.length < PASSWORD_MIN ? `Use at least ${PASSWORD_MIN} characters.` : undefined);
 
 type Errors<T> = Partial<Record<keyof T, string>>;
 
@@ -69,7 +95,10 @@ export function contactErrors(c: Contact): Errors<Contact> {
   if (!c.email.trim()) e.email = "Add your email, for the receipt.";
   else if (!isEmail(c.email) || c.email.length > LIMITS.email) e.email = "That doesn’t look like an email address.";
   if (!c.phone.trim()) e.phone = "Add a mobile number, so we can reach you about the order.";
-  else if (!nationalPhone(c.phone)) e.phone = "Use a South African mobile number, like 076 491 2300.";
+  else {
+    const problem = phoneProblem(c.phone);
+    if (problem) e.phone = problem;
+  }
   return e;
 }
 
@@ -129,3 +158,10 @@ export function readAddress(x: unknown): Address | null {
 
 /** "10 Midas Ave, Olympus, Pretoria, 0081". */
 export const addressLine = (a: Address) => [a.street, a.suburb, a.city, a.code].filter(Boolean).join(", ");
+
+/** The delivery row of an order's sums: "Collect from the shop", or "Delivery, Economy". */
+export const deliveryLabel = (f: { method: "collect" } | { method: "courier"; service: { name: string } }) =>
+  f.method === "collect" ? "Collect from the shop" : `Delivery, ${f.service.name}`;
+
+/** Its price: "Free", or the rands. */
+export const deliveryPrice = (cents: number) => (cents === 0 ? "Free" : rands(cents));

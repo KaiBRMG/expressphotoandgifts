@@ -1,5 +1,6 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
 
+import { PASSWORD_MIN } from "@/lib/checkout/details";
 import { Alert } from "@/app/site/icons";
 
 /**
@@ -38,6 +39,17 @@ export function Field({
   );
 }
 
+/** "12 characters left", once a field with a limit is within 20 of it. */
+export function CharsLeft({ value, max }: { value: string; max: number }) {
+  const left = max - value.length;
+  if (left > 20) return null;
+  return (
+    <p className="chars-left" aria-live="polite">
+      {left} {left === 1 ? "character" : "characters"} left
+    </p>
+  );
+}
+
 /** The input's own attributes, with the error wired to it. */
 export const inputProps = (id: string, error: string | undefined): InputHTMLAttributes<HTMLInputElement> => ({
   id,
@@ -46,3 +58,34 @@ export const inputProps = (id: string, error: string | undefined): InputHTMLAttr
   "aria-invalid": error ? true : undefined,
   "aria-describedby": error ? `${id}-error` : undefined,
 });
+
+/** A password for a new customer account: at checkout as they pay, or on the receipt after. */
+export function NewPasswordField({
+  id,
+  label,
+  value,
+  error,
+  onChange,
+  onBlur,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  error?: string;
+  onChange: (value: string) => void;
+  onBlur?: () => void;
+}) {
+  return (
+    <Field id={id} label={label} hint={`at least ${PASSWORD_MIN} characters`} error={error}>
+      <input
+        {...inputProps(id, error)}
+        type="password"
+        autoComplete="new-password"
+        minLength={PASSWORD_MIN}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
+      />
+    </Field>
+  );
+}

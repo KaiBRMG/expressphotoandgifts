@@ -34,12 +34,33 @@ const SPECIALS_SLUG = "specials";
  */
 export const getListings = cache(async () => {
   const [products, categories] = await Promise.all([getProducts(), getCategories()]);
-  return toListings(products, new Map(categories.map((c) => [c.id, c.name])));
+  return leadOrder(toListings(products, new Map(categories.map((c) => [c.id, c.name]))));
 });
 
 /**
+ * The shop's featured order opens on the things the storefront's lede names,
+ * photographs printed on objects, rather than on whatever is cheapest. The
+ * coaster's shot carries the shop's logo rather than a photo, so it goes to
+ * the end of the photo products. Everything else keeps its place, and the
+ * ranks are renumbered so "Featured" sorts by this order everywhere.
+ */
+const LEAD = ["coffee-mug", "puzzle", "polymer-keyring", "photo-snow-globes"];
+const LAST = ["rubber-coaster"];
+
+function leadOrder(listings: Listing[]): Listing[] {
+  const place = (l: Listing) => {
+    const lead = LEAD.indexOf(l.slug);
+    if (lead !== -1) return lead - LEAD.length;
+    return LAST.includes(l.slug) && l.personalisable ? 0.5 : l.personalisable ? 0 : 1;
+  };
+  return [...listings]
+    .sort((a, b) => place(a) - place(b) || a.rank - b.rank)
+    .map((l, rank) => ({ ...l, rank }));
+}
+
+/**
  * Every slug /shop answers to: the Firestore categories, plus the homepage
- * tiles that have no category document yet (Cameras, Gift Wrapping), so a tile
+ * tiles that have no category document yet (Gift Wrapping), so a tile
  * never lands on a 404.
  */
 export async function shelfSlugs(): Promise<string[]> {

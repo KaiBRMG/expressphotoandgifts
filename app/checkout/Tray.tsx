@@ -6,7 +6,8 @@ import { cartSubtotal, type CartLine } from "@/lib/catalog/cart";
 import { photoCount } from "@/lib/catalog/listing";
 import { rands } from "@/lib/catalog/listing";
 import { ArrowRight, Pencil, Trash, Upload } from "@/app/site/icons";
-import { photoSrc, THUMB } from "./images";
+import { THUMB } from "@/lib/checkout/photoUrls";
+import { photoSrc } from "./images";
 import { DRAG_TYPE, type Progress } from "./model";
 import { photos, type Photo, type PhotoState, type Target } from "./photoStore";
 

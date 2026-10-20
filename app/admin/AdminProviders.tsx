@@ -13,6 +13,7 @@ import {
   TagsInput,
   Textarea,
   TextInput,
+  Tooltip,
   type CSSVariablesResolver,
   type MantineColorsTuple,
 } from "@mantine/core";
@@ -71,6 +72,8 @@ const theme = createTheme({
     SegmentedControl: SegmentedControl.extend(md),
     Button: Button.extend({ defaultProps: { size: "md", radius: "xl" } }),
     Badge: Badge.extend({ defaultProps: { radius: "xl", size: "lg", variant: "light" } }),
+    // Tooltips here explain a control in a sentence, so they wrap at one width.
+    Tooltip: Tooltip.extend({ defaultProps: { multiline: true, w: 260, withArrow: true } }),
   },
 });
 

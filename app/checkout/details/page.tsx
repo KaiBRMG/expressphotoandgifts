@@ -4,7 +4,7 @@ import { currentCustomer, savedDetails } from "@/lib/account/auth";
 import { buildNeeds } from "@/lib/catalog/checkout";
 import { getProducts } from "@/lib/catalog/queries";
 import { courierReady } from "@/lib/checkout/courier";
-import { payfastOnsite, payfastReady } from "@/lib/checkout/payfast";
+import { payfastOnsite, payfastReady, payfastSandbox } from "@/lib/checkout/payfast";
 import { DetailsStep } from "./DetailsStep";
 
 export const metadata: Metadata = {
@@ -29,6 +29,7 @@ export default async function DetailsPage({ searchParams }: PageProps<"/checkout
       courier={courierReady()}
       payments={payfastReady()}
       onsite={payfastOnsite()}
+      sandbox={payfastSandbox()}
       cancelled={cancelled === "1"}
     />
   );

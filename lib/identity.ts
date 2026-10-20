@@ -35,6 +35,9 @@ export const adminAllowlist = () =>
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 
+/** Whether an address is on the admin allowlist, however it was typed. */
+export const isStaffEmail = (email: string) => adminAllowlist().includes(email.trim().toLowerCase());
+
 /** Firebase's REST error codes, said the way a person would want to hear them. */
 const SIGN_IN_ERRORS: Record<string, string> = {
   INVALID_LOGIN_CREDENTIALS: "That email and password don’t match.",

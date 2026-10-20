@@ -8,6 +8,7 @@ import { SHOP, whatsapp } from "@/app/site/data";
 import { Catalogue, CatalogueFallback } from "../Catalogue";
 import { ShelfRail } from "../ShelfRail";
 import { getShelf, shelfSlugs, type Shelf } from "../shelves";
+import { getVocabulary } from "@/lib/catalog/queries";
 
 export const revalidate = 3600;
 
@@ -30,7 +31,7 @@ export async function generateMetadata({ params }: PageProps<"/shop/[category]">
 
 export default async function ShelfPage({ params }: PageProps<"/shop/[category]">) {
   const { category } = await params;
-  const shelf = await getShelf(category);
+  const [shelf, vocabulary] = await Promise.all([getShelf(category), getVocabulary()]);
   if (!shelf) notFound();
 
   return (
@@ -63,10 +64,11 @@ export default async function ShelfPage({ params }: PageProps<"/shop/[category]"
                 listings={shelf.listings}
                 shelfName={shelf.name}
                 byType={shelf.kind === "category"}
+                vocabulary={vocabulary}
               />
             }
           >
-            <Catalogue listings={shelf.listings} shelfName={shelf.name} byType={shelf.kind === "category"} />
+            <Catalogue listings={shelf.listings} shelfName={shelf.name} byType={shelf.kind === "category"} vocabulary={vocabulary} />
           </Suspense>
         ) : (
           <EmptyShelf shelf={shelf} />

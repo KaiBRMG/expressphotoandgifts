@@ -2,18 +2,19 @@
 
 import { useState } from "react";
 import { NumberInput, Radio, Select, Switch, TagsInput } from "@mantine/core";
-import { choiceKey, type ProductDraft } from "@/lib/catalog/edit";
+import { choiceKey, LIMITS, unmatchedPhotoCount, type ProductDraft } from "@/lib/catalog/edit";
 import { parseArea } from "@/lib/catalog/sizes";
-import { PHOTO_SHAPES, tag, tagValues, type Facet, type PhotoShape } from "@/lib/catalog/tags";
+import { hasFacet, PHOTO_SHAPES, tag, tagValues, withFacet, type Facet, type PhotoShape } from "@/lib/catalog/tags";
 import type { PersonalisationKind } from "@/lib/catalog/types";
-import type { Update } from "./ProductEditor";
+import type { ErrorOn, Update } from "./ProductEditor";
+import { Where } from "./Where";
 
 type Size = { w: number | ""; h: number | "" };
 
 const KINDS: { value: "none" | PersonalisationKind; label: string; hint: string }[] = [
-  { value: "none", label: "No", hint: "It’s sold as it is." },
-  { value: "gift", label: "Printed on a gift", hint: "Their photo goes onto the object: a mug, a puzzle, a keyring." },
-  { value: "print", label: "Printed as a photo", hint: "Prints, collages, ID photos: the photo is the product." },
+  { value: "none", label: "No", hint: "Sold as it is. Checkout skips the photo step for it." },
+  { value: "gift", label: "Printed on a gift", hint: "Their photo goes onto the object: a mug, a puzzle, a keyring. With two photos, checkout names them Front and Back." },
+  { value: "print", label: "Printed as a photo", hint: "Prints, collages, ID photos: the photo is the product. A print can be turned on its side to fit." },
 ];
 
 const SHAPES: Record<PhotoShape, { label: string; path: React.ReactNode }> = {
@@ -27,8 +28,9 @@ const SHAPES: Record<PhotoShape, { label: string; path: React.ReactNode }> = {
  * how many, the size each is printed at, and the outline it is cropped to.
  * The checkout's upload step is drawn from exactly these answers.
  */
-export function CustomerPhotoTab({ draft, update }: { draft: ProductDraft; update: Update }) {
+export function CustomerPhotoTab({ draft, update, errorOn }: { draft: ProductDraft; update: Update; errorOn: ErrorOn }) {
   const p = draft.personalisation;
+  const unmatched = unmatchedPhotoCount(draft) ?? undefined;
   const counts = tagValues(draft.tags, "photos");
   const prints = tagValues(draft.tags, "print");
   const [shape] = tagValues(draft.tags, "shape");
@@ -44,14 +46,14 @@ export function CustomerPhotoTab({ draft, update }: { draft: ProductDraft; updat
   const choice = draft.options.find((o) => o.name === byChoice) ?? null;
 
   const setFacet = (facet: Facet, values: string[]) =>
-    update({ tags: [...draft.tags.filter((t) => !t.startsWith(`${facet}:`)), ...values.map((v) => tag(facet, v))] });
+    update({ tags: withFacet(draft.tags, facet, values) });
 
   const setKind = (kind: string) => {
     if (kind === "none") return update({ personalisation: null });
     update({
       personalisation: { kind: kind as PersonalisationKind, text: p?.text ?? false },
       // A product that starts taking photos takes one, as a rectangle, until said otherwise.
-      tags: p ? draft.tags : [...draft.tags.filter((t) => !/^(photos|shape):/.test(t)), tag("photos", "1"), tag("shape", "rect")],
+      tags: p ? draft.tags : [...draft.tags.filter((t) => !hasFacet(t, ["photos", "shape"])), tag("photos", "1"), tag("shape", "rect")],
     });
   };
 
@@ -71,15 +73,16 @@ export function CustomerPhotoTab({ draft, update }: { draft: ProductDraft; updat
 
   return (
     <div className="panel">
-      <section className="group" aria-labelledby="sends-title">
+      <section className="group" id="customer-sends" aria-labelledby="sends-title">
         <Radio.Group
           value={p?.kind ?? "none"}
           onChange={setKind}
           label={
             <span id="sends-title" className="group__title">
-              Does the customer send a photo?
+              Does the customer upload a photo?
             </span>
           }
+          description={<Where>its card and page say “Takes your photo”, and checkout asks for it before payment.</Where>}
         >
           <div className="cards">
             {KINDS.map((k) => (
@@ -98,7 +101,7 @@ export function CustomerPhotoTab({ draft, update }: { draft: ProductDraft; updat
             <Switch
               size="md"
               label="They can add their own words too"
-              description="A name, a date or a short message, typed at checkout."
+              description={<Where>its page adds “and your words if you like”, and checkout gives them a box for a name, a date or a short message.</Where>}
               checked={p.text}
               onChange={(e) => update({ personalisation: { ...p, text: e.currentTarget.checked } })}
             />
@@ -109,6 +112,9 @@ export function CustomerPhotoTab({ draft, update }: { draft: ProductDraft; updat
               <h2 id="count-title" className="group__title">
                 How many photos?
               </h2>
+              <p className="hint">
+                <Where>its page says how many it takes, and checkout shows that many spaces to fill.</Where>
+              </p>
             </div>
             <Radio.Group value={varies ? "varies" : "same"} onChange={(v) => setVaries(v === "varies")}>
               <div className="stack stack--tight">
@@ -121,34 +127,38 @@ export function CustomerPhotoTab({ draft, update }: { draft: ProductDraft; updat
                 label="Photo counts offered"
                 description="Each count a shopper can pick. Name the matching choices under Sizes & prices with their count, e.g. “2 photos”."
                 value={counts}
-                onChange={(v) => setFacet("photos", v.filter((x) => /^\d+$/.test(x) && Number(x) > 0))}
+                onChange={(v) => setFacet("photos", [...new Set(v.filter((x) => /^\d+$/.test(x) && Number(x) > 0 && Number(x) <= LIMITS.photos))].sort((a, b) => Number(a) - Number(b)))}
                 placeholder="e.g. 1, 2, 4"
                 splitChars={[",", " "]}
+                maxTags={LIMITS.photoCounts}
                 className="field--narrow"
-                error={counts.length === 0 ? "Add at least one count" : undefined}
+                error={counts.length === 0 ? "Add at least one count" : errorOn("customer-count") ?? unmatched}
               />
             ) : (
               <NumberInput
-                label="Photos"
+                label="Number of photos"
                 min={1}
-                max={48}
+                max={LIMITS.photos}
+                clampBehavior="strict"
                 allowDecimal={false}
                 value={counts[0] ? Number(counts[0]) : ""}
                 onChange={(v) => setFacet("photos", v === "" ? [] : [String(v)])}
                 className="field--narrow"
-                error={counts.length === 0 ? "Say how many" : undefined}
+                error={counts.length === 0 ? "Say how many" : errorOn("customer-count")}
               />
             )}
           </section>
 
-          <section className="group" aria-labelledby="print-title">
+          <section className="group" id="customer-print" aria-labelledby="print-title">
             <div className="group__head">
               <h2 id="print-title" className="group__title">
                 Printed size
               </h2>
               <p className="hint">
-                In centimetres, width first. The checkout crops to it and warns when a photo is too small. Leave empty if
-                it doesn’t apply.
+                <Where>
+                  checkout draws each photo space at this size, and tells the customer when a photo may print soft.
+                </Where>{" "}
+                In centimetres, width first. Leave empty if it doesn’t apply.
               </p>
             </div>
             {draft.options.length ? (
@@ -187,6 +197,7 @@ export function CustomerPhotoTab({ draft, update }: { draft: ProductDraft; updat
             ) : (
               <SizeInput label="Printed size" size={sizeOf(null)} onChange={(s) => writeSize(null, s)} />
             )}
+            {errorOn("customer-print") ? <p className="admin-error">{errorOn("customer-print")}</p> : null}
           </section>
 
           <section className="group" aria-labelledby="shape-title">
@@ -198,6 +209,7 @@ export function CustomerPhotoTab({ draft, update }: { draft: ProductDraft; updat
                   Shape the photo is cut to
                 </span>
               }
+              description={<Where>the outline of its photo space at checkout, e.g. a circle for a coaster.</Where>}
             >
               <div className="cards cards--shapes">
                 {PHOTO_SHAPES.map((s) => (
@@ -233,9 +245,9 @@ function SizeInput({ label, size, onChange }: { label: string; size: Size; onCha
   const num = (v: string | number): number | "" => (v === "" ? "" : Number(v));
   return (
     <div className="size">
-      <NumberInput aria-label={`${label}, width in cm`} placeholder="Width" min={0.5} decimalScale={1} hideControls value={local.w} onChange={(v) => set({ ...local, w: num(v) })} />
+      <NumberInput aria-label={`${label}, width in cm`} placeholder="Width" min={LIMITS.printMin} max={LIMITS.printMax} decimalScale={1} hideControls value={local.w} onChange={(v) => set({ ...local, w: num(v) })} />
       <span aria-hidden="true">×</span>
-      <NumberInput aria-label={`${label}, height in cm`} placeholder="Height" min={0.5} decimalScale={1} hideControls value={local.h} onChange={(v) => set({ ...local, h: num(v) })} />
+      <NumberInput aria-label={`${label}, height in cm`} placeholder="Height" min={LIMITS.printMin} max={LIMITS.printMax} decimalScale={1} hideControls value={local.h} onChange={(v) => set({ ...local, h: num(v) })} />
       <span className="size__unit">cm</span>
     </div>
   );

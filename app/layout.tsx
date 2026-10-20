@@ -35,7 +35,24 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-ZA" className={`${archivo.variable} ${mono.variable} h-full`}>
+    // The script below adds a class before first paint, which React would
+    // otherwise report as a mismatch on hydration.
+    <html
+      lang="en-ZA"
+      className={`${archivo.variable} ${mono.variable} h-full`}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Holds the cover's headline back until `Motion` takes it over, so
+            the server-rendered band does not paint in place and then jump
+            off-screen to run in. `Motion` removes the class; home.css shows
+            the band anyway after a few seconds if it never does. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if(matchMedia("(prefers-reduced-motion: no-preference)").matches)document.documentElement.classList.add("entrance-pending")`,
+          }}
+        />
+      </head>
       <body className="min-h-full">{children}</body>
     </html>
   );

@@ -50,7 +50,7 @@ export type Needs = Record<string, { photo?: PhotoNeeds; frame?: FrameNeeds }>;
 const sizeKey = (s: { w: number; h: number }) => `${s.w}x${s.h}`;
 
 /** "Front" and "Back" for a gift's two sides, "Photo 3" for a collage's third, "Your photo" for one. */
-function slotLabels(n: number, kind: "gift" | "print"): string[] {
+export function slotLabels(n: number, kind: "gift" | "print"): string[] {
   if (n === 1) return ["Your photo"];
   if (n === 2 && kind === "gift") return ["Front", "Back"];
   return Array.from({ length: n }, (_, i) => `Photo ${i + 1}`);

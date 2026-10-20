@@ -5,7 +5,8 @@ import { useEffect, useRef, type CSSProperties } from "react";
 import { areaLabel, freshEdit, placedArea } from "@/lib/catalog/checkout";
 import { Close } from "@/app/site/icons";
 import { Cropped } from "./Cropped";
-import { photoSrc, THUMB } from "./images";
+import { THUMB } from "@/lib/checkout/photoUrls";
+import { photoSrc } from "./images";
 import { photos, type Target, type PhotoState } from "./photoStore";
 import { AddPhotos } from "./Tray";
 

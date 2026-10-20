@@ -11,7 +11,7 @@ import {
   getMovedProduct,
   getProduct,
   getProducts,
-  SHOW_UNPRICED,
+  getVocabulary,
 } from "@/lib/catalog/queries";
 import { productHref, shelfHref } from "@/lib/catalog/listing";
 import type { PurchaseItem } from "@/lib/catalog/purchase";
@@ -78,12 +78,13 @@ export default async function ProductPage({
     if (moved) permanentRedirect(productHref(moved.slug));
     notFound();
   }
-  if (!product.priceRange && !SHOW_UNPRICED) notFound();
+  if (!product.priceRange) notFound();
 
-  const [categories, listings, products] = await Promise.all([
+  const [categories, listings, products, vocabulary] = await Promise.all([
     getCategories(),
     getListings(),
     getProducts(),
+    getVocabulary(),
   ]);
   const category = categories.find((c) => c.id === product.categoryId) ?? null;
   const [type] = tagValues(product.tags, "type");
@@ -133,7 +134,7 @@ export default async function ProductPage({
             {category && type ? (
               <li>
                 <Link href={shelfHref(category.id, "type", type)}>
-                  {termLabel("type", type)}
+                  {termLabel(vocabulary, "type", type)}
                 </Link>
               </li>
             ) : null}

@@ -1,4 +1,3 @@
-import { rands } from "./listing";
 import { photosFor } from "./photos";
 import { parseCm } from "./sizes";
 import type { Product, ProductVariant } from "./types";
@@ -73,19 +72,3 @@ export function variantLabel(item: PurchaseItem, variant: ProductVariant): strin
 
 /** "Coffee Mug (1 photo)", or the name alone for a product with no choices: one item on an order. */
 export const orderWhat = (name: string, variant: string | null) => (variant ? `${name} (${variant})` : name);
-
-/**
- * The order as the shop would write it on the counter slip, ready to send on
- * WhatsApp: what, which, how many, at what price, and the code to find it by.
- */
-export function orderMessage(item: PurchaseItem, variant: ProductVariant, quantity: number): string {
-  const what = orderWhat(item.name, variantLabel(item, variant));
-  const each = variant.price !== null ? `, ${rands(variant.price)} each` : "";
-  const lines = [`Hi! I'd like to order ${quantity} × ${what}${each}.`, `Product code: ${variant.sku}.`];
-  if (variant.price === null) lines.push("Could you tell me the price?");
-  if (item.personalisation) {
-    const photos = photosFor(item, variant);
-    lines.push(photos === 1 ? "I'll send my photo in this chat." : "I'll send my photos in this chat.");
-  }
-  return lines.join("\n");
-}

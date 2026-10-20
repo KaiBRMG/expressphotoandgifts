@@ -9,6 +9,10 @@ import { uploadTicketAction } from "../actions";
  * more: the free plan meters every byte stored.
  */
 const MAX_EDGE = 1280;
+/** Under this on its long edge a photo looks soft on a card, which draws it up to 640 pixels across at 2x. */
+const MIN_EDGE = 500;
+/** A file bigger than this is a camera original or not a photo; it is refused before the browser tries to decode it. */
+const MAX_BYTES = 25_000_000;
 export const ACCEPT = ["image/jpeg", "image/png", "image/webp"];
 
 /**
@@ -20,7 +24,12 @@ async function prepare(file: File): Promise<Blob> {
   const bitmap = await createImageBitmap(file).catch(() => {
     throw new Error(`“${file.name}” can’t be read. Save it as a JPG or PNG and try again.`);
   });
-  const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+  const long = Math.max(bitmap.width, bitmap.height);
+  if (long < MIN_EDGE) {
+    bitmap.close();
+    throw new Error(`“${file.name}” is ${bitmap.width} × ${bitmap.height} pixels, too small to look sharp in the shop. Use one at least ${MIN_EDGE} pixels on its long side.`);
+  }
+  const scale = Math.min(1, MAX_EDGE / long);
   if (scale === 1 && file.size < 1_500_000) return file;
 
   const canvas = document.createElement("canvas");
@@ -39,6 +48,7 @@ async function prepare(file: File): Promise<Blob> {
 /** Uploads one photograph for the product with this code, and describes it for the product's media. */
 export async function uploadPhoto(file: File, code: string, alt: string): Promise<ProductMedia> {
   if (!ACCEPT.includes(file.type)) throw new Error(`“${file.name}” isn’t a JPG, PNG or WebP photo.`);
+  if (file.size > MAX_BYTES) throw new Error(`“${file.name}” is over ${MAX_BYTES / 1_000_000} MB. Export a smaller copy and try again.`);
   const [blob, ticket] = await Promise.all([prepare(file), uploadTicketAction(code)]);
   if ("error" in ticket) throw new Error(ticket.error);
 

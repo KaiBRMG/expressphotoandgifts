@@ -156,6 +156,21 @@
   letter-spacing: -0.035em;
 }
 
+/* Set by the inline script in the root layout and cleared by `Motion` once the
+   entrance has taken the band over. Should the script never arrive, the band
+   comes back on its own rather than staying hidden. */
+.entrance-pending .cover__title,
+.entrance-pending .cover__lede {
+  visibility: hidden;
+  animation: entrance-fallback 0s 3s forwards;
+}
+
+@keyframes entrance-fallback {
+  to {
+    visibility: visible;
+  }
+}
+
 .cover__line {
   display: block;
   white-space: nowrap;
@@ -269,8 +284,8 @@
 
 /* ---- Shop by category ------------------------------------------------- */
 
-/* Eight compact doors on white, four by two on a wide screen and two by four
-   on a phone. A tile is an icon disc, the arrow's ring and a name, and nothing
+/* Seven compact doors on white, four then three on a wide screen and two by
+   three on a phone, with Specials two columns wide closing the last row. A tile is an icon disc, the arrow's ring and a name, and nothing
    else: the shelf's own page carries the detail. Under the pointer a tile
    becomes a piece of the catalogue's blue and its disc goes amber, so the
    section answers the pointer in the page's own two loud colours. */
@@ -306,8 +321,12 @@
   display: flex;
 }
 
+.cats > li[data-wide="true"] {
+  grid-column: span 2;
+}
+
 /* Icon and arrow share the top line; the name sits on the tile's floor, so
-   one-line and two-line names still leave the eight icons on two clean rows. */
+   one-line and two-line names still leave the icons on clean rows. */
 .cat {
   flex: 1;
   display: grid;
@@ -318,12 +337,12 @@
   min-height: clamp(128px, 10.5vw, 150px);
   padding: clamp(14px, 1.5vw, 20px) clamp(14px, 1.5vw, 20px)
     clamp(15px, 1.6vw, 22px);
-  background: var(--print);
+  background: var(--gold);
   color: var(--ink);
-  border: 1px solid var(--rule-card);
+  border: 1px solid var(--gold);
   border-radius: var(--radius);
   text-decoration: none;
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-gold);
   transition:
     transform 0.5s var(--ease-out),
     box-shadow 0.5s var(--ease-out),
@@ -332,8 +351,8 @@
     color 0.35s var(--ease-out);
 }
 
-/* The disc is the brand blue let through to the white, so at rest the glyph
-   is the loudest thing on the tile and the disc only seats it. */
+/* At rest the tile is amber and the disc a white print seating the blue
+   glyph, so the glyph stays the loudest thing on the tile. */
 .cat__icon {
   grid-column: 1;
   display: grid;
@@ -341,7 +360,7 @@
   width: clamp(48px, 4.2vw, 58px);
   height: clamp(48px, 4.2vw, 58px);
   border-radius: 999px;
-  background: rgb(1 38 186 / 0.07);
+  background: var(--print);
   color: var(--blue);
   transition:
     background-color 0.35s var(--ease-out),
@@ -355,9 +374,9 @@
   place-items: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--rule-hair);
+  border: 1px solid rgb(1 38 186 / 0.35);
   border-radius: 999px;
-  color: var(--ink-faint);
+  color: var(--ink);
   transition:
     transform 0.45s var(--ease-out),
     background-color 0.35s var(--ease-out),

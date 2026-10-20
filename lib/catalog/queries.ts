@@ -4,18 +4,12 @@ import { unstable_cache } from "next/cache";
 import type { DocumentData, Timestamp } from "firebase-admin/firestore";
 import { db } from "@/lib/firebase";
 import type { PriceList } from "./cart";
+import { vocabularyWith, type AddedTerm, type Vocabulary } from "./tags";
 import type { Category, Product } from "./types";
 
 /** Tag for revalidateTag() after the catalogue changes in Firestore. */
 export const CATALOG_TAG = "catalog";
 const CACHE = { tags: [CATALOG_TAG], revalidate: 3600 };
-
-/**
- * TEMPORARY, for testing: SHOW_UNPRICED=1 in .env.local also lists draft
- * (unpriced) products, as "Price on request". Remove once the shop has priced
- * them. Restart the dev server after changing it.
- */
-export const SHOW_UNPRICED = process.env.SHOW_UNPRICED === "1";
 
 /** A product document as the site reads it, filling fields older documents lack. */
 export function productFromDoc(data: DocumentData): Product {
@@ -26,6 +20,8 @@ export function productFromDoc(data: DocumentData): Product {
     personalisation: data.personalisation ?? null,
     // Written by the shop, not the importer, so older documents lack it.
     special: data.special === true,
+    // Picked in the admin; older documents have none.
+    related: Array.isArray(data.related) ? data.related : [],
     createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
     updatedAt: (data.updatedAt as Timestamp).toDate().toISOString(),
   } as Product;
@@ -38,17 +34,13 @@ export function productFromDoc(data: DocumentData): Product {
  */
 const getActiveProducts = unstable_cache(
   async (): Promise<Product[]> => {
-    const products = db().collection("products");
-    // A retired product never shows, even while testing with unpriced drafts.
-    const snap = await (SHOW_UNPRICED
-      ? products.where("status", "in", ["active", "draft"])
-      : products.where("status", "==", "active")
-    ).get();
+    // Only what staff put in the shop: hidden and retired products never show.
+    const snap = await db().collection("products").where("status", "==", "active").get();
     return snap.docs
       .map((doc) => productFromDoc(doc.data()))
       .sort((a, b) => a.name.localeCompare(b.name));
   },
-  ["catalog-products", SHOW_UNPRICED ? "with-unpriced" : "active"],
+  ["catalog-products", "active"],
   CACHE,
 );
 
@@ -58,6 +50,25 @@ export const getCategories = unstable_cache(
     return snap.docs.map((doc) => doc.data() as Category);
   },
   ["catalog-categories"],
+  CACHE,
+);
+
+/** An added term as stored in `terms`, without its timestamp. */
+export function termFromDoc(data: DocumentData): AddedTerm {
+  const { facet, value, label, category } = data;
+  return category ? { facet, value, label, category } : { facet, value, label };
+}
+
+/** Added terms oldest first, so each facet keeps the order they were added in. */
+export const TERMS_QUERY = () => db().collection("terms").orderBy("createdAt");
+
+/**
+ * The shop's vocabulary: the built-in terms and the added ones. Cached with
+ * the catalogue; adding a term clears the cache, so the admin reads it too.
+ */
+export const getVocabulary = unstable_cache(
+  async (): Promise<Vocabulary> => vocabularyWith((await TERMS_QUERY().get()).docs.map((d) => termFromDoc(d.data()))),
+  ["catalog-vocabulary"],
   CACHE,
 );
 

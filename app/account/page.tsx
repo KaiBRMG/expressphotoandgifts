@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 
 /**
  * The customer's account: what it keeps (the details that fill checkout) and
- * the way out; signed out, the way in. Accounts are made after a paid order,
- * from its receipt, so there is no sign-up here.
+ * the way out; signed out, the way in. Accounts are made at checkout, from a
+ * receipt, or by the sign-up at the foot of every page, so there is none here.
  */
 export default async function AccountPage() {
   const customer = await currentCustomer();
@@ -60,7 +60,7 @@ export default async function AccountPage() {
           <section className="costep" aria-label="Sign in">
             <SignInForm />
             <p className="receipt__soft">
-              No account yet? After your first order, the receipt offers to save your details.
+              No account yet? Sign up at the foot of this page, or tick “Save my details” at checkout.
             </p>
           </section>
         )}

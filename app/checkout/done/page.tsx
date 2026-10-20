@@ -3,8 +3,9 @@ import Link from "next/link";
 
 import { currentCustomer } from "@/lib/account/auth";
 import { photoCount, rands } from "@/lib/catalog/listing";
-import { addressLine } from "@/lib/checkout/details";
-import { fileCount, lineWhat, orderForReceipt } from "@/lib/checkout/orders";
+import { addressLine, deliveryLabel, deliveryPrice } from "@/lib/checkout/details";
+import { fileCount, lineWhat } from "@/lib/checkout/order";
+import { orderForReceipt } from "@/lib/checkout/orders";
 import { HOURS, SHOP } from "@/app/site/data";
 import { ArrowRight } from "@/app/site/icons";
 import { CheckoutHead } from "../Head";
@@ -84,6 +85,7 @@ export default async function DonePage({ searchParams }: PageProps<"/checkout/do
                   ) : null}
                   {l.frame?.empty ? <small>Frame only, no print</small> : null}
                   {l.frame?.quote ? <small>We&rsquo;ll quote you for the print</small> : null}
+                  {l.note ? <small>Your note: &ldquo;{l.note}&rdquo;</small> : null}
                 </span>
                 <span>{rands(l.price * l.quantity)}</span>
               </li>
@@ -95,8 +97,8 @@ export default async function DonePage({ searchParams }: PageProps<"/checkout/do
               <dd>{rands(order.subtotal)}</dd>
             </div>
             <div>
-              <dt>{order.fulfilment.method === "collect" ? "Collect from the shop" : `Delivery, ${order.fulfilment.service.name}`}</dt>
-              <dd>{order.delivery === 0 ? "Free" : rands(order.delivery)}</dd>
+              <dt>{deliveryLabel(order.fulfilment)}</dt>
+              <dd>{deliveryPrice(order.delivery)}</dd>
             </div>
           </dl>
           <p className="slip__total receipt__total">

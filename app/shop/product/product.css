@@ -23,7 +23,13 @@
   font-weight: 600;
 }
 
+/* A crumb is a 44px target; the negative margin keeps the line as tall as
+   its text. */
 .crumbs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-block: -12px;
   color: inherit;
   text-decoration: none;
 }
@@ -42,8 +48,10 @@
 
 /* ---- Photograph and counter slip --------------------------------------- */
 
+/* The foot is at least the dock's height, so the last of the buy column can
+   always be scrolled clear of the floating WhatsApp mark. */
 .pdp {
-  padding-block: clamp(18px, 2.6vw, 32px) clamp(52px, 8vw, 100px);
+  padding-block: clamp(18px, 2.6vw, 32px) max(clamp(52px, 8vw, 100px), var(--dock-h));
 }
 
 .pdp__grid {
@@ -195,24 +203,62 @@
   color: var(--ink-soft);
 }
 
-.buy__yours {
+/* What the product needs from the customer's photos: the print area drawn
+   in its own proportions beside the facts, on a faint blue ground so it reads
+   as the shop speaking, not as more description. */
+.needs {
   display: flex;
   align-items: flex-start;
-  gap: 0.6rem;
-  margin: 0;
-  font-size: 1rem;
-  line-height: 1.45;
-  color: var(--ink-soft);
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-sm);
+  background: rgb(1 38 186 / 0.05);
 }
 
-.buy__yours svg {
+.needs > svg {
   flex: none;
   color: var(--blue);
 }
 
-.buy__yours strong {
+.needs__outline {
+  fill: var(--print);
+  stroke: var(--blue);
+  stroke-width: 1.6;
+  stroke-dasharray: 3 2.5;
+}
+
+.needs__copy {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.needs__takes {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.4;
   color: var(--ink);
+}
+
+.needs__takes strong {
   font-weight: 600;
+}
+
+/* A measurement, so it is set as one. */
+.needs__area {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.needs__how {
+  margin: 0;
+  max-width: 52ch;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
 }
 
 /* ---- Options ----------------------------------------------------------- */
@@ -385,24 +431,6 @@
   min-height: 54px;
   white-space: normal;
   text-align: center;
-}
-
-/* The cart is not open yet. It holds its place in the layout it will have,
-   but wears no amber and no glow, so it never reads as the way forward. */
-.btn--soon {
-  background: var(--print);
-  border-color: var(--rule-hair);
-  color: var(--ink-soft);
-  cursor: not-allowed;
-}
-
-.btn--soon:active {
-  transform: none;
-}
-
-.btn__soon {
-  font-weight: 400;
-  color: var(--ink-faint);
 }
 
 .buy__note {

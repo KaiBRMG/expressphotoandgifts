@@ -113,6 +113,12 @@ export type Product = {
    * The discount or bundle behind a special is a later pass.
    */
   special: boolean;
+  /**
+   * Hand-picked for its "Goes with this" row, by slug, in the order shown:
+   * staff choose them in the admin, and the importer never writes them.
+   * Products matched by size ("fits:"/"holds:") fill the row after these.
+   */
+  related: string[];
   currency: Currency;
   options: ProductOption[];
   variants: ProductVariant[];

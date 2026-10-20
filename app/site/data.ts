@@ -229,8 +229,9 @@ export type Category = {
   slug: string;
   /**
    * The one card drawn in brand blue at rest. Specials is the shelf that
-   * changes, so it is the one worth a second look; one blue card in eight is
-   * an accent, two would be a pattern.
+   * changes, so it is the one worth a second look; one blue card in seven is
+   * an accent, two would be a pattern. It is also the one tile two columns
+   * wide, so seven tiles close both grids without a gap.
    */
   feature?: boolean;
 };
@@ -242,7 +243,6 @@ export const CATEGORIES: Category[] = [
   { name: "Photo Gifts", slug: "photo-gifts" },
   { name: "Add-ons & Supplies", slug: "add-ons" },
   { name: "Jewellery", slug: "jewellery" },
-  { name: "Cameras", slug: "cameras" },
   { name: "Gift Wrapping", slug: "gift-wrapping" },
   { name: "Specials", slug: "specials", feature: true },
 ];

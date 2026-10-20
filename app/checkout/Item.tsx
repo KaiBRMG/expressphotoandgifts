@@ -11,7 +11,9 @@ import { Alert, Check, Plus } from "@/app/site/icons";
 import { ProductImage } from "@/app/site/ProductImage";
 import { QuantityStepper } from "@/app/site/QuantityStepper";
 import { Cropped } from "./Cropped";
-import { photoSrc, WORKING } from "./images";
+import { CharsLeft } from "./Field";
+import { WORKING } from "@/lib/checkout/photoUrls";
+import { photoSrc } from "./images";
 import { DRAG_TYPE, renderOf, slotId, target, type Row } from "./model";
 import { photos, type Photo, type PhotoState, type Placed, type Target } from "./photoStore";
 
@@ -215,11 +217,7 @@ function Words({ value, onChange, which }: { value: string; onChange: (v: string
         autoComplete="off"
         onChange={(e) => onChange(e.target.value)}
       />
-      {value.length > WORDS_MAX - 20 ? (
-        <p className="words__count">
-          {WORDS_MAX - value.length} {WORDS_MAX - value.length === 1 ? "character" : "characters"} left
-        </p>
-      ) : null}
+      <CharsLeft value={value} max={WORDS_MAX} />
     </div>
   );
 }
