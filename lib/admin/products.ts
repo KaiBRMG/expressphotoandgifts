@@ -196,6 +196,7 @@ export async function createProduct(input: { name: string; code: string; categor
       specifications: [],
       careNotes: null,
       personalisation: null,
+      box: null,
       tags: [],
       special: false,
       related: [],

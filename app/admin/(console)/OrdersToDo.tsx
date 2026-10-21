@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { countOrders } from "@/lib/admin/orders";
+import type { CheckRecord } from "@/lib/admin/payments";
+import { whenInline } from "../when";
 import { Alert, ArrowRight, Check } from "@/app/site/icons";
 
 /** The stages still to work through, and what each asks of the shop. */
@@ -13,7 +15,7 @@ const STEPS = [
  * Paid orders not yet done, by stage, and orders with something to look at
  * (a payment that didn't match, or money taken twice), which come first.
  */
-export function OrdersToDo({ counts }: { counts: Awaited<ReturnType<typeof countOrders>> }) {
+export function OrdersToDo({ counts, check, now }: { counts: Awaited<ReturnType<typeof countOrders>>; check: CheckRecord | null; now: string }) {
   const todo = STEPS.reduce((n, s) => n + counts.stages[s.stage], 0);
   const look = counts.flagged;
   const lines = STEPS.map((s) => ({ ...s, count: counts.stages[s.stage] })).filter((s) => s.count > 0);
@@ -68,6 +70,17 @@ export function OrdersToDo({ counts }: { counts: Awaited<ReturnType<typeof count
           ))}
         </ul>
       )}
+      <p className="widget__note dash__pay">
+        <Link href="/admin/payments" className="admin-link">
+          {!check
+            ? "Payments not checked against PayFast yet"
+            : !check.ok
+              ? "PayFast couldn’t be read at the last check"
+              : check.exceptions
+                ? `${check.exceptions} ${check.exceptions === 1 ? "payment needs" : "payments need"} a look`
+                : `Payments checked ${whenInline(check.at, now)}: all match`}
+        </Link>
+      </p>
     </section>
   );
 }

@@ -96,6 +96,9 @@ export function rands(cents: number): string {
   return `R${value}`;
 }
 
+/** `rands` with a true minus for money going out: "−R10", never "R-10". */
+export const signedRands = (cents: number) => (cents < 0 ? `−${rands(-cents)}` : rands(cents));
+
 /** "R75", or "from R68" when the variants differ. */
 export function priceLabel(l: Pick<Listing, "min" | "max">): string {
   if (l.min === null) return "Price on request";

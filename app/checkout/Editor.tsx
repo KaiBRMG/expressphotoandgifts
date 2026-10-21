@@ -349,6 +349,11 @@ export function Editor({
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
+          onLostPointerCapture={onPointerUp}
+          onBlur={() => {
+            pointers.current.clear();
+            pinch.current = null;
+          }}
           onKeyDown={onKeyDown}
         >
           {px ? stageView : <p className="editor__wait">Preparing your photo…</p>}

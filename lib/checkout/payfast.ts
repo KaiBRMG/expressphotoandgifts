@@ -1,9 +1,10 @@
 import "server-only";
 
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash } from "node:crypto";
 import { lookup } from "node:dns/promises";
 
 import { SHOP } from "@/app/site/data";
+import { safeEqual } from "@/lib/secure";
 import { receiptPath, type Attempt, type Checkout, type Notice } from "./order";
 import { siteUrl } from "./site";
 
@@ -42,6 +43,12 @@ export const payfastReady = () => config() !== null;
 /** Whether payments go to PayFast's sandbox (PAYFAST_SANDBOX=true), where no money moves. */
 export const payfastSandbox = () => config()?.host === "sandbox.payfast.co.za";
 
+/** What PayFast's API (`lib/checkout/payfastApi.ts`) signs with: the same merchant and passphrase as payments. */
+export function payfastCredentials() {
+  const c = config();
+  return c ? { merchantId: c.merchantId, passphrase: c.passphrase, sandbox: c.host === "sandbox.payfast.co.za" } : null;
+}
+
 /** Whether checkout should offer PayFast's Onsite window. */
 export const payfastOnsite = () => config()?.onsite ?? false;
 
@@ -73,9 +80,6 @@ const postForm = (url: string, body: string) =>
     signal: AbortSignal.timeout(10_000),
   });
 
-/** Two signatures compared without giving away, by how long it takes, how much of one matched. */
-const sameSignature = (given: string | undefined, expected: string) =>
-  given !== undefined && given.length === expected.length && timingSafeEqual(Buffer.from(given), Buffer.from(expected));
 
 /**
  * Builds the payment for one attempt: the redirect form, and with `onsite`,
@@ -212,7 +216,7 @@ export async function readNotice(body: string, ip: string | null): Promise<ReadN
   // Signed as posted: in PayFast's order, values untrimmed, blanks kept.
   const at = pairs.findIndex(([k]) => k === "signature");
   const params = paramString(at === -1 ? pairs : pairs.slice(0, at));
-  if (!sameSignature(fields.signature, sign(params, c.passphrase))) return { ok: false, reason: "signature mismatch", signed: false };
+  if (!safeEqual(fields.signature, sign(params, c.passphrase))) return { ok: false, reason: "signature mismatch", signed: false };
 
   const notice: Notice = {
     attempt: fields.m_payment_id ?? "",

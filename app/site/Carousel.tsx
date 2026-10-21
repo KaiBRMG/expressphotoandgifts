@@ -2,6 +2,8 @@ import type { CSSProperties } from "react";
 
 import Link from "next/link";
 
+import { getProducts } from "@/lib/catalog/queries";
+
 import { CAROUSEL } from "./data";
 import { ArrowLeft, ArrowRight } from "./icons";
 import { ProductImage } from "./ProductImage";
@@ -42,7 +44,13 @@ const UNIQUE = CAROUSEL.length / 2;
  * `Motion.tsx` reveals them, because without the script they would be two
  * buttons that do nothing.
  */
-export function Carousel() {
+export async function Carousel() {
+  /* Each frame is named by the shop's product code. Staff can change a
+     product's web address, so the address is looked up from the catalogue
+     rather than written here. A product that is not on sale (or is not
+     found) sends the visitor to the full catalogue instead of a 404. */
+  const slugByCode = new Map((await getProducts()).map((p) => [p.code, p.slug]));
+
   return (
     <div className="carousel" style={{ "--mid": MID, "--count": CAROUSEL.length } as CSSProperties}>
       <div className="carousel__viewport">
@@ -60,8 +68,11 @@ export function Carousel() {
                 /* The cycle is laid down twice, so the source alone is not
                    unique — the place on the wheel is. */
                 key={`${n}-${print.src}`}
-                href="/shop"
-                /* The catalogue page ships in a later pass; see ServiceCards. */
+                href={
+                  slugByCode.has(print.src)
+                    ? `/shop/product/${slugByCode.get(print.src)}`
+                    : "/shop/all"
+                }
                 prefetch={false}
                 style={{ "--n": n } as CSSProperties}
                 {...(repeat

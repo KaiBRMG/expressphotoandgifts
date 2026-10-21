@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   if (!read.ok && read.retry) return new Response("Try again", { status: 503 });
 
   try {
-    const applied = await applyNotice(read.notice, read.ok ? undefined : read.reason);
+    const applied = await applyNotice(read.notice, { refused: read.ok ? undefined : read.reason });
     if (applied.outcome === "paid") after(() => afterPaid(applied.order));
     else if (applied.outcome !== "already") console.error("PayFast notice", read.notice.attempt, read.notice.pfPaymentId, applied.outcome);
     return new Response("OK");

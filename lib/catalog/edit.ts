@@ -10,6 +10,7 @@ import { optionKey, parseArea } from "./sizes";
 import { photoCount } from "./listing";
 import { findTerm, hasFacet, isKnownFilterTag, tagValues, type Facet, type Vocabulary } from "./tags";
 import type { Product, ProductOption, ProductVariant } from "./types";
+import { isBox } from "@/lib/checkout/boxes";
 
 /** Everything staff edit. Slug, timestamps and the price range are not typed by hand. */
 export type ProductDraft = Pick<
@@ -24,6 +25,7 @@ export type ProductDraft = Pick<
   | "specifications"
   | "careNotes"
   | "personalisation"
+  | "box"
   | "tags"
   | "options"
   | "variants"
@@ -42,6 +44,7 @@ export function toDraft(p: Product): ProductDraft {
     specifications: p.specifications,
     careNotes: p.careNotes,
     personalisation: p.personalisation,
+    box: p.box,
     tags: p.tags,
     options: p.options,
     variants: p.variants,
@@ -97,7 +100,7 @@ const SECTIONS: Record<Place | "visibility", (d: ProductDraft) => unknown> = {
   photos: (d) => d.media,
   page: (d) => [d.name, d.description, d.specifications, d.careNotes, d.related, facetsOf(d, ["holds", "fits"])],
   prices: (d) => [d.options, d.variants],
-  checkout: (d) => [d.personalisation, d.tags.filter(isCustomerTag)],
+  checkout: (d) => [d.personalisation, d.tags.filter(isCustomerTag), d.box],
   records: (d) => [d.code, facetsOf(d, ["process"])],
 };
 
@@ -468,6 +471,7 @@ export function cleanDraft(d: ProductDraft, vocab: Vocabulary): ProductDraft {
     specifications: d.specifications.map((s) => String(s).trim()).filter(Boolean),
     careNotes: typeof d.careNotes === "string" ? d.careNotes.trim() || null : null,
     personalisation: d.personalisation ? { kind: d.personalisation.kind === "print" ? "print" : "gift", text: d.personalisation.text === true } : null,
+    box: isBox(d.box) ? d.box : null,
     tags: d.personalisation ? tags : tags.filter((t) => !isCustomerTag(t)),
     options,
     variants: d.variants.map((v) => {

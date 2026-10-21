@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 import type { DocumentData, Timestamp } from "firebase-admin/firestore";
 import { db } from "@/lib/firebase";
 import type { PriceList } from "./cart";
+import { isBox } from "@/lib/checkout/boxes";
 import { vocabularyWith, type AddedTerm, type Vocabulary } from "./tags";
 import type { Category, Product } from "./types";
 
@@ -18,6 +19,8 @@ export function productFromDoc(data: DocumentData): Product {
     tags: data.tags ?? [],
     // Absent from documents imported before it existed.
     personalisation: data.personalisation ?? null,
+    // Chosen in the admin; older documents have none.
+    box: isBox(data.box) ? data.box : null,
     // Written by the shop, not the importer, so older documents lack it.
     special: data.special === true,
     // Picked in the admin; older documents have none.

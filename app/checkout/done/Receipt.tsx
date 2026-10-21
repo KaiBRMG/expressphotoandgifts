@@ -6,9 +6,10 @@ import { useEffect, useState } from "react";
 import { cart } from "@/app/site/cartStore";
 import { Check } from "@/app/site/icons";
 import { createAccountFromOrder, type AccountState } from "@/app/account/actions";
+import { clearDraft } from "../draft";
 import { NewPasswordField } from "../Field";
 import { photos, usePhotos } from "../photoStore";
-import { receiptStatus } from "./actions";
+import { receiptStamp, receiptStatus } from "./actions";
 
 /** Listening for PayFast's notice: every few seconds at first, less often as it takes longer, and not for ever. */
 const FIRST_MS = 2_500;
@@ -27,6 +28,7 @@ export function Finish({ ref_ }: { ref_: string }) {
     if (store.ref !== ref_) return;
     cart.clear();
     photos.finish();
+    clearDraft();
   }, [store.ref, ref_]);
   return (
     <p className="receipt__paid" role="status">
@@ -78,6 +80,44 @@ export function Waiting({ ref_, token }: { ref_: string; token: string }) {
         : "Waiting for PayFast to confirm…"}
     </p>
   );
+}
+
+/** While the receipt is open: how often it asks whether the order has changed, and for how long. */
+const LIVE_MS = 60_000;
+const LIVE_FOR_MS = 30 * 60_000;
+
+/**
+ * Keeps the tracking current while the customer watches: every minute the
+ * tab is in view, and at once when it comes back into view, asks when the
+ * order last changed, and redraws from the server only when it has. Stops
+ * after half an hour; a reload starts it again.
+ */
+export function LiveTracking({ ref_, token, stamp }: { ref_: string; token: string; stamp: string }) {
+  const router = useRouter();
+  useEffect(() => {
+    let last = 0;
+    const check = async () => {
+      if (document.hidden) return;
+      last = Date.now();
+      const now = await receiptStamp(ref_, token).catch(() => null);
+      if (now && now !== stamp) router.refresh();
+    };
+    const onShow = () => {
+      if (!document.hidden && Date.now() - last > LIVE_MS) check();
+    };
+    const timer = setInterval(check, LIVE_MS);
+    const stop = () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onShow);
+    };
+    const end = setTimeout(stop, LIVE_FOR_MS);
+    document.addEventListener("visibilitychange", onShow);
+    return () => {
+      stop();
+      clearTimeout(end);
+    };
+  }, [ref_, token, stamp, router]);
+  return null;
 }
 
 /** One field: a password, to save this order's details for next time. */

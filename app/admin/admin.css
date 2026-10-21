@@ -2487,6 +2487,120 @@
   justify-items: end;
 }
 
+/*
+ * The order's next step: what staff do now, held under the page head as
+ * they scroll, so the next press is never more than a glance away. Tinted
+ * blue when it's staff's move, red-edged when something's wrong, plain
+ * hairline when they're waiting on someone else or it's done.
+ */
+.onext {
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 28px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  border: 1px solid var(--rule-card);
+  border-radius: 18px;
+  background: var(--paper);
+}
+
+@media (min-width: 62rem) {
+  .onext {
+    position: sticky;
+    top: 12px;
+    box-shadow: 0 16px 30px -26px rgb(1 38 186 / 0.55);
+  }
+}
+
+.onext--act {
+  border-color: rgb(1 38 186 / 0.35);
+  background: color-mix(in srgb, var(--blue) 5%, var(--paper));
+}
+
+.onext--alert {
+  border-color: var(--mantine-color-red-8);
+  background: color-mix(in srgb, var(--mantine-color-red-8) 5%, var(--paper));
+}
+
+.onext__text {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 28rem;
+  min-width: 0;
+}
+
+.onext__title {
+  font-size: clamp(1.2rem, 1.8vw, 1.4rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.onext--done .onext__title,
+.onext--wait .onext__title {
+  font-size: 1.125rem;
+}
+
+.onext__detail {
+  max-width: 70ch;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.onext__acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.onext__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid var(--blue);
+  border-radius: var(--mantine-radius-default, 8px);
+  background: var(--blue);
+  color: var(--on-leather);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.2s var(--ease-out), color 0.2s var(--ease-out);
+}
+
+.onext__btn:hover {
+  background: color-mix(in srgb, var(--blue) 86%, black);
+}
+
+.onext__btn:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+
+.onext__btn--quiet {
+  background: transparent;
+  color: var(--ink);
+}
+
+.onext__btn--quiet:hover {
+  background: color-mix(in srgb, var(--blue) 8%, var(--paper));
+}
+
+.onext--alert .onext__btn {
+  border-color: var(--mantine-color-red-8);
+  background: var(--mantine-color-red-8);
+}
+
+/* The part the next step jumps to lands below the held bar, not under it. */
+.order .osec__title {
+  scroll-margin-top: 170px;
+}
+
 .order .back {
   margin-bottom: 8px;
 }
@@ -2732,6 +2846,277 @@
   }
 }
 
+/* ---- Payments ------------------------------------------------------------- */
+
+.pay__check {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.pay__checked {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  text-align: right;
+}
+
+/* A quiet tinted strip: PayFast's status when it reports trouble, and an order's missed payment to accept. */
+.pay__status,
+.opay__accept {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgb(1 38 186 / 0.05);
+  line-height: 1.5;
+}
+
+.pay__status {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 72ch;
+  margin-bottom: 24px;
+}
+
+.pay__status svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--mantine-color-red-8);
+}
+
+.pay__months {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.pay__step {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  color: var(--ink);
+  transition:
+    background-color 0.15s var(--ease-out),
+    border-color 0.15s var(--ease-out);
+}
+
+a.pay__step:hover {
+  border-color: var(--blue);
+  background: rgb(1 38 186 / 0.06);
+}
+
+a.pay__step:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.pay__step--off {
+  color: var(--ink-faint);
+  opacity: 0.4;
+}
+
+.pay__month {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-width: 12ch;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.pay__sandbox {
+  padding: 1px 10px;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+
+/* The page's answer: ruled, not boxed, and the largest words on it after the title. */
+.pay__verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 8px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--rule-paper);
+}
+
+.pay__verdict svg {
+  flex: none;
+  margin-top: 4px;
+  color: var(--blue);
+}
+
+.pay__verdict--bad svg {
+  color: var(--mantine-color-red-8);
+}
+
+.pay__verdictText {
+  font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.pay__verdictMore {
+  margin-top: 4px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pay__foot {
+  margin-top: 16px;
+}
+
+.ledger__when {
+  width: 9.5rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger__whenInline {
+  display: none;
+}
+
+.ledger__how {
+  display: block;
+  color: var(--ink-faint);
+}
+
+.ledger__kind {
+  margin-top: 2px;
+}
+
+.ledger__what {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ledger__why {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  margin-top: 8px;
+}
+
+.ledger__fix {
+  max-width: 60ch;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.ledger__row--look {
+  background: rgb(1 38 186 / 0.03);
+}
+
+.ledger__row--quiet .ledger__what,
+.ledger__row--quiet .plist__num {
+  font-weight: 500;
+  color: var(--ink-faint);
+}
+
+.ledger .flag {
+  text-decoration: none;
+}
+
+/* On the dashboard: the payments line under the orders it is about. */
+.dash__pay {
+  margin-top: 4px;
+  border-top: 1px solid var(--rule-paper);
+  padding-top: 12px;
+}
+
+/* On an order: accepting PayFast's record, and asking PayFast. */
+.opay__accept {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.opay__check {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.opay__ask {
+  margin-left: 0;
+}
+
+.opay__said {
+  line-height: 1.5;
+}
+
+.opay__said .osec__soft {
+  display: block;
+}
+
+@media (max-width: 46rem) {
+  .pay__check {
+    justify-items: start;
+  }
+
+  .pay__checked {
+    text-align: left;
+  }
+
+  .ledger .plist__row.ledger__row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "main main main"
+      "a b c";
+  }
+
+  .ledger__when {
+    display: none !important;
+  }
+
+  .ledger__kind {
+    display: none;
+  }
+
+  .ledger__whenInline {
+    display: block;
+    margin-top: 2px;
+    color: var(--ink-soft);
+  }
+
+  .ledger__amount {
+    text-align: left;
+  }
+
+  .ledger__amount::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--ink-soft);
+    font-weight: 400;
+  }
+
+  .ledger__amount:nth-of-type(3) {
+    grid-area: a;
+  }
+
+  .ledger__amount:nth-of-type(4) {
+    grid-area: b;
+  }
+
+  .ledger__amount:nth-of-type(5) {
+    grid-area: c;
+  }
+}
+
 /* ---- The 16px floor ---------------------------------------------------------
    No text under 16px on a phone, controls included: mobile Safari zooms into
    any field set smaller. */
@@ -2774,6 +3159,8 @@
   .osec__soft,
   .ophoto__label,
   .ophoto__open,
+  .pay__checked,
+  .pay__sandbox,
   .mantine-InputWrapper-description {
     font-size: 1rem;
   }
@@ -2783,4 +3170,185 @@
     --mantine-font-size-xs: 1rem;
     --mantine-font-size-sm: 1rem;
   }
+}
+
+/* ---- Courier --------------------------------------------------------------- */
+
+/* Booking a waybill: parcels, collection and extras as three plain groups, then TCG's price for exactly that. */
+.waybill {
+  gap: 18px;
+}
+
+.boxes__name {
+  flex: 1 1 12rem;
+  max-width: 16rem;
+}
+
+.boxes__num {
+  flex: 0 1 8rem;
+  min-width: 7rem;
+}
+
+.waybill__group,
+.boxes__group {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.waybill__group > .osec__sub,
+.boxes__group > .osec__sub {
+  margin: 0;
+  padding: 0;
+}
+
+.waybill__group .osec__more {
+  width: fit-content;
+  margin-top: 0;
+  font-size: 1rem;
+  text-align: left;
+}
+
+.waybill__extras {
+  display: grid;
+  gap: 18px;
+}
+
+.waybill__extraGroup {
+  display: grid;
+  gap: 10px;
+}
+
+.waybill__extraTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.waybill__extraTitle .osec__soft {
+  display: block;
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+/* A choice's label runs the width of the panel, its charge at the right edge. */
+.waybill__wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.waybill__extraLabel {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.waybill__extraLabel .osec__soft {
+  font-size: 1rem;
+}
+
+.waybill__services {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.waybill__price {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--rule-hair);
+  border-radius: 12px;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.waybill__price p {
+  margin: 0;
+}
+
+.waybill__price .osec__soft {
+  font-size: 1rem;
+}
+
+.waybill__price--wait {
+  color: var(--ink-soft);
+}
+
+/* Over what the customer paid, or no price at all: the console's "needs a look", a blue ground and a red mark. */
+.waybill__price--over,
+.waybill__price--bad {
+  background: rgb(1 38 186 / 0.05);
+}
+
+.waybill__price--bad {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.waybill__price svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--mantine-color-red-8);
+}
+
+.waybill__priceMain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  align-items: flex-start;
+}
+
+.waybill__priceMain strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.osec__sub--split {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule-hair);
+}
+
+/* Proof of delivery: the driver's photos, as the order's own photos are shown. */
+.pod {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.pod__photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pod__photo {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--rule-card);
+  border-radius: 12px;
+  background: rgb(1 38 186 / 0.05);
+}
+
+.pod__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pod__photo:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
 }

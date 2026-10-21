@@ -5,7 +5,8 @@ import { headers } from "next/headers";
 import { createAccount, currentCustomer, detailsFrom } from "@/lib/account/auth";
 import { cartSubtotal } from "@/lib/catalog/cart";
 import { clampQuantity } from "@/lib/catalog/purchase";
-import { getPriceList } from "@/lib/catalog/queries";
+import { getProducts } from "@/lib/catalog/queries";
+import { boxForOrder } from "@/lib/checkout/boxes";
 import { quote } from "@/lib/checkout/courier";
 import { addressErrors, cleanAddress, hasErrors, readAddress } from "@/lib/checkout/details";
 import { readOrderInput, type Checkout, type Quote } from "@/lib/checkout/order";
@@ -28,14 +29,26 @@ const PAYMENT_OFF = "Online payment isn’t switched on yet. Please call the sho
  */
 const payAllowed = rateLimit(30, 10 * 60 * 1000);
 
-/** Courier services to an address, for the cart as it stands. */
+/**
+ * Each quote is a call to The Courier Guy with the shop's key, whose API
+ * limits its rate and forbids excessive automated use: enough here for a
+ * customer trying several addresses, too few for a script to get the
+ * shop's account throttled.
+ */
+const quoteAllowed = rateLimit(40, 10 * 60 * 1000);
+
+/** Courier services to an address, for the cart as it stands: its worth, for the cover, and its box. */
 export async function quoteDelivery(rawAddress: unknown, lines: { sku: string; quantity: number }[]): Promise<Quote> {
   const address = readAddress(rawAddress);
   if (!address || hasErrors(addressErrors(address)) || !Array.isArray(lines)) return { ok: false, reason: "no-service" };
-  const prices = await getPriceList();
-  // The order's worth, for the courier's cover.
-  const value = cartSubtotal(lines.slice(0, 100).map((l) => ({ price: prices[String(l.sku)] ?? 0, quantity: clampQuantity(Number(l.quantity)) })));
-  return quote(cleanAddress(address), value);
+  if (!quoteAllowed(callerIp(await headers()) ?? "unknown")) return { ok: false, reason: "unavailable" };
+  const bySku = new Map((await getProducts()).flatMap((p) => p.variants.map((v) => [v.sku, { p, v }] as const)));
+  const known = lines.slice(0, 100).flatMap((l) => {
+    const found = bySku.get(String(l?.sku));
+    return found && found.v.price !== null ? [{ ...found, quantity: clampQuantity(Number(l.quantity)) }] : [];
+  });
+  const value = cartSubtotal(known.map((k) => ({ price: k.v.price!, quantity: k.quantity })));
+  return quote(cleanAddress(address), value, boxForOrder(known.map((k) => k.p.box)));
 }
 
 export type PlaceResult =

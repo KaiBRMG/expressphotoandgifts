@@ -1,9 +1,11 @@
 import "server-only";
 
+import { after } from "next/server";
 import { cache } from "react";
 import { auth, db } from "@/lib/firebase";
 import { checkPassword, isStaffEmail, sendPasswordReset, sessionCookie } from "@/lib/identity";
 import { passwordError, type Address, type Contact } from "@/lib/checkout/details";
+import { sendWelcome } from "@/lib/checkout/emails";
 import type { Order } from "@/lib/checkout/order";
 
 /**
@@ -37,10 +39,10 @@ export async function signIn(email: string, password: string): Promise<Customer 
   return { uid: checked.uid, email: checked.email };
 }
 
-/** What an order says about its customer, as an account keeps it. */
+/** What an order says about its customer, as an account keeps it. A gift sent to someone else is their address, not the customer's. */
 export const detailsFrom = (order: Pick<Order, "contact" | "fulfilment">): SavedDetails => ({
   contact: order.contact,
-  address: order.fulfilment.method === "courier" ? order.fulfilment.address : null,
+  address: order.fulfilment.method === "courier" && !order.fulfilment.recipient ? order.fulfilment.address : null,
 });
 
 /**
@@ -68,6 +70,8 @@ export async function createAccount(rawEmail: string, password: string, details:
     return { error: "We couldn’t make your account just now. Try again in a little while." };
   }
   const [, signedIn] = await Promise.all([details ? saveDetails(uid, details) : null, signIn(email, password)]);
+  // The welcome goes after the response, so signing up doesn't wait on the mail.
+  after(() => sendWelcome(email, details?.contact.firstName.trim() || null, uid));
   return "error" in signedIn ? signedIn : { uid };
 }
 

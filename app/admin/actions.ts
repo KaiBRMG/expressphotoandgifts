@@ -5,7 +5,14 @@ import { redirect } from "next/navigation";
 import { requireAdmin, sendPasswordReset, signIn, signOut } from "@/lib/admin/auth";
 import { uploadTicket, type UploadTicket } from "@/lib/admin/cloudinary";
 import * as orders from "@/lib/admin/orders";
+import * as payments from "@/lib/admin/payments";
+import type { Boxes } from "@/lib/checkout/boxes";
+import { saveOrderRecipients, saveShippingBoxes, SETTINGS_TAG } from "@/lib/settings";
+import type { OrderActionResult } from "@/lib/checkout/order";
 import * as store from "@/lib/admin/products";
+import type { OrderEmail } from "@/lib/checkout/emails";
+import type { Direction } from "@/lib/checkout/courier";
+import * as shipments from "@/lib/checkout/shipments";
 import type { FieldError, SaveResult, VisibilityChange, VisibilityResult } from "@/lib/admin/products";
 import type { AddableFacet, AddedTerm } from "@/lib/catalog/tags";
 import { normaliseCode, STATUSES, type ProductDraft } from "@/lib/catalog/edit";
@@ -115,9 +122,78 @@ export async function resolveOrderIssuesAction(ref: string, note: string) {
   return orders.resolveIssues(String(ref), note, admin.email);
 }
 
-export async function resendOrderEmailAction(ref: string, who: "shop" | "customer") {
+export async function resendOrderEmailAction(ref: string, who: OrderEmail) {
   const admin = await requireAdmin();
   return orders.resendEmail(String(ref), who, admin.email);
+}
+
+/* ---- PayFast: read only, except accepting a payment its history shows and its notice missed. ---- */
+
+/** Checks PayFast's history for a month ("2026-10"), flagging each exception on its order. */
+export async function checkPaymentsAction(month: string): Promise<OrderActionResult> {
+  const admin = await requireAdmin();
+  const asked = payments.parseMonth(month);
+  if (!asked) return { error: "That isn’t a month that has started." };
+  const check = await payments.runCheck(admin.email, payments.monthRange(asked));
+  return check.ok ? { ok: true } : { error: check.error };
+}
+
+export async function acceptPayfastRecordAction(ref: string) {
+  const admin = await requireAdmin();
+  return payments.acceptFromPayfast(String(ref), admin.email);
+}
+
+export async function checkCardPaymentAction(ref: string) {
+  const admin = await requireAdmin();
+  return payments.checkCard(String(ref), admin.email);
+}
+
+/* ---- The courier: booking (out, or a return), settling a booking that didn't finish, cancelling, status and proof of delivery. ---- */
+
+const direction = (which: unknown): Direction => (which === "return" ? "return" : "out");
+
+/** The account's extras for the booking form. */
+export async function courierExtrasAction(ref: string, which: Direction) {
+  await requireAdmin();
+  return shipments.extrasFor(String(ref), direction(which));
+}
+
+/** TCG's price for the waybill as set up in the booking form. */
+export async function previewShipmentAction(ref: string, which: Direction, parcels: unknown, options: unknown) {
+  await requireAdmin();
+  return shipments.previewWaybill(String(ref), direction(which), parcels, options);
+}
+
+/** `parcels`: the boxes packed, each with its weight in kg; `options`: collection day, hours and extras; `service`: a return's service code. */
+export async function bookShipmentAction(ref: string, which: Direction, parcels: unknown, options: unknown, service?: string) {
+  const admin = await requireAdmin();
+  return shipments.bookShipment(String(ref), direction(which), parcels, options, service, admin.email);
+}
+
+export async function lookUpShipmentAction(ref: string, which: Direction) {
+  const admin = await requireAdmin();
+  return shipments.lookUpShipment(String(ref), direction(which), admin.email);
+}
+
+export async function markNotBookedAction(ref: string, which: Direction) {
+  const admin = await requireAdmin();
+  return shipments.markNotBooked(String(ref), direction(which), admin.email);
+}
+
+export async function cancelShipmentAction(ref: string, which: Direction) {
+  const admin = await requireAdmin();
+  return shipments.cancelOrderShipment(String(ref), direction(which), admin.email);
+}
+
+export async function refreshShipmentAction(ref: string, which: Direction) {
+  const admin = await requireAdmin();
+  return shipments.syncShipment(String(ref), { which: direction(which), staff: admin.email });
+}
+
+/** The delivered waybill's proof of delivery, as signed links read from TCG now. */
+export async function proofOfDeliveryAction(ref: string, which: Direction) {
+  await requireAdmin();
+  return shipments.proofFor(String(ref), direction(which));
 }
 
 export async function uploadTicketAction(code: string): Promise<UploadTicket | { error: string }> {
@@ -125,4 +201,20 @@ export async function uploadTicketAction(code: string): Promise<UploadTicket | {
   const c = normaliseCode(code);
   if (!c) return { error: "Give the product its product code before adding photos." };
   return uploadTicket(c);
+}
+
+/** Saves who the shop's new-order email goes to: any number of addresses, or none. */
+export async function saveOrderRecipientsAction(emails: string[]): Promise<{ ok: true; emails: string[] } | { error: string }> {
+  const admin = await requireAdmin();
+  const result = await saveOrderRecipients(emails, admin.email);
+  if ("ok" in result) updateTag(SETTINGS_TAG);
+  return result;
+}
+
+/** Saves the name, size and packed weight of each box the shop ships in. */
+export async function saveShippingBoxesAction(boxes: Boxes): Promise<{ ok: true; boxes: Boxes } | { error: string }> {
+  const admin = await requireAdmin();
+  const result = await saveShippingBoxes(boxes, admin.email);
+  if ("ok" in result) updateTag(SETTINGS_TAG);
+  return result;
 }

@@ -215,7 +215,7 @@ export default function Home() {
                 <h3 className="way__name">We send it</h3>
                 <p className="way__blurb">
                   Wrapped at the counter and handed to the courier for the last
-                  leg, to your door or to theirs, or a locker (if available).
+                  leg, to your door or to theirs.
                 </p>
                 {/* The courier's own mark: the evidence behind the sentence
                     above it. */}

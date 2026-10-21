@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { cartSubtotal, cartUnits, liveLines } from "@/lib/catalog/cart";
 import type { Needs } from "@/lib/catalog/checkout";
@@ -12,19 +12,23 @@ import {
   contactErrors,
   EMPTY_ADDRESS,
   EMPTY_CONTACT,
+  EMPTY_RECIPIENT,
   hasErrors,
   LIMITS,
   passwordError,
   PROVINCES,
+  recipientErrors,
   type Address,
   type Contact,
+  type Recipient,
 } from "@/lib/checkout/details";
 import { MIN_PAYMENT, type DeliveryOption, type OrderInput, type Quote } from "@/lib/checkout/order";
 import type { SavedDetails } from "@/lib/account/auth";
 import { cart, useCart } from "@/app/site/cartStore";
 import { HOURS, SHOP } from "@/app/site/data";
-import { Alert, ArrowRight, Check, Parcel, Pin } from "@/app/site/icons";
+import { Alert, ArrowRight, Parcel, Pin } from "@/app/site/icons";
 import { signInForCheckout, signOutAction } from "@/app/account/actions";
+import { clearDraft, DRAFT_KEY, useDockHeight } from "../draft";
 import { CheckoutHead } from "../Head";
 import { problems, progress, rowsFor, useHydrated } from "../model";
 import { orderLines } from "../order";
@@ -34,9 +38,8 @@ import { Field, inputProps, NewPasswordField } from "../Field";
 import { pay } from "./pay";
 import { Review } from "./Review";
 
-/** What this device remembers between visits: a convenience, never the order itself. */
-const DRAFT_KEY = "epg:details:v1";
-type Draft = { contact: Contact; address: Address; method: "collect" | "courier" };
+/** What this device remembers between visits (`DRAFT_KEY`): a convenience, never the order itself. */
+type Draft = { contact: Contact; address: Address; method: "collect" | "courier"; toSomeone: boolean; recipient: Recipient };
 
 function readDraft(): Partial<Draft> {
   try {
@@ -54,7 +57,7 @@ const merge = <T extends object>(base: T, ...from: (Partial<T> | null | undefine
   ) as T;
 
 /** The fields in the order they are read, so the first one wrong is the one focused. */
-const FIELD_ORDER = ["firstName", "lastName", "email", "password", "phone", "street", "suburb", "city", "province", "code", "notes"] as const;
+const FIELD_ORDER = ["firstName", "lastName", "email", "password", "phone", "recipientName", "recipientPhone", "street", "suburb", "city", "province", "code", "notes"] as const;
 
 const CANCELLED = "Payment cancelled. Nothing was charged, and your order is just as you left it.";
 
@@ -94,7 +97,10 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
   );
   const [address, setAddress] = useState<Address>(() => merge(EMPTY_ADDRESS, draft.address, initialAccount?.saved?.address));
   const [method, setMethod] = useState<"collect" | "courier">(draft.method === "courier" && courier ? "courier" : "collect");
+  const [toSomeone, setToSomeone] = useState(draft.toSomeone === true);
+  const [recipient, setRecipient] = useState<Recipient>(() => merge(EMPTY_RECIPIENT, draft.recipient));
   const [service, setService] = useState<string | null>(null);
+  const [insure, setInsure] = useState(false);
   const [quoted, setQuoted] = useState<QuoteState | null>(null);
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [tried, setTried] = useState(false);
@@ -106,14 +112,17 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
   const [saveAccount, setSaveAccount] = useState(false);
   const [password, setPassword] = useState("");
   // The server's word on the account, for the email and password it was given; it lapses when either changes.
+  const slipRef = useRef<HTMLElement>(null);
+  const problemsRef = useRef<HTMLUListElement>(null);
+  useDockHeight(slipRef);
   const [refused, setRefused] = useState<{ error: string; email: string; password: string } | null>(null);
   useEffect(() => {
     try {
-      window.localStorage.setItem(DRAFT_KEY, JSON.stringify({ contact, address, method } satisfies Draft));
+      window.localStorage.setItem(DRAFT_KEY, JSON.stringify({ contact, address, method, toSomeone, recipient } satisfies Draft));
     } catch {
       // Private mode: the form still works for this visit.
     }
-  }, [contact, address, method]);
+  }, [contact, address, method, toSomeone, recipient]);
 
   useEffect(() => {
     cart.checkPrices();
@@ -131,8 +140,8 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
   const addressDone = !hasErrors(aErrors);
   const makingAccount = saveAccount && !account;
 
-  // A courier price for the address as typed, once it is complete; asked again when the cart changes.
-  const quoteKey = JSON.stringify([address, live.map((l) => [l.sku, l.quantity])]);
+  // A courier price for the address as typed, once it is complete; asked again when the cart changes. The driver's note doesn't change the price.
+  const quoteKey = JSON.stringify([address.street, address.suburb, address.city, address.province, address.code, live.map((l) => [l.sku, l.quantity])]);
   useEffect(() => {
     if (method !== "courier" || !courier || !addressDone) return;
     if (quoted?.key === quoteKey) return;
@@ -149,7 +158,9 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
   const current = quoted?.key === quoteKey ? quoted : null;
   const options: DeliveryOption[] = current?.status === "done" && current.quote.ok ? current.quote.options : [];
   const chosen = options.find((o) => o.code === service) ?? options[0] ?? null;
-  const delivery = method === "collect" ? 0 : chosen?.price ?? null;
+  // The full value insured only where it costs more than the free cover, and only when the customer ticks it.
+  const insured = insure && chosen?.full ? chosen.full : null;
+  const delivery = method === "collect" ? 0 : chosen ? (insured ?? chosen).price : null;
   const total = delivery === null ? null : subtotal + delivery;
 
   /** What stands between the customer and paying, that the form's own errors don't cover. */
@@ -167,10 +178,14 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
   const touch = (field: string) => setTouched((t) => (t.has(field) ? t : new Set(t).add(field)));
   const cErr = (k: keyof Contact) => (show(k) ? cErrors[k] : undefined);
   const aErr = (k: keyof Address) => (show(k) ? aErrors[k] : undefined);
+  const sending = method === "courier" && toSomeone;
+  const rRaw = recipientErrors(recipient);
+  const rErrors = sending ? { recipientName: rRaw.name, recipientPhone: rRaw.phone } : {};
+  const rErr = (k: keyof typeof rErrors) => (show(k) ? rErrors[k] : undefined);
   const stillRefused = refused && refused.email === contact.email && refused.password === password ? refused.error : undefined;
   const pErrors = makingAccount ? { password: passwordError(password) ?? stillRefused } : {};
   const pErr = show("password") ? pErrors.password : undefined;
-  const errors = { ...cErrors, ...(method === "courier" ? aErrors : {}), ...pErrors };
+  const errors: Partial<Record<(typeof FIELD_ORDER)[number], string>> = { ...cErrors, ...(method === "courier" ? aErrors : {}), ...rErrors, ...pErrors };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -182,14 +197,21 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
       document.getElementById(bad)?.focus();
       return;
     }
-    if (blockers.length > 0 || total === null || busy) return;
+    if (blockers.length > 0 || total === null || busy) {
+      // Pay is only ever dimmed: pressing it says what stands in the way.
+      problemsRef.current?.focus();
+      return;
+    }
 
     setBusy(true);
     const input: OrderInput = {
       ref: store.ref,
       key: store.key,
       contact,
-      fulfilment: method === "courier" && chosen ? { method: "courier", address, service: chosen.code } : { method: "collect" },
+      fulfilment:
+        method === "courier" && chosen
+          ? { method: "courier", address, recipient: sending ? recipient : null, service: chosen.code, insure: insured !== null }
+          : { method: "collect" },
       lines: orderLines(rows, store.photos, store.bakes),
       shownTotal: total,
     };
@@ -208,6 +230,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
         setQuoted(null);
       }
       if (placed.field === "delivery") setQuoted(null);
+      if (placed.field === "recipient") document.getElementById("recipientName")?.focus();
       if (placed.field === "password") {
         setRefused({ error: placed.error, email: contact.email, password });
         document.getElementById("password")?.focus();
@@ -221,6 +244,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
     }
     const outcome = await pay(placed.checkout);
     if (outcome === "paid") {
+      clearDraft();
       router.push(`/checkout/done?ref=${placed.ref}&t=${placed.token}`);
     } else {
       setBusy(false);
@@ -261,7 +285,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
         <div className="co__steps">
           {notice ? (
             <p className="co__notice" role="status">
-              <Check size={20} />
+              <Alert size={20} />
               {notice}
             </p>
           ) : null}
@@ -279,7 +303,10 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
                 setContact((c) => merge(EMPTY_CONTACT, c, details?.contact, { email }));
                 if (details?.address) setAddress((a) => merge(EMPTY_ADDRESS, a, details.address));
               }}
-              onSignedOut={() => setAccount(null)}
+              onSignedOut={() => {
+                clearDraft();
+                setAccount(null);
+              }}
             />
             <div className="fields">
               <Field id="firstName" label="First name" error={cErr("firstName")}>
@@ -392,14 +419,14 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
                 />
                 <span className="way__head">
                   <Parcel size={22} />
-                  <span className="way__name">The Courier Guy to your door</span>
+                  <span className="way__name">The Courier Guy to the door</span>
                   <span className="way__price">
                     {!courier ? "Soon" : method === "courier" && chosen ? rands(chosen.price) : "Priced by address"}
                   </span>
                 </span>
                 <span className="way__body">
                   {courier
-                    ? "Anywhere in South Africa. The price comes from the courier once your address is in."
+                    ? "Anywhere in South Africa, to you or straight to them. The price comes from the courier once the address is in."
                     : "Courier delivery isn’t open online yet. For now, collect from the shop."}
                 </span>
               </label>
@@ -407,6 +434,44 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
 
             {method === "courier" ? (
               <div className="deliver">
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={toSomeone}
+                    onChange={(e) => {
+                      setToSomeone(e.target.checked);
+                      if (e.target.checked) requestAnimationFrame(() => document.getElementById("recipientName")?.focus());
+                    }}
+                  />
+                  Send it straight to someone else
+                </label>
+                {toSomeone ? (
+                  <div className="fields">
+                    <Field id="recipientName" label="Their name" error={rErr("recipientName")}>
+                      <input
+                        {...inputProps("recipientName", rErr("recipientName"))}
+                        autoComplete="off"
+                        maxLength={LIMITS.name}
+                        value={recipient.name}
+                        onChange={(e) => setRecipient({ ...recipient, name: e.target.value })}
+                        onBlur={() => touch("recipientName")}
+                      />
+                    </Field>
+                    <Field id="recipientPhone" label="Their mobile" hint="the courier SMSes them" error={rErr("recipientPhone")}>
+                      <input
+                        {...inputProps("recipientPhone", rErr("recipientPhone"))}
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="off"
+                        placeholder="082 123 4567"
+                        maxLength={20}
+                        value={recipient.phone}
+                        onChange={(e) => setRecipient({ ...recipient, phone: e.target.value })}
+                        onBlur={() => touch("recipientPhone")}
+                      />
+                    </Field>
+                  </div>
+                ) : null}
                 <div className="fields">
                   <Field id="street" label="Street address" wide error={aErr("street")}>
                     <input
@@ -488,6 +553,12 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
                   onRetry={() => setQuoted(null)}
                   onCollect={() => setMethod("collect")}
                 />
+                {chosen?.full ? (
+                  <label className="check">
+                    <input type="checkbox" checked={insure} onChange={(e) => setInsure(e.target.checked)} />
+                    Insure the full {rands(chosen.full.cover)} for {rands(chosen.full.price - chosen.price)} more
+                  </label>
+                ) : null}
               </div>
             ) : null}
           </section>
@@ -501,7 +572,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
           </section>
         </div>
 
-        <aside className="coslip" aria-label="Your order">
+        <aside ref={slipRef} className="coslip" aria-label="Your order">
           <div className="coslip__lines">
             <p className="coslip__title">
               Your order <span className="coslip__n">{cartUnits(live)}</span>
@@ -523,7 +594,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
               <dd>{rands(subtotal)}</dd>
             </div>
             <div>
-              <dt>{method === "collect" ? "Collect from the shop" : chosen ? `Delivery, ${chosen.name}` : "Delivery"}</dt>
+              <dt>{method === "collect" ? "Collect from the shop" : chosen ? `Delivery, ${chosen.name}${insured ? ", insured" : ""}` : "Delivery"}</dt>
               <dd>{delivery === null ? "—" : delivery === 0 ? "Free" : rands(delivery)}</dd>
             </div>
           </dl>
@@ -545,7 +616,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
           ) : null}
 
           {blockers.length > 0 ? (
-            <ul className="coslip__problems">
+            <ul ref={problemsRef} id="coslip-problems" tabIndex={-1} className="coslip__problems">
               {blockers.map((b) => (
                 <li key={b.text}>{b.href ? <Link className="inline-link" href={b.href}>{b.text}</Link> : b.text}</li>
               ))}
@@ -556,10 +627,11 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
             type="submit"
             className="btn btn--gold on-gold coslip__pay"
             aria-disabled={blockers.length > 0 || busy || undefined}
-            aria-describedby="coslip-note"
+            aria-busy={busy || undefined}
+            aria-describedby={blockers.length > 0 ? "coslip-problems coslip-note" : "coslip-note"}
           >
-            {busy ? "Opening PayFast…" : total === null ? "Pay" : `Pay ${rands(total)}`}
-            {busy ? null : <ArrowRight size={19} />}
+            {busy ? "Processing payment" : total === null ? "Pay" : `Pay ${rands(total)}`}
+            {busy ? <span className="services__spin" aria-hidden="true" /> : <ArrowRight size={19} />}
           </button>
           <p id="coslip-note" className="coslip__note">
             Secure payment by PayFast. The shop starts on your order once it&rsquo;s paid.
@@ -625,6 +697,7 @@ function Services({
   return (
     <fieldset className="services">
       <legend className="pills__legend">Delivery option</legend>
+      <p className="services__note">Times count from when the courier collects it from the shop, once your order is made.</p>
       {state.quote.options.map((o) => (
         <label key={o.code} className="service" data-on={chosen?.code === o.code || undefined}>
           <input type="radio" name="service" value={o.code} checked={chosen?.code === o.code} onChange={() => onChoose(o.code)} />

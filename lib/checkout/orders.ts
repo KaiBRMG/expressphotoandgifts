@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, type DocumentReference, type Transaction } from "firebase-admin/firestore";
 
 import { cartSubtotal } from "@/lib/catalog/cart";
 import { buildNeeds, WORDS_MAX } from "@/lib/catalog/checkout";
@@ -9,8 +9,9 @@ import { rands } from "@/lib/catalog/listing";
 import { clampQuantity } from "@/lib/catalog/purchase";
 import { getProducts } from "@/lib/catalog/queries";
 import { db } from "@/lib/firebase";
-import { cleanAddress, cleanContact, addressErrors, contactErrors, hasErrors, LIMITS } from "./details";
-import { quote } from "./courier";
+import { boxForOrder, type BoxId } from "./boxes";
+import { cleanAddress, cleanContact, cleanRecipient, addressErrors, contactErrors, hasErrors, LIMITS, recipientErrors } from "./details";
+import { fullCover, quote } from "./courier";
 import { amountMatches, pfAmount } from "./payfast";
 import {
   ATTEMPT,
@@ -18,14 +19,18 @@ import {
   MIN_PAYMENT,
   REF,
   type Attempt,
+  type FulfilmentInput,
   type Issue,
+  type LogEntry,
   type Notice,
   type NoticeOutcome,
   type NoticeRecord,
   type Order,
+  type OrderActionResult,
   type OrderInput,
   type OrderLine,
   type Payment,
+  type Service,
 } from "./order";
 
 /**
@@ -39,7 +44,7 @@ export const orders = () => db().collection("orders");
 
 export type Priced =
   | { ok: true; order: Omit<Order, "token" | "createdAt" | "updatedAt" | "uid" | "status"> }
-  | { ok: false; error: string; field?: "contact" | "address" | "delivery" | "photos" | "cart" };
+  | { ok: false; error: string; field?: "contact" | "address" | "recipient" | "delivery" | "photos" | "cart" };
 
 /**
  * Checks and prices an order (already read by `readOrderInput`): every line
@@ -91,7 +96,8 @@ export async function priceOrder(input: OrderInput): Promise<Priced> {
   }
 
   const subtotal = cartSubtotal(lines);
-  const priced = await priceFulfilment(input.fulfilment, subtotal);
+  const box = boxForOrder(lines.map((l) => bySku.get(l.sku)?.p.box));
+  const priced = await priceFulfilment(input.fulfilment, subtotal, box);
   if (!priced.ok) return priced;
   const total = subtotal + priced.delivery;
   if (total < MIN_PAYMENT) return { ok: false, error: `Orders paid online start at ${rands(MIN_PAYMENT)}. Add something to your cart, or call the shop.`, field: "cart" };
@@ -99,16 +105,24 @@ export async function priceOrder(input: OrderInput): Promise<Priced> {
   return { ok: true, order: { ref: input.ref, contact: cleanContact(input.contact), fulfilment: priced.fulfilment, lines, subtotal, delivery: priced.delivery, total } };
 }
 
-/** Collection, free; or the courier service chosen, priced again for this address and these goods. */
+/**
+ * Collection, free; or the courier service chosen, priced again for this
+ * address, these goods and their box, insured to the full value when the
+ * customer chose that.
+ */
 async function priceFulfilment(
-  f: OrderInput["fulfilment"],
+  f: FulfilmentInput,
   subtotal: number,
+  box: BoxId,
 ): Promise<{ ok: true; fulfilment: Order["fulfilment"]; delivery: number } | Extract<Priced, { ok: false }>> {
   if (f.method === "collect") return { ok: true, fulfilment: f, delivery: 0 };
 
   const address = cleanAddress(f.address);
   if (hasErrors(addressErrors(address))) return { ok: false, error: "The delivery address needs another look.", field: "address" };
-  const q = await quote(address, subtotal);
+  const recipient = f.recipient ? cleanRecipient(f.recipient) : null;
+  if (recipient && hasErrors(recipientErrors(recipient))) return { ok: false, error: "The recipient’s details need another look.", field: "recipient" };
+
+  const q = await quote(address, subtotal, box);
   if (!q.ok) {
     return {
       ok: false,
@@ -116,9 +130,14 @@ async function priceFulfilment(
       field: "delivery",
     };
   }
-  const service = q.options.find((o) => o.code === f.service);
-  if (!service) return { ok: false, error: "That delivery option isn’t offered any more. Choose another.", field: "delivery" };
-  return { ok: true, fulfilment: { method: "courier", address, service }, delivery: service.price };
+  const option = q.options.find((o) => o.code === f.service);
+  if (!option) return { ok: false, error: "That delivery option isn’t offered any more. Choose another.", field: "delivery" };
+  // Asked to insure the full value: its price, unless the full value is already covered at no extra cost.
+  const priced = f.insure ? option.full ?? (option.cover >= fullCover(subtotal) ? option : null) : option;
+  if (!priced) return { ok: false, error: "Insuring the full value isn’t offered for this delivery any more. Check the price, then pay.", field: "delivery" };
+
+  const service: Service = { code: option.code, name: option.name, description: option.description, price: priced.price, cover: priced.cover, box };
+  return { ok: true, fulfilment: { method: "courier", address, recipient, service }, delivery: priced.price };
 }
 
 export type Started = { ok: true; order: Order; attempt: Attempt } | { ok: false; reason: "paid" | "taken" | "too-many" };
@@ -172,6 +191,34 @@ export async function getOrder(ref: string): Promise<Order | null> {
   return snap.exists ? (snap.data() as Order) : null;
 }
 
+/** A change to an order: what to write, the log line (in the name of whoever made it), and anything to flag for the shop. */
+export type Change = { update: Record<string, unknown>; log?: string; issue?: string };
+
+/**
+ * Changes an order in a transaction: `fn` reads it and returns the change,
+ * or an error. Only ever for an order that exists. Every change of the shop's
+ * own side of an order (the admin's, and what the courier reports) goes
+ * through here, so each is logged and flagged the same way.
+ */
+export async function changeOrder(ref: string, by: string, fn: (o: Order) => Change | { error: string }): Promise<OrderActionResult> {
+  if (!REF.test(ref)) return { error: "There’s no such order." };
+  const doc = orders().doc(ref);
+  return db().runTransaction(async (tx) => {
+    const snap = await tx.get(doc);
+    if (!snap.exists) return { error: "There’s no such order." };
+    const made = fn(snap.data() as Order);
+    if ("error" in made) return made;
+    const at = new Date().toISOString();
+    tx.update(doc, {
+      ...made.update,
+      updatedAt: at,
+      ...(made.log ? { log: FieldValue.arrayUnion({ at, by, text: made.log } satisfies LogEntry) } : {}),
+      ...(made.issue ? { flagged: true, issues: FieldValue.arrayUnion({ at, text: made.issue } satisfies Issue) } : {}),
+    });
+    return { ok: true } as const;
+  });
+}
+
 /** The order, only for someone holding its receipt link. */
 export async function orderForReceipt(ref: string, token: string): Promise<Order | null> {
   const order = await getOrder(ref);
@@ -194,7 +241,33 @@ export type Applied = { outcome: NoticeOutcome; order: Order } | { outcome: "alr
  * never made, an amount that doesn't match its attempt, and a second payment
  * for an order already paid, which is money taken twice.
  */
-export async function applyNotice(n: Notice, refused?: string): Promise<Applied> {
+/**
+ * In a transaction: records a notice under `recordRef` and flags its order
+ * with `text`, for the shop to look at. The one way a payment problem reaches
+ * an order, from a notice or from the daily check against PayFast's history.
+ */
+export function recordAndFlag(tx: Transaction, order: DocumentReference, recordRef: DocumentReference, record: NoticeRecord, text: string) {
+  tx.create(recordRef, record);
+  tx.update(order, { flagged: true, issues: FieldValue.arrayUnion({ at: record.at, text } satisfies Issue), updatedAt: record.at });
+}
+
+/** Records a payment problem the daily check found on its order, once: a record already there means it was flagged before, and nothing is written. */
+export async function flagOnce(ref: string, recordId: string, record: NoticeRecord, text: string): Promise<void> {
+  const order = orders().doc(ref);
+  const recordRef = order.collection("notices").doc(recordId);
+  await db().runTransaction(async (tx) => {
+    const [snap, recorded] = await Promise.all([tx.get(order), tx.get(recordRef)]);
+    if (snap.exists && !recorded.exists) recordAndFlag(tx, order, recordRef, record, text);
+  });
+}
+
+/**
+ * `refused`: the check a signed notice failed. `acceptedBy`: the member of
+ * staff who accepted a payment from PayFast's history, logged in the same
+ * write that marks the order paid.
+ */
+export async function applyNotice(n: Notice, opts: { refused?: string; acceptedBy?: string } = {}): Promise<Applied> {
+  const { refused, acceptedBy } = opts;
   const m = ATTEMPT.exec(n.attempt);
   if (!m) return { outcome: "no-order" };
   const ref = orders().doc(m[1]);
@@ -211,8 +284,7 @@ export async function applyNotice(n: Notice, refused?: string): Promise<Applied>
     const now = new Date().toISOString();
     const record = (outcome: NoticeOutcome) => tx.create(recordRef, { ...n, at: now, outcome, ...(refused ? { reason: refused } : {}) } satisfies NoticeRecord);
     const flag = (outcome: NoticeOutcome, text: string): Applied => {
-      record(outcome);
-      tx.update(ref, { flagged: true, issues: FieldValue.arrayUnion({ at: now, text } satisfies Issue), updatedAt: now });
+      recordAndFlag(tx, ref, recordRef, { ...n, at: now, outcome, ...(refused ? { reason: refused } : {}) }, text);
       return { outcome, order };
     };
     const paid = `PayFast payment ${n.pfPaymentId} (${n.status}, R${n.amountGross})`;
@@ -230,7 +302,8 @@ export async function applyNotice(n: Notice, refused?: string): Promise<Applied>
     const { contact, fulfilment, lines, subtotal, delivery, total } = attempt;
     const payment: Payment = { provider: "payfast", ...n, at: now };
     const update = { contact, fulfilment, lines, subtotal, delivery, total, status: "paid", stage: "new", payment, paidAt: now, updatedAt: now } satisfies Partial<Order>;
-    tx.update(ref, update);
+    const log = acceptedBy ? { log: FieldValue.arrayUnion({ at: now, by: acceptedBy, text: `Marked paid from PayFast’s record of payment ${n.pfPaymentId} (R${n.amountGross}); its notice never arrived` } satisfies LogEntry) } : {};
+    tx.update(ref, { ...update, ...log });
     return { outcome: "paid", order: { ...order, ...update } };
   });
 }

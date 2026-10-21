@@ -1054,8 +1054,13 @@
  * page's reach through the chooser and the slots' own notes.
  */
 @media (max-width: 61.99rem) {
+  /* A focused field scrolls clear of the docked bar. */
+  html {
+    scroll-padding-bottom: calc(var(--dock-h, 0px) + 16px);
+  }
+
   .ck__grid {
-    padding-bottom: calc(clamp(62px, 9vw, 130px) + 230px);
+    padding-bottom: calc(clamp(62px, 9vw, 130px) + var(--dock-h, 230px));
   }
 
   .tray,
@@ -1106,17 +1111,11 @@
   .thumb__edit {
     right: 3px;
     bottom: 3px;
-    width: 28px;
-    height: 28px;
-  }
-
-  .thumb__edit::before {
-    inset: -4px;
   }
 
   .thumb__retry {
     inset: auto 2px 2px;
-    min-height: 28px;
+    min-height: 40px;
   }
 
   /* With a photo in hand the actions are one row that scrolls, so the places stay in view. */
@@ -1693,6 +1692,13 @@ html:has(.editor[open]) {
  * the counter, each at a slight lean, the way the shop's signs lean.
  */
 
+/* PayFast's Onsite window (its engine.js adds this to <body>) sets z-index 1,
+   so the sticky header and the phone's fixed Pay bar would sit over it.
+   Above everything while it is open. */
+#payfast_div_container {
+  z-index: 1000;
+}
+
 .ckhead__ref {
   display: grid;
   justify-items: end;
@@ -2133,6 +2139,13 @@ html:has(.editor[open]) {
   font-variant-numeric: tabular-nums;
 }
 
+.services__note {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
 .services__wait {
   display: flex;
   align-items: center;
@@ -2459,7 +2472,7 @@ html:has(.editor[open]) {
 /* On a phone the slip docks at the foot: the total beside Pay, and what stands in the way above them. */
 @media (max-width: 61.99rem) {
   .co.ck__grid {
-    padding-bottom: calc(clamp(62px, 9vw, 130px) + 150px);
+    padding-bottom: calc(clamp(62px, 9vw, 130px) + var(--dock-h, 150px));
   }
 
   .coslip {
@@ -2662,6 +2675,247 @@ html:has(.editor[open]) {
   font-weight: 600;
 }
 
+/* ---- Tracking, on the receipt ------------------------------------------ */
+
+/*
+ * The shop's steps and the courier's as one rail: a filled blue disc for
+ * what's done, the amber disc for the step happening now (amber's one job
+ * here), a hairline ring for what's to come. Beside it, once booked, the
+ * courier's own updates on a quiet blue ground.
+ */
+.track {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(22px, 3vw, 36px);
+  padding: clamp(18px, 2.4vw, 28px);
+  border: 1px solid var(--rule-card);
+  border-radius: var(--radius);
+  background: var(--print);
+  box-shadow: var(--shadow-card);
+}
+
+@media (min-width: 62rem) {
+  .track {
+    grid-column: 1 / -1;
+  }
+
+  .track--courier {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+}
+
+.track__main {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+}
+
+.track__now {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  max-width: 34ch;
+  font-size: clamp(1.25rem, 2.4vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.track__now svg {
+  flex: none;
+  margin-top: 0.2em;
+  box-sizing: content-box;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.tsteps {
+  --dot: 28px;
+  display: grid;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tsteps__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--dot) minmax(0, 1fr);
+  gap: 0.9rem;
+  padding-bottom: 1.35rem;
+}
+
+.tsteps__step:last-child {
+  padding-bottom: 0;
+}
+
+/* The rail between this disc and the next: blue as far as the order has got. */
+.tsteps__step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--dot) + 4px);
+  bottom: 4px;
+  left: calc(var(--dot) / 2 - 1px);
+  width: 2px;
+  border-radius: 2px;
+  background: var(--rule-hair);
+}
+
+.tsteps__step--done:not(:last-child)::before {
+  background: var(--blue);
+}
+
+.tsteps__dot {
+  display: grid;
+  place-items: center;
+  width: var(--dot);
+  height: var(--dot);
+  border: 2px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--print);
+  color: var(--on-leather);
+}
+
+.tsteps__step--done .tsteps__dot {
+  border-color: var(--blue);
+  background: var(--blue);
+}
+
+.tsteps__step--now .tsteps__dot {
+  border-color: var(--ink);
+  background: var(--gold);
+  box-shadow: 0 0 0 0 rgb(255 183 42 / 0.6);
+  animation: tsteps-now 2.4s var(--ease-out) infinite;
+}
+
+@keyframes tsteps-now {
+  0% {
+    box-shadow: 0 0 0 0 rgb(255 183 42 / 0.65);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 12px rgb(255 183 42 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tsteps__step--now .tsteps__dot {
+    animation: none;
+  }
+}
+
+.tsteps__body {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  padding-top: 0.15rem;
+}
+
+.tsteps__label {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.tsteps__step--next .tsteps__label {
+  font-weight: 500;
+  color: var(--ink-faint);
+}
+
+.tsteps__at,
+.tsteps__note {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  text-wrap: pretty;
+}
+
+.tsteps__note {
+  max-width: 44ch;
+  color: var(--ink);
+}
+
+.track__courier {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  padding: clamp(16px, 2vw, 24px);
+  border-radius: var(--radius-sm);
+  background: rgb(1 38 186 / 0.045);
+}
+
+.track__facts {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.track__facts dt {
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.track__facts dd {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.track__waybill {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(1.1rem, 1.8vw, 1.3rem);
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.track__sub {
+  margin-top: 0.4rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.track__events {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.track__events li {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.track__events li:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.track__events li:first-child .track__event {
+  font-weight: 600;
+}
+
+.track__event {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.track__events .receipt__soft {
+  font-variant-numeric: tabular-nums;
+}
+
+.track__checked {
+  margin-top: 0.2rem;
+}
+
 /* ---- The account page -------------------------------------------------- */
 
 .account {
@@ -2724,7 +2978,10 @@ html:has(.editor[open]) {
     transform: rotate(0);
   }
 
+  /* The page-wide reduced-motion rule stops every animation; a slow turn is
+     the only sign that something is still happening, so it wins over it. */
   .services__spin {
-    animation-duration: 2.4s;
+    animation-duration: 2.4s !important;
+    animation-iteration-count: infinite !important;
   }
 }

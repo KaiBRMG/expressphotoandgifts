@@ -7,6 +7,7 @@ import { primaryPhoto } from "@/lib/catalog/listing";
 import { hasFacet } from "@/lib/catalog/tags";
 import type { CatalogueItem } from "@/app/admin/editor/ProductEditor";
 import { ProductEditor } from "@/app/admin/editor/ProductEditor";
+import { shippingBoxes } from "@/lib/settings";
 
 export async function generateMetadata({ params }: PageProps<"/admin/products/[slug]">): Promise<Metadata> {
   const product = await getProductForEdit((await params).slug);
@@ -15,7 +16,7 @@ export async function generateMetadata({ params }: PageProps<"/admin/products/[s
 
 export default async function EditProductPage({ params }: PageProps<"/admin/products/[slug]">) {
   const { slug } = await params;
-  const [product, categories, all, vocabulary] = await Promise.all([getProductForEdit(slug), listCategories(), listProducts(), getVocabulary()]);
+  const [product, categories, all, vocabulary, boxes] = await Promise.all([getProductForEdit(slug), listCategories(), listProducts(), getVocabulary(), shippingBoxes()]);
   if (!product) notFound();
 
   // The work queue: the next product after this one, by name, that still lacks something.
@@ -49,6 +50,7 @@ export default async function EditProductPage({ params }: PageProps<"/admin/prod
       vocabulary={vocabulary}
       catalogue={catalogue}
       next={next}
+      boxes={boxes}
     />
   );
 }

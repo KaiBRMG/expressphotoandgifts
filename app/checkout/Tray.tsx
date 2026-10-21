@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties, type DragEvent } from "react";
+import { useRef, useState, type CSSProperties, type DragEvent } from "react";
 
 import { cartSubtotal, type CartLine } from "@/lib/catalog/cart";
 import { photoCount } from "@/lib/catalog/listing";
@@ -8,6 +8,7 @@ import { rands } from "@/lib/catalog/listing";
 import { ArrowRight, Pencil, Trash, Upload } from "@/app/site/icons";
 import { THUMB } from "@/lib/checkout/photoUrls";
 import { photoSrc } from "./images";
+import { useDockHeight } from "./draft";
 import { DRAG_TYPE, type Progress } from "./model";
 import { photos, type Photo, type PhotoState, type Target } from "./photoStore";
 
@@ -59,6 +60,8 @@ export function Tray({
   onSend: () => void;
   onShow: (t: Target) => void;
 }) {
+  const trayRef = useRef<HTMLElement>(null);
+  useDockHeight(trayRef);
   const [dropping, setDropping] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
@@ -80,6 +83,7 @@ export function Tray({
 
   return (
     <aside
+      ref={trayRef}
       className="tray on-dark"
       aria-labelledby="tray-title"
       data-dropping={dropping || undefined}

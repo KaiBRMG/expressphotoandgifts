@@ -1,27 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { getOrderForAdmin } from "@/lib/admin/orders";
+import { shippingBoxes } from "@/lib/settings";
 import { rands } from "@/lib/catalog/listing";
 import { addressLine, deliveryLabel, deliveryPrice } from "@/lib/checkout/details";
-import { lineWhat, refundedOf, SWEEP_AFTER_DAYS, type NoticeOutcome } from "@/lib/checkout/order";
+import { EMAIL_NAMES, type OrderEmail } from "@/lib/checkout/emails";
+import { lineWhat, SWEEP_AFTER_DAYS } from "@/lib/checkout/order";
 import { fittedUrl, rawUrl, THUMB } from "@/lib/checkout/photoUrls";
 import { Alert, ArrowLeft, External } from "@/app/site/icons";
 import { at } from "../../../when";
-import { RecordRefund, ResendEmail, ResolveIssues, StageControl } from "./OrderActions";
+import { PaymentPanel } from "./PaymentPanel";
+import { Courier } from "./Courier";
+import { NextStep } from "./NextStep";
+import { ResendEmail, ResolveIssues, StageControl } from "./OrderActions";
 
 export async function generateMetadata({ params }: PageProps<"/admin/orders/[ref]">): Promise<Metadata> {
   return { title: `Order ${(await params).ref}` };
 }
-
-const OUTCOMES: Record<NoticeOutcome, string> = {
-  paid: "Paid the order",
-  duplicate: "A second payment",
-  mismatch: "Amount didn’t match",
-  "not-complete": "Not complete",
-  "unknown-attempt": "Unknown attempt",
-  refused: "Refused",
-};
 
 /**
  * One order, everything the shop needs to make it and hand it over: the
@@ -30,12 +27,12 @@ const OUTCOMES: Record<NoticeOutcome, string> = {
  * changed here; what was bought and paid is not.
  */
 export default async function OrderPage({ params }: PageProps<"/admin/orders/[ref]">) {
-  const found = await getOrderForAdmin((await params).ref);
+  const { ref } = await params;
+  const [found, boxes] = await Promise.all([getOrderForAdmin(ref), shippingBoxes()]);
   if (!found) notFound();
   const { order: o, notices } = found;
   const paid = o.status === "paid";
   const f = o.fulfilment;
-  const refunded = refundedOf(o);
 
   return (
     <div className="page order">
@@ -56,6 +53,8 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[re
         </div>
         {paid ? <StageControl ref_={o.ref} stage={o.stage ?? "new"} method={f.method} /> : null}
       </header>
+
+      <NextStep order={o} />
 
       {o.issues?.length ? (
         <section className={`osec${o.flagged ? " issues" : ""}`} aria-labelledby="issues-title">
@@ -177,7 +176,17 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[re
             ) : (
               <p className="osec__lines">
                 The Courier Guy, {f.service.name}
+                {f.service.cover ? <span className="osec__soft">, insured to {rands(f.service.cover)}</span> : null}
                 <br />
+                {f.recipient ? (
+                  <>
+                    To {f.recipient.name},{" "}
+                    <a className="admin-link" href={`tel:${f.recipient.phone}`}>
+                      {f.recipient.phone}
+                    </a>
+                    <br />
+                  </>
+                ) : null}
                 {addressLine(f.address)}
                 <br />
                 {f.address.province}
@@ -191,71 +200,12 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[re
             )}
           </section>
 
-          <section className="osec" aria-labelledby="pay-title">
-            <h2 id="pay-title" className="osec__title">
-              Payment
-            </h2>
-            {o.payment ? (
-              <dl className="ofacts">
-                <div>
-                  <dt>PayFast payment</dt>
-                  <dd className="mono">{o.payment.pfPaymentId}</dd>
-                </div>
-                <div>
-                  <dt>Paid</dt>
-                  <dd>R{o.payment.amountGross}</dd>
-                </div>
-                <div>
-                  <dt>PayFast’s fee</dt>
-                  <dd>R{o.payment.amountFee.replace(/^-/, "")}</dd>
-                </div>
-                <div>
-                  <dt>To the shop</dt>
-                  <dd>R{o.payment.amountNet}</dd>
-                </div>
-                <div>
-                  <dt>Attempt</dt>
-                  <dd className="mono">{o.payment.attempt}</dd>
-                </div>
-              </dl>
-            ) : (
-              <p className="osec__soft">No payment yet.</p>
-            )}
+          {paid && f.method === "courier" ? <Courier order={o} boxes={boxes} /> : null}
 
-            {o.refunds?.length ? (
-              <>
-                <h3 className="osec__sub">Refunds</h3>
-                <ul className="olog">
-                  {o.refunds.map((r) => (
-                    <li key={r.at}>
-                      <strong>{rands(r.amount)}</strong> · {r.note}
-                      <span className="osec__soft">
-                        {at(r.at)}, {r.by}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : null}
-            {paid && refunded < o.total ? <RecordRefund ref_={o.ref} left={o.total - refunded} /> : null}
-
-            {notices.length ? (
-              <>
-                <h3 className="osec__sub">PayFast notices</h3>
-                <ul className="olog">
-                  {notices.map((n) => (
-                    <li key={`${n.outcome}-${n.pfPaymentId}-${n.status}`}>
-                      <strong>{OUTCOMES[n.outcome]}</strong> · {n.status} R{n.amountGross} · <span className="mono">{n.pfPaymentId}</span>
-                      <span className="osec__soft">
-                        {at(n.at)}, attempt {n.attempt}
-                        {n.reason ? `: ${n.reason}` : ""}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : null}
-          </section>
+          {/* PayFast is asked as the panel renders; the rest of the order doesn't wait for it. */}
+          <Suspense fallback={<section className="osec"><h2 className="osec__title">Payment</h2><p className="osec__soft">Asking PayFast…</p></section>}>
+            <PaymentPanel order={o} notices={notices} />
+          </Suspense>
 
           {paid ? (
             <section className="osec" aria-labelledby="mail-title">
@@ -263,11 +213,13 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[re
                 Emails
               </h2>
               <ul className="olog">
-                {(["shop", "customer"] as const).map((who) => {
+                {(Object.keys(EMAIL_NAMES) as OrderEmail[])
+                  .filter((who) => (who !== "shipped" || o.shipment?.tracking) && (who !== "ready" || o.fulfilment.method === "collect") && (who !== "refund" || o.refunds?.length))
+                  .map((who) => {
                   const sent = o.emails?.[who];
                   return (
                     <li key={who}>
-                      <strong>{who === "shop" ? "To the shop" : "To the customer"}</strong> ·{" "}
+                      <strong>{EMAIL_NAMES[who]}</strong> ·{" "}
                       {sent ? (sent.ok ? `Sent ${at(sent.at)}` : `Didn’t go: ${sent.error ?? "unknown"}`) : "Not sent yet"}
                       <ResendEmail ref_={o.ref} who={who} />
                     </li>

@@ -4,12 +4,12 @@ import "server-only";
  * Email through Resend (resend.com/docs/api-reference/emails/send-email).
  *
  * Settings: RESEND_API_KEY, and EMAIL_FROM, the sender as Resend has verified
- * its domain ("Express Photo and Gifts <orders@expressphotoandgifts.com>").
+ * its domain ("Express Photo and Gifts <noreply@orders.expressphotoandgifts.com>").
  * Without them nothing is sent, and the caller is told why.
  */
 
 export type Mail = {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
   text: string;
@@ -28,7 +28,7 @@ export async function sendEmail(mail: Mail): Promise<{ ok: true } | { ok: false;
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": mail.key.slice(0, 256) },
       body: JSON.stringify({
         from,
-        to: [mail.to],
+        to: Array.isArray(mail.to) ? mail.to : [mail.to],
         subject: mail.subject,
         html: mail.html,
         text: mail.text,

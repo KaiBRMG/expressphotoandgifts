@@ -27,6 +27,15 @@ export type Address = {
   notes: string;
 };
 
+/**
+ * Who receives a courier delivery when it isn't the buyer, such as a gift
+ * sent straight to them. The courier's driver and its SMS (and any delivery
+ * PIN) go to this person; the buyer keeps the receipt and the shop's emails.
+ */
+export type Recipient = { name: string; phone: string };
+
+export const EMPTY_RECIPIENT: Recipient = { name: "", phone: "" };
+
 export const PROVINCES = [
   "Eastern Cape",
   "Free State",
@@ -66,12 +75,12 @@ export function nationalPhone(raw: string): string | null {
 }
 
 /** Why a typed number isn't a mobile, in the customer's terms, or nothing when it is one. */
-function phoneProblem(raw: string): string | undefined {
+function phoneProblem(raw: string, landline = "We need a mobile, so we can SMS you about your order."): string | undefined {
   const n = national(raw);
   if (MOBILE.test(n)) return undefined;
   if (!/^\d+$/.test(n)) return "Use digits only, like 076 491 2300.";
   if (n.length !== 10) return "South African numbers have 10 digits, like 076 491 2300.";
-  if (/^0[1-5]/.test(n)) return "That looks like a landline. We need a mobile, so we can SMS you about your order.";
+  if (/^0[1-5]/.test(n)) return `That looks like a landline. ${landline}`;
   return "That isn’t a mobile number. Use one that can get an SMS, like 076 491 2300.";
 }
 
@@ -97,6 +106,18 @@ export function contactErrors(c: Contact): Errors<Contact> {
   if (!c.phone.trim()) e.phone = "Add a mobile number, so we can reach you about the order.";
   else {
     const problem = phoneProblem(c.phone);
+    if (problem) e.phone = problem;
+  }
+  return e;
+}
+
+export function recipientErrors(r: Recipient): Errors<Recipient> {
+  const e: Errors<Recipient> = {};
+  if (!r.name.trim()) e.name = "Add the name of the person it’s going to.";
+  else if (r.name.length > LIMITS.name) e.name = "That name is too long.";
+  if (!r.phone.trim()) e.phone = "Add their mobile number, so the courier can reach them.";
+  else {
+    const problem = phoneProblem(r.phone, "The courier needs a mobile it can SMS.");
     if (problem) e.phone = problem;
   }
   return e;
@@ -128,6 +149,10 @@ export function cleanContact(c: Contact): Contact {
   };
 }
 
+export function cleanRecipient(r: Recipient): Recipient {
+  return { name: r.name.trim(), phone: nationalPhone(r.phone) ?? r.phone.trim() };
+}
+
 export function cleanAddress(a: Address): Address {
   return {
     street: a.street.trim(),
@@ -145,6 +170,11 @@ export function readContact(x: unknown): Contact | null {
   if (!c || typeof c !== "object") return null;
   const keys = ["firstName", "lastName", "email", "phone"] as const;
   return keys.every((k) => typeof c[k] === "string") ? (Object.fromEntries(keys.map((k) => [k, c[k]])) as Contact) : null;
+}
+
+export function readRecipient(x: unknown): Recipient | null {
+  const r = x as Record<string, unknown> | null;
+  return r && typeof r === "object" && typeof r.name === "string" && typeof r.phone === "string" ? { name: r.name, phone: r.phone } : null;
 }
 
 export function readAddress(x: unknown): Address | null {

@@ -1,5 +1,6 @@
 import { orderWhat } from "@/lib/catalog/purchase";
-import { readAddress, readContact, type Address, type Contact } from "./details";
+import type { BoxId, Parcel, SizedParcel } from "./boxes";
+import { readAddress, readContact, readRecipient, type Address, type Contact, type Recipient } from "./details";
 
 /**
  * An order as the browser hands it over and as the shop keeps it in
@@ -26,21 +27,40 @@ export type LineInput = {
 };
 
 
-/** A courier service as offered at checkout: price in cents, VAT inclusive. */
-export type DeliveryOption = { code: string; name: string; description: string | null; price: number };
+/** A price for a service, VAT inclusive, and the order's value declared to the courier for it, both in cents. */
+export type Cover = { price: number; cover: number };
+
+/**
+ * A courier service as offered at checkout: its price with the cover that
+ * costs nothing (`FREE_COVER`), and when the order is worth more, the price
+ * of insuring its full value (null when that costs no more, or isn't offered).
+ */
+export type DeliveryOption = { code: string; name: string; description: string | null; full: Cover | null } & Cover;
 
 /** The courier's services to an address, or why there are none. */
 export type Quote = { ok: true; options: DeliveryOption[] } | { ok: false; reason: "not-set-up" | "no-service" | "unavailable" };
 
-/** Collect, or courier with a service: its code as chosen, or the service as priced (`DeliveryOption`). */
-export type Fulfilment<S = string> = { method: "collect" } | { method: "courier"; address: Address; service: S };
+/**
+ * The service an order pays for: the price paid, the value declared to the
+ * courier (what booking sends as `declared_value`) and the box it was quoted
+ * in. Orders from before cover and boxes lack them.
+ */
+export type Service = { code: string; name: string; description: string | null; price: number; cover?: number; box?: BoxId };
+
+/** Collect, or courier: as the browser chooses it, a service's code and whether to insure the full value. */
+export type FulfilmentInput =
+  | { method: "collect" }
+  | { method: "courier"; address: Address; recipient: Recipient | null; service: string; insure: boolean };
+
+/** Collect, or courier with the service as priced. `recipient` is absent on orders from before it existed. */
+export type Fulfilment = { method: "collect" } | { method: "courier"; address: Address; recipient?: Recipient | null; service: Service };
 
 export type OrderInput = {
   ref: string;
   /** The browser's secret for this ref (`ORDER_KEY`): only it can replace the order while unpaid. */
   key: string;
   contact: Contact;
-  fulfilment: Fulfilment;
+  fulfilment: FulfilmentInput;
   lines: LineInput[];
   /** The total the customer was shown, in cents: if the server's differs, they see the new one before paying. */
   shownTotal: number;
@@ -92,8 +112,13 @@ export type Notice = { attempt: string; pfPaymentId: string; status: string; amo
 /** The payment that paid an order, as its notice reported it. */
 export type Payment = Notice & { provider: "payfast"; at: string };
 
-/** What became of a notice: paid the order, or why it didn't. */
-export type NoticeOutcome = "paid" | "duplicate" | "mismatch" | "not-complete" | "unknown-attempt" | "refused";
+/**
+ * What became of a notice: paid the order, or why it didn't. `missed` and
+ * `no-record` come from the daily check against PayFast's transaction history,
+ * not a notice: PayFast took a payment whose notice never arrived, or the
+ * order is paid but PayFast's history has no such payment.
+ */
+export type NoticeOutcome = "paid" | "duplicate" | "mismatch" | "not-complete" | "unknown-attempt" | "refused" | "missed" | "no-record";
 
 /** Every PayFast notice that reached an order (`orders/{ref}/notices/{id}`), whatever came of it. */
 export type NoticeRecord = Notice & { at: string; outcome: NoticeOutcome; reason?: string };
@@ -116,7 +141,7 @@ export type Order = {
   token: string;
   status: OrderStatus;
   contact: Contact;
-  fulfilment: Fulfilment<DeliveryOption>;
+  fulfilment: Fulfilment;
   lines: OrderLine[];
   /** Cents. */
   subtotal: number;
@@ -134,12 +159,158 @@ export type Order = {
   payment?: Payment;
   paidAt?: string;
   stage?: OrderStage;
+  /** When staff moved it to each stage, latest move kept; for the customer's tracking. Orders from before it was kept have none. */
+  stagedAt?: Partial<Record<OrderStage, string>>;
   /** True while something on the order waits for the shop to look at it (`issues`). */
   flagged?: boolean;
   issues?: Issue[];
   refunds?: Refund[];
-  emails?: { shop?: EmailSent; customer?: EmailSent };
+  emails?: { shop?: EmailSent; customer?: EmailSent; shipped?: EmailSent; ready?: EmailSent; refund?: EmailSent };
   log?: LogEntry[];
+  /** The courier waybill, once staff book one. */
+  shipment?: Shipment;
+  /** A return of the delivered waybill, back to the shop, once staff book one. */
+  returnShipment?: Shipment;
+  /** PayFast's own word on the order's card payment, when staff last asked ("Check with PayFast"). */
+  payfastCheck?: { at: string; by: string; pfPaymentId: string; status: string; amount: number | null; bankMessage: string } | { at: string; by: string; pfPaymentId: string; error: string };
+};
+
+/**
+ * The Courier Guy's waybill for an order. `booking` while the request is with
+ * the courier; `unknown` when it may or may not have been made (a timeout, a
+ * server error, a reply that couldn't be read), which staff must settle in
+ * TCG's portal before booking again, or a second driver and charge follow.
+ */
+type ShipmentState = "booking" | "booked" | "unknown" | "failed" | "cancelled";
+
+/** A collection day (`YYYY-MM-DD`) and hours (`HH:MM`), and the account's paid extras, as a waybill was booked with them. Unset ones are left out. */
+export type ShipmentOptions = { collectionDate?: string; after?: string; before?: string; extras?: { id: number; name: string; charge: number }[] };
+
+/** One tracking event as the courier reported it. */
+export type TrackingEvent = { at: string; status: string; message: string; location: string };
+
+export type Shipment = {
+  state: ShipmentState;
+  /** When booking started, and who pressed it. */
+  at: string;
+  by: string;
+  /** As booked; a waybill booked before parcels kept their size has only the box and weight. */
+  parcels: (SizedParcel | Parcel)[];
+  /** The courier's shipment id: what the waybill PDF and webhooks name. */
+  id?: number;
+  /** The tracking reference on the waybill, as the customer is given it. */
+  tracking?: string;
+  /** TCG's short reference for it, which a return names. */
+  short?: string;
+  /** For a return: the service it was booked on. An outbound waybill is booked on the order's. */
+  service?: { code: string; name: string };
+  /** What staff chose beyond the boxes, as booked. */
+  options?: ShipmentOptions;
+  /** What the courier charged the shop, cents VAT inclusive, as it reported on booking. */
+  rate?: number;
+  /** The courier's status ("collected", "delivered"…) and its latest events, newest first. */
+  status?: string;
+  events?: TrackingEvent[];
+  estimate?: { from: string; to: string };
+  /** Why booking failed, in the courier's words. */
+  error?: string;
+  /** When its status was last read from the courier. */
+  checkedAt?: string;
+  /** True from booking until the courier reports a final status or it is cancelled: what the daily check reads. */
+  open?: boolean;
+};
+
+/** The Courier Guy's statuses after which the parcel has left the shop. */
+const LEFT_SHOP = new Set([
+  "collected",
+  "at-hub",
+  "manifested",
+  "ready-for-dispatch",
+  "in-transit",
+  "at-destination-hub",
+  "inbound-customs-and-vat",
+  "delivery-scheduled",
+  "delivery-assigned",
+  "delivery-unassigned",
+  "delivery-rejected",
+  "out-for-delivery",
+  "delivery-exception",
+  "delivery-failed-attempt",
+  "in-locker",
+  "ready-for-pickup",
+  "collect-and-return-to-hub",
+  "return-to-hub",
+  "returned-to-hub",
+  "on-hold",
+  "on-hold-internal",
+  "under-query",
+  "damaged",
+  "floor-check",
+  "delivered",
+  "returned-to-sender",
+  "undeliverable",
+]);
+
+export const hasLeftShop = (status: string | undefined) => status !== undefined && LEFT_SHOP.has(status);
+
+/** "out-for-delivery" as "Out for delivery": a courier status as staff read it. */
+export const statusText = (status: string) => (status.charAt(0).toUpperCase() + status.slice(1)).replace(/-/g, " ");
+
+/** Statuses after which nothing more happens to a waybill. */
+export const FINAL_STATUSES = new Set(["delivered", "cancelled", "returned-to-sender", "undeliverable", "failed", "approval-rejected", "payment-failed", "quote-expired"]);
+
+/**
+ * The parcel's own troubles, in the customer's words: what they're told,
+ * and what marks their tracking as a problem. Each is also flagged for the
+ * shop (`PROBLEMS` in shipments.ts, which adds the account's own troubles).
+ */
+export const COURIER_TROUBLE: Record<string, string> = {
+  "collection-exception": "The courier had a problem collecting it from the shop. The shop is sorting it out.",
+  "collection-failed-attempt": "The courier couldn’t collect it from the shop. The shop is sorting it out.",
+  "delivery-exception": "The courier couldn’t deliver it on its last try. Call the shop if you need help.",
+  "delivery-failed-attempt": "The courier couldn’t deliver it on its last try. Call the shop if you need help.",
+  "delivery-rejected": "The delivery was refused. The shop will be in touch.",
+  "on-hold": "The courier is holding it. The shop is finding out why.",
+  damaged: "The courier reports it damaged. The shop will be in touch.",
+  "under-query": "The courier is looking into a query on it. The shop will be in touch.",
+  "returned-to-hub": "It went back to the courier’s depot after a missed delivery. Call the shop if you need help.",
+  "return-to-hub": "It’s going back to the courier’s depot after a missed delivery. Call the shop if you need help.",
+  "returned-to-sender": "The courier couldn’t deliver it and is returning it to the shop. The shop will be in touch.",
+  undeliverable: "The courier couldn’t deliver it. The shop will be in touch.",
+};
+
+/** Where a booked parcel is, in the customer's words: plain, and promising nothing the courier hasn't said. */
+export function trackingWords(status: string | undefined): string {
+  if (status && COURIER_TROUBLE[status]) return COURIER_TROUBLE[status];
+  if (!hasLeftShop(status)) return "Packed and waiting for the courier to collect it from the shop.";
+  if (status === "delivered") return "Delivered.";
+  if (status === "out-for-delivery") return "Out for delivery with the courier’s driver.";
+  return "With the courier, on its way.";
+}
+
+/** The fields that move an order to a stage, with when, for the customer's tracking. Every stage write uses it. */
+export const stageUpdate = (stage: OrderStage, now = new Date().toISOString()) => ({ stage, [`stagedAt.${stage}`]: now });
+
+/** Every photo on the order, across its lines. */
+export const orderPhotos = (o: Pick<Order, "lines">) => o.lines.reduce((n, l) => n + fileCount(l), 0);
+
+/** How long a booking holds the order before it counts as stuck: the server stopped before TCG's answer was recorded. */
+export const LOCK_MS = 2 * 60 * 1000;
+
+/** A booking whose outcome isn't known, or that stopped half-way: staff must look it up before booking again. */
+export const needsLookUp = (s: Shipment | undefined, now = Date.now()) =>
+  s?.state === "unknown" || (s?.state === "booking" && now - Date.parse(s.at) >= LOCK_MS);
+
+/** What an admin action on an order comes to: done, perhaps with something to say, or why not. */
+export type OrderActionResult = { ok: true; notice?: string } | { error: string };
+
+/** How a shipment state reads to staff. */
+export const SHIPMENT_STATES: Record<ShipmentState, string> = {
+  booking: "Booking with The Courier Guy…",
+  booked: "Booked",
+  unknown: "Not sure it was booked",
+  failed: "Booking failed",
+  cancelled: "Cancelled",
 };
 
 /** A payment, ready for the browser to take to PayFast. */
@@ -221,17 +392,26 @@ function readLine(x: unknown): LineInput | null {
  * shaped like one. Only the shape: whether it can be sold is `priceOrder`'s.
  */
 export function readOrderInput(x: unknown): OrderInput | null {
-  const o = x as { ref?: unknown; key?: unknown; contact?: unknown; fulfilment?: { method?: unknown; address?: unknown; service?: unknown }; lines?: unknown; shownTotal?: unknown } | null;
+  const o = x as {
+    ref?: unknown;
+    key?: unknown;
+    contact?: unknown;
+    fulfilment?: { method?: unknown; address?: unknown; recipient?: unknown; service?: unknown; insure?: unknown };
+    lines?: unknown;
+    shownTotal?: unknown;
+  } | null;
   if (!o || typeof o.ref !== "string" || typeof o.key !== "string" || !ORDER_KEY.test(o.key) || typeof o.shownTotal !== "number" || !Array.isArray(o.lines) || o.lines.length > MAX_LINES) return null;
   const contact = readContact(o.contact);
   const lines = o.lines.map(readLine);
   if (!contact || !lines.every(Boolean)) return null;
-  let fulfilment: Fulfilment;
+  let fulfilment: FulfilmentInput;
   if (o.fulfilment?.method === "collect") fulfilment = { method: "collect" };
   else {
     const address = o.fulfilment?.method === "courier" ? readAddress(o.fulfilment.address) : null;
     if (!address || typeof o.fulfilment?.service !== "string") return null;
-    fulfilment = { method: "courier", address, service: o.fulfilment.service };
+    const recipient = o.fulfilment.recipient == null ? null : readRecipient(o.fulfilment.recipient);
+    if (o.fulfilment.recipient != null && !recipient) return null;
+    fulfilment = { method: "courier", address, recipient, service: o.fulfilment.service, insure: o.fulfilment.insure === true };
   }
   return { ref: o.ref, key: o.key, contact, fulfilment, lines: lines as LineInput[], shownTotal: o.shownTotal };
 }

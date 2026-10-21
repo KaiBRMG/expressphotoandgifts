@@ -451,6 +451,18 @@ export function Panels(props: IconProps) {
   );
 }
 
+/** Three sliders: settings. */
+export function Sliders(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1" {...stroke} />
+      <circle cx="15" cy="7" r="2" {...stroke} />
+      <circle cx="9" cy="12" r="2" {...stroke} />
+      <circle cx="17" cy="17" r="2" {...stroke} />
+    </Svg>
+  );
+}
+
 export function Box(props: IconProps) {
   return (
     <Svg {...props}>
@@ -500,6 +512,27 @@ export function Ruler(props: IconProps) {
     <Svg {...props}>
       <path d="M3.6 15.6L15.6 3.6l4.8 4.8-12 12z" {...stroke} />
       <path d="M7.4 11.8l1.8 1.8M10 9.2l1.4 1.4M12.6 6.6l1.8 1.8" {...stroke} />
+    </Svg>
+  );
+}
+
+export function Card(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3" y="5.5" width="18" height="13" rx="2.2" {...stroke} />
+      <path d="M3 9.8h18" {...stroke} />
+      <path d="M6.6 14.6h3.6" {...stroke} />
+    </Svg>
+  );
+}
+
+export function Truck(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M2.8 6.4h10.8v9.4H2.8z" {...stroke} />
+      <path d="M13.6 9.4h4l2.8 3.2v3.2h-6.8" {...stroke} />
+      <circle cx="7" cy="17.4" r="1.8" {...stroke} />
+      <circle cx="17" cy="17.4" r="1.8" {...stroke} />
     </Svg>
   );
 }

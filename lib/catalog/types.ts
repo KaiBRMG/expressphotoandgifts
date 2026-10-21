@@ -15,6 +15,8 @@
  * rounding; all prices are in ZAR as listed in the shop, VAT inclusive.
  */
 
+import type { BoxId } from "@/lib/checkout/boxes";
+
 export type Currency = "ZAR";
 
 export type ProductStatus =
@@ -98,6 +100,12 @@ export type Product = {
    * page takes the order. Null for standard retail: nothing from the customer.
    */
   personalisation: Personalisation | null;
+  /**
+   * The smallest of the shop's boxes it ships in (`lib/checkout/boxes.ts`),
+   * for the courier's price at checkout. Null until staff choose one: it is
+   * then quoted in the standard box.
+   */
+  box: BoxId | null;
   /**
    * "facet:value" labels from the vocabulary in `tags.ts`: what it is
    * ("type:mugs"), what it is for ("occasion:birthday", "for:kids"), how it is

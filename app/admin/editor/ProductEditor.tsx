@@ -24,6 +24,7 @@ import { Alert, External } from "@/app/site/icons";
 import { BackToProducts } from "@/app/admin/(console)/products/BackToProducts";
 import { saveProductAction } from "../actions";
 import { CustomerPhotoTab } from "./CustomerPhotoTab";
+import type { Boxes } from "@/lib/checkout/boxes";
 import { Duplicate } from "./Duplicate";
 import { PageTab } from "./PageTab";
 import { PhotosTab } from "./PhotosTab";
@@ -63,6 +64,7 @@ export function ProductEditor({
   vocabulary,
   catalogue,
   next,
+  boxes,
 }: {
   product: Product;
   categories: Category[];
@@ -70,6 +72,7 @@ export function ProductEditor({
   vocabulary: Vocabulary;
   catalogue: CatalogueItem[];
   next: NextInQueue;
+  boxes: Boxes;
 }) {
   // Grows when staff add a type or occasion here; the server has it already.
   const [vocab, setVocab] = useState(vocabulary);
@@ -288,7 +291,7 @@ export function ProductEditor({
             <PricesTab draft={draft} update={update} errorOn={errorOn} />
           </Tabs.Panel>
           <Tabs.Panel value="checkout">
-            <CustomerPhotoTab draft={draft} update={update} errorOn={errorOn} />
+            <CustomerPhotoTab draft={draft} update={update} errorOn={errorOn} boxes={boxes} />
           </Tabs.Panel>
         </Tabs>
 
