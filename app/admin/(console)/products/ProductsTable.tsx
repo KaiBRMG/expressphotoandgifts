@@ -337,7 +337,7 @@ export function ProductsTable({
                     </td>
                     <td className="plist__statusCol">
                       <span className={`status status--${r.status}`}>{STATUS_LABELS[r.status]}</span>
-                      {r.special ? <span className="special">Special</span> : null}
+                      {r.special ? <span className="special">On special</span> : null}
                     </td>
                     <td className="plist__wide plist__date">{when(r.updatedAt, now)}</td>
                   </tr>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Button, CloseButton, Menu } from "@mantine/core";
 import type { VisibilityChange, VisibilityResult } from "@/lib/admin/products";
@@ -7,12 +8,12 @@ import { productCount } from "@/lib/catalog/listing";
 import { Alert, ArrowDown, Check } from "@/app/site/icons";
 import { setVisibilityAction } from "../../actions";
 
-type ActionId = "show" | "hide" | "retire" | "special" | "unspecial";
+type ActionId = "show" | "hide" | "retire";
 
 /**
  * What each bulk action does. A change of status reaches the shop, so it asks
- * once in the bar; the Special badge is low stakes and goes straight through.
- * Everything can be undone from the bar afterwards.
+ * once in the bar. Everything can be undone from the bar afterwards. Specials
+ * come from campaigns, which the menu starts with the chosen products in.
  */
 const ACTIONS: Record<
   ActionId,
@@ -54,8 +55,6 @@ const ACTIONS: Record<
     },
     done: (n) => `${productCount(n)} retired.`,
   },
-  special: { label: "Add to Specials", change: { special: true }, done: (n) => `${productCount(n)} added to the Specials shelf.` },
-  unspecial: { label: "Remove from Specials", change: { special: false }, done: (n) => `${productCount(n)} taken off the Specials shelf.` },
 };
 
 type State =
@@ -173,8 +172,9 @@ export function BulkBar({ slugs, onClear, onDone }: { slugs: string[]; onClear: 
             </Button>
           </Menu.Target>
           <Menu.Dropdown>
-            <Menu.Item onClick={() => start("special")}>{ACTIONS.special.label}</Menu.Item>
-            <Menu.Item onClick={() => start("unspecial")}>{ACTIONS.unspecial.label}</Menu.Item>
+            <Menu.Item component={Link} href={`/admin/campaigns/new?product=${slugs.slice(0, 50).map(encodeURIComponent).join(",")}`}>
+              Put in a campaign
+            </Menu.Item>
             <Menu.Divider />
             <Menu.Item onClick={() => start("retire")}>{ACTIONS.retire.label}</Menu.Item>
           </Menu.Dropdown>

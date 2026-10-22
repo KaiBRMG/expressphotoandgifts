@@ -1,12 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 
+import type { ProductDeal } from "@/lib/catalog/campaigns";
 import { toLine } from "@/lib/catalog/cart";
 import { itemCount, rands } from "@/lib/catalog/listing";
 import {
   chartSizes,
+  orderWhat,
   pickVariant,
   pricesDiffer,
   takesLine,
@@ -15,11 +18,14 @@ import {
 } from "@/lib/catalog/purchase";
 import { photoSpec, type PhotoSpec } from "@/lib/catalog/photos";
 import { cmLabel } from "@/lib/catalog/sizes";
+import { maxFor, type Availability } from "@/lib/catalog/stock";
 import type { ProductVariant } from "@/lib/catalog/types";
-import { cart } from "@/app/site/cartStore";
-import { SHOP, whatsapp } from "@/app/site/data";
-import { Cart, WhatsApp, YourPhoto } from "@/app/site/icons";
+import { cart, useCart } from "@/app/site/cartStore";
+import { HOURS, MAKE_TIME, SHOP, whatsapp } from "@/app/site/data";
+import { Cart, Clock, Parcel, Pin, Tag, Truck, WhatsApp, YourPhoto } from "@/app/site/icons";
 import { QuantityStepper } from "@/app/site/QuantityStepper";
+import { StockLimit } from "@/app/site/StockLimit";
+import { track } from "@/app/site/track";
 import { SizeChart } from "../SizeChart";
 
 type Props = {
@@ -28,6 +34,10 @@ type Props = {
   slug: string;
   /** The Cloudinary code of the first photograph, for the cart's thumbnail. */
   photo: string | null;
+  /** Its sold-out variants, each at 0, as the page was built; the browser asks for the counts behind a limit. */
+  soldOut: Availability;
+  /** The live campaigns' prices and words for it, as the page was built. The cart keeps the catalogue price and applies them itself. */
+  deal: ProductDeal;
 };
 
 /**
@@ -39,6 +49,9 @@ type Props = {
 export function Purchase(props: Props) {
   const params = useSearchParams();
   const [sku, setSku] = useState(() => params.get("variant"));
+  useEffect(() => {
+    track({ step: "view", slug: props.slug });
+  }, [props.slug]);
 
   const select = (next: ProductVariant) => {
     setSku(next.sku);
@@ -59,23 +72,53 @@ export function PurchaseFallback(props: Props) {
   return <PurchaseView {...props} sku={null} />;
 }
 
+/**
+ * The variant a page opens on: the cheapest priced one that isn't sold out,
+ * so the price on arrival is the "from" price the card quoted, not a dearer
+ * size the visitor did not pick. The first in the shop's order breaks a tie
+ * and stands in when nothing is priced or everything is sold out.
+ */
+function opening(variants: ProductVariant[], soldOut: Availability): ProductVariant {
+  const buyable = variants.filter((v) => maxFor(soldOut, v.sku) !== 0);
+  return (buyable.length ? buyable : variants).reduce((best, v) =>
+    v.price !== null && (best.price === null || v.price < best.price) ? v : best,
+  );
+}
+
 function PurchaseView({
   item,
   description,
   slug,
   photo,
+  soldOut: built,
+  deal,
   sku,
   onSelect,
 }: Props & { sku: string | null; onSelect?: (v: ProductVariant) => void }) {
   const ids = useId();
   const [quantity, setQuantity] = useState(1);
+  const { lines, available: counts } = useCart();
+  // The counts, once fetched, are newer than the page.
+  const available = useMemo(() => ({ ...built, ...counts }), [built, counts]);
+  useEffect(() => {
+    cart.checkStock(false, true);
+  }, []);
 
-  const variant = item.variants.find((v) => v.sku === sku) ?? item.variants[0];
+  const variant = item.variants.find((v) => v.sku === sku) ?? opening(item.variants, built);
   const chart = chartSizes(item);
   const which = variantLabel(item, variant);
-  const price = variant.price;
+  // What it costs with the price deals; the catalogue's price is what goes in the cart, which applies them itself.
+  const base = variant.price;
+  const price = base === null ? null : (deal.now[variant.sku] ?? base);
   const takes = takesLine(item, variant);
   const spec = photoSpec(item, variant);
+  // Stock: none of this size left, or fewer than asked for once what's in the cart is counted.
+  const max = maxFor(available, variant.sku);
+  const soldOut = max === 0;
+  const inCart = lines.find((l) => l.sku === variant.sku)?.quantity ?? 0;
+  const room = max === null ? null : Math.max(0, max - inCart);
+  const short = room !== null && !soldOut && quantity > room;
+  const what = orderWhat(item.name, which);
 
   const choose = (option: string, value: string) => {
     const next = pickVariant(item.variants, variant, option, value);
@@ -86,7 +129,25 @@ function PurchaseView({
     <div className="buy">
       <p className="buy__price" aria-live="polite">
         {price !== null ? rands(price) : "Price on request"}
+        {!soldOut && base !== null && price !== null && price < base ? (
+          <s className="buy__was">
+            <span className="visually-hidden">, was </span>
+            {rands(base)}
+          </s>
+        ) : null}
+        {soldOut ? <span className="buy__soldout">Sold out</span> : null}
       </p>
+
+      {deal.labels.length > 0 && !soldOut ? (
+        <ul className="buy__deals" aria-label="On special">
+          {deal.labels.map((l) => (
+            <li key={l}>
+              <Tag size={18} />
+              {l}
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       <p className="buy__desc">{description}</p>
 
@@ -118,11 +179,11 @@ function PurchaseView({
             <legend className="opt__label">{option.name}</legend>
             <div className="opt__values">
               {option.values.map((value) => {
-                const price = showPrices
-                  ? pickVariant(item.variants, variant, option.name, value)?.price
-                  : undefined;
+                const lands = pickVariant(item.variants, variant, option.name, value);
+                const price = showPrices && lands?.price != null ? (deal.now[lands.sku] ?? lands.price) : undefined;
+                const out = lands !== null && maxFor(available, lands.sku) === 0;
                 return (
-                  <label key={value} className="opt__pill">
+                  <label key={value} className="opt__pill" data-soldout={out || undefined}>
                     <input
                       type="radio"
                       name={`${ids}-${option.name}`}
@@ -131,7 +192,7 @@ function PurchaseView({
                       onChange={() => choose(option.name, value)}
                     />
                     {value}
-                    {price != null ? <span className="opt__price">{rands(price)}</span> : null}
+                    {out ? <span className="opt__price">Sold out</span> : price != null ? <span className="opt__price">{rands(price)}</span> : null}
                   </label>
                 );
               })}
@@ -144,8 +205,23 @@ function PurchaseView({
         <label className="opt__label" htmlFor={`${ids}-qty`}>
           Quantity
         </label>
-        <QuantityStepper id={`${ids}-qty`} value={quantity} onChange={setQuantity} />
+        <QuantityStepper id={`${ids}-qty`} value={quantity} onChange={setQuantity} max={room || undefined} />
       </div>
+
+      {short ? (
+        <StockLimit
+          room={room}
+          max={max!}
+          wanted={quantity + inCart}
+          what={what}
+          sku={variant.sku}
+          takeLabel={`Add ${room} to cart`}
+          onTake={() => {
+            cart.add(toLine(item, variant, base!, room, slug, photo));
+            setQuantity(1);
+          }}
+        />
+      ) : null}
 
       {/* The counter slip: the order as the shop will read it. */}
       <div className="slip" aria-live="polite">
@@ -159,11 +235,21 @@ function PurchaseView({
       </div>
 
       <div className="buy__actions">
-        {price !== null ? (
+        {soldOut ? (
+          <a
+            className="btn btn--blue"
+            href={whatsapp(`Hi! The ${what} (code ${variant.sku}) is sold out on the site. When will you have more?`)}
+            target="_blank"
+            rel="noopener"
+          >
+            <WhatsApp size={19} />
+            Sold out: ask when it&rsquo;s back
+          </a>
+        ) : short ? null : price !== null ? (
           <button
             type="button"
             className="btn btn--gold on-gold"
-            onClick={() => cart.add(toLine(item, variant, price, quantity, slug, photo))}
+            onClick={() => cart.add(toLine(item, variant, base!, quantity, slug, photo))}
           >
             <Cart size={19} />
             Add to cart
@@ -179,18 +265,70 @@ function PurchaseView({
         )}
       </div>
 
-      <p className="buy__note">
-        Pay online, then collect it at the shop in {SHOP.town} or have it
-        couriered to you. Need it by a date?{" "}
-        <a
-          className="inline-link"
-          href={whatsapp(`Hi! I'm looking at the ${item.name}. Could it be ready by `)}
-        >
-          Ask the shop first
-        </a>
-        .
-      </p>
+      <Getting name={item.name} personal={item.personalisation !== null} />
     </div>
+  );
+}
+
+/**
+ * How the order reaches the customer, under the button that commits to it:
+ * the two real routes, collect or courier, with the shop's own address and
+ * hours, and a way to ask about a date before ordering. Every fact here is
+ * from `data.ts`; how long an order takes to make is stated only once the
+ * shop has confirmed it (`MAKE_TIME`), and until then the customer is asked
+ * to check, never promised. Last, what can come back: the law asks for a
+ * personalised product's lack of a change-of-mind return to be said before
+ * the customer buys, not found later in the policy.
+ */
+function Getting({ name, personal }: { name: string; personal: boolean }) {
+  const open = HOURS.filter((h) => !h.closed).map((h) => `${h.days} ${h.time}`).join(", ");
+  return (
+    <ul className="getting" aria-label="Collect or courier">
+      <li>
+        <Pin size={20} />
+        <p>
+          <strong>Collect at the shop</strong>
+          <span>
+            {SHOP.street}, {SHOP.town}. Open {open}.
+          </span>
+        </p>
+      </li>
+      <li>
+        <Truck size={20} />
+        <p>
+          <strong>Or have it couriered</strong>
+          <span>The Courier Guy brings it to your door, or straight to the person it&rsquo;s for. Priced at checkout.</span>
+        </p>
+      </li>
+      <li>
+        <Clock size={20} />
+        <p>
+          <strong>Need it by a date?</strong>
+          <span>{MAKE_TIME ? `${MAKE_TIME} Check with the shop for anything sooner.` : "Check with the shop before you order and they\u2019ll tell you if it can be ready."}</span>
+        </p>
+        <a
+          className="getting__ask"
+          href={whatsapp(`Hi! I'm looking at the ${name}. Could it be ready by `)}
+        >
+          <WhatsApp size={17} />
+          Ask about a date
+        </a>
+      </li>
+      <li>
+        <Parcel size={20} />
+        <p>
+          <strong>{personal ? "Made for you" : "Changed your mind?"}</strong>
+          <span>
+            {personal
+              ? "Because it\u2019s made with your photos or words, it can\u2019t be returned for a change of mind. If it arrives faulty or not as you ordered, we put it right. "
+              : "Return it within 7 days of delivery, unused. If it arrives faulty, we put it right. "}
+            <Link className="inline-link" href="/refunds-cancellations">
+              Returns policy
+            </Link>
+          </span>
+        </p>
+      </li>
+    </ul>
   );
 }
 

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { currentCustomer, savedDetails } from "@/lib/account/auth";
 import { buildNeeds } from "@/lib/catalog/checkout";
 import { getProducts } from "@/lib/catalog/queries";
-import { courierReady } from "@/lib/checkout/courier";
+import { courierReady, courierSandbox } from "@/lib/checkout/courier";
 import { payfastOnsite, payfastReady, payfastSandbox } from "@/lib/checkout/payfast";
 import { DetailsStep } from "./DetailsStep";
 
@@ -30,6 +30,7 @@ export default async function DetailsPage({ searchParams }: PageProps<"/checkout
       payments={payfastReady()}
       onsite={payfastOnsite()}
       sandbox={payfastSandbox()}
+      courierSandbox={courierSandbox()}
       cancelled={cancelled === "1"}
     />
   );

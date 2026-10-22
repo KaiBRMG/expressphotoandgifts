@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { estimateText, eventWords, momentText, type StepState, type Tracking } from "@/lib/checkout/tracking";
 import { SHOP } from "@/app/site/data";
 import { Alert, Check } from "@/app/site/icons";
@@ -10,13 +12,13 @@ const HEARD: Record<StepState, string> = { done: ", done", now: ", happening now
  * step happening now marked, and every update The Courier Guy has sent
  * beside it once the parcel is booked.
  */
-export function OrderTracking({ t }: { t: Tracking }) {
+export function OrderTracking({ t, id = "track-title", title = "Where your order is", foot }: { t: Tracking; id?: string; title?: ReactNode; foot?: ReactNode }) {
   const c = t.courier;
   return (
-    <section className={`track${c ? " track--courier" : ""}`} aria-labelledby="track-title">
+    <section className={`track${c ? " track--courier" : ""}`} aria-labelledby={id}>
       <div className="track__main">
-        <h2 id="track-title" className="costep__title">
-          Where your order is
+        <h2 id={id} className="costep__title">
+          {title}
         </h2>
         <p className={`track__now${t.problem ? " track__now--problem" : ""}`} role="status">
           {t.problem ? <Alert size={20} /> : null}
@@ -81,6 +83,7 @@ export function OrderTracking({ t }: { t: Tracking }) {
           {c.checkedAt ? <p className="receipt__soft track__checked">Last heard from the courier {momentText(c.checkedAt)}.</p> : null}
         </div>
       ) : null}
+      {foot ? <div className="track__foot">{foot}</div> : null}
     </section>
   );
 }

@@ -6,16 +6,16 @@ import {
   areaLabel,
   clampEdit,
   cropBox,
+  editKey,
   fit,
   freshEdit,
   MAX_ZOOM,
   placedArea,
-  qualityLine,
   type Edit,
   type Rotation,
   wholePhoto,
 } from "@/lib/catalog/checkout";
-import { Alert, Check, Close, Crop, Greyscale, Rotate, Turn, ZoomIn } from "@/app/site/icons";
+import { Check, Close, Crop, Greyscale, Rotate, Turn, ZoomIn } from "@/app/site/icons";
 import { TurnedImg } from "./Cropped";
 import { WORKING } from "@/lib/checkout/photoUrls";
 import { photoSrc } from "./images";
@@ -37,9 +37,9 @@ function frameOn(stage: { w: number; h: number }, aspect: number) {
 
 /**
  * Setting one photo in one place: move it, zoom, turn it, take it to black
- * and white, and see straight away whether it still prints sharply. The
- * frame is the place's real shape and proportions; everything outside it is
- * what gets cut away. Nothing is saved until Done; Escape or the close mark
+ * and white. The frame is the place's real shape and proportions;
+ * everything outside it is what gets cut away, and white inside it is paper.
+ * A photo's sharpness is the shop's to check, never the customer's to judge. Nothing is saved until Done; Escape or the close mark
  * leaves the place as it was.
  *
  * Opened from the tray, it edits that photo: in the place it already fills,
@@ -230,7 +230,7 @@ export function Editor({
   const whole = box ? box.zoom <= box.minZoom + 0.001 : false;
 
   let stageView = null;
-  let verdict = null;
+  let borders = null;
   let said = "";
   if (px && edit && stage.w > 0) {
     const src = photoSrc(photo!, WORKING);
@@ -265,26 +265,9 @@ export function Editor({
       </>
     );
 
-    const f = fit(px, need, edit);
-    const line =
-      f.quality === "sharp"
-        ? `Prints sharply${size ? ` at ${size}` : ""}.`
-        : f.quality === "unknown"
-          ? "The shop hasn’t given this item’s print size yet, so sharpness can’t be checked."
-          : qualityLine(f.quality, size);
-    const borders = f.bordered ? "The whole photo shows, with white borders filling the rest." : null;
-    // Spoken only when the verdict changes, not at every step of a zoom: the dpi stays out of it.
-    said = [line, borders].filter(Boolean).join(" ");
-    verdict = (
-      <p className="editor__verdict" data-quality={f.quality}>
-        {f.quality === "sharp" ? <Check size={20} /> : f.quality === "unknown" ? null : <Alert size={20} />}
-        <span>
-          {line}
-          {f.dpi ? <span className="editor__dpi">{Math.round(f.dpi)} dpi</span> : null}
-          {borders ? <span className="editor__borders">{borders}</span> : null}
-        </span>
-      </p>
-    );
+    // Said only when it changes, not at every step of a zoom.
+    said = fit(px, need, edit).bordered ? "The whole photo shows, with white borders filling the rest." : "";
+    borders = said ? <p className="editor__borders">{said}</p> : null;
   }
 
   const zoomText = !box
@@ -292,7 +275,7 @@ export function Editor({
     : whole
       ? "Whole photo"
       : Math.abs(box.zoom - 1) < 0.01
-        ? "Filling the place"
+        ? "Filled to the edges"
         : `${Math.round(box.zoom * 100)}%`;
 
   return (
@@ -360,7 +343,7 @@ export function Editor({
         </div>
 
         <div className="editor__controls">
-          {verdict}
+          {borders}
           {pending ? (
             <p className="editor__shape">
               Done puts this photo in {need.label} ({row?.line.name})
@@ -407,18 +390,21 @@ export function Editor({
                 <button
                   type="button"
                   className="tool"
-                  aria-pressed={edit.turned}
                   onClick={() => update((e) => ({ ...e, turned: !e.turned, zoom: 0, x: 0.5, y: 0.5 }))}
                 >
                   <Turn size={20} />
-                  {placedArea(need, { turned: true })!.w > placedArea(need, { turned: true })!.h
-                    ? "Landscape print"
-                    : "Portrait print"}
+                  {/* Names where it goes, never where it is: the print shows where it is. */}
+                  {placedArea(need, { turned: !edit.turned })!.w > placedArea(need, { turned: !edit.turned })!.h
+                    ? "Make it a landscape print"
+                    : "Make it a portrait print"}
                 </button>
               ) : null}
-              <button type="button" className="tool tool--quiet" onClick={() => setEdit(freshEdit(px, need, target.kind))}>
-                Start over
-              </button>
+              {/* Only once there is something to undo. */}
+              {editKey(pid!, px, need, edit) !== editKey(pid!, px, need, freshEdit(px, need, target.kind)) ? (
+                <button type="button" className="tool tool--quiet" onClick={() => setEdit(freshEdit(px, need, target.kind))}>
+                  Start over
+                </button>
+              ) : null}
             </div>
           ) : null}
 

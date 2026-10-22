@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { cart } from "@/app/site/cartStore";
+import { whatsapp } from "@/app/site/data";
 
 /** The steps of checkout, as the breadcrumb names them. The receipt has no way back. */
 const STEPS = {
@@ -20,7 +21,8 @@ export type Step = keyof typeof STEPS;
  * The title band: the header's blue carried down. In checkout it carries the
  * trail back through the cart and the steps before this one; without a step
  * (the account page) it is the band alone. `aside` sits at the band's right,
- * such as the photo step's count.
+ * such as the photo step's count. Checkout has no order dock, so the band
+ * keeps the shop's WhatsApp in reach on every step.
  */
 export function CheckoutHead({
   step,
@@ -28,6 +30,7 @@ export function CheckoutHead({
   lede,
   aside,
   skipPhotos = false,
+  orderRef,
 }: {
   step?: Step;
   title: string;
@@ -35,6 +38,8 @@ export function CheckoutHead({
   aside?: ReactNode;
   /** The cart takes no photos, so the trail goes straight from cart to details. */
   skipPhotos?: boolean;
+  /** Named in the WhatsApp message, so the shop can find the order. */
+  orderRef?: string;
 }) {
   const trail = step ? STEPS[step].trail : null;
   const before = (trail ?? []).slice(0, -1).filter((s) => !(skipPhotos && s === "photos"));
@@ -66,6 +71,14 @@ export function CheckoutHead({
           ) : null}
           <h1 className="shelfhead__title">{title}</h1>
           {lede ? <p className="ckhead__lede">{lede}</p> : null}
+          {step ? (
+            <p className="ckhead__ask">
+              Not sure about something?{" "}
+              <a className="inline-link" href={whatsapp(`Hi! I have a question about my order${orderRef ? ` ${orderRef}` : ""}…`)} target="_blank" rel="noreferrer">
+                WhatsApp the shop
+              </a>
+            </p>
+          ) : null}
         </div>
         {aside}
       </div>

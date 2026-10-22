@@ -8,6 +8,7 @@ import { liveLines } from "@/lib/catalog/cart";
 import type { Needs } from "@/lib/catalog/checkout";
 import { cart, useCart } from "@/app/site/cartStore";
 import { ArrowRight } from "@/app/site/icons";
+import { track } from "@/app/site/track";
 import { Chooser } from "./Chooser";
 import { Editor } from "./Editor";
 import { CheckoutHead } from "./Head";
@@ -27,7 +28,7 @@ import { Tray } from "./Tray";
  */
 export function PhotoStep({ needs }: { needs: Needs }) {
   const router = useRouter();
-  const { lines, prices } = useCart();
+  const { lines, prices, available } = useCart();
   const store = usePhotos();
   const [chooser, setChooser] = useState<Target | null>(null);
   const [editing, setEditing] = useState<{ t: Target; photo?: string } | null>(null);
@@ -37,7 +38,11 @@ export function PhotoStep({ needs }: { needs: Needs }) {
     cart.checkPrices();
   }, []);
 
-  const live = useMemo(() => liveLines(lines, prices), [lines, prices]);
+  const live = useMemo(() => liveLines(lines, prices, available), [lines, prices, available]);
+  const started = ready && live.length > 0;
+  useEffect(() => {
+    if (started) track({ step: "checkout" });
+  }, [started]);
   const rows = useMemo(() => rowsFor(live, needs, store.lines), [live, needs, store.lines]);
   const prog = useMemo(() => progress(rows, store.photos, store.bakes), [rows, store.photos, store.bakes]);
 
@@ -138,7 +143,6 @@ export function PhotoStep({ needs }: { needs: Needs }) {
         <Tray
           store={store}
           prog={prog}
-          live={live}
           issues={issues}
           onEdit={targets.length > 0 ? editPhoto : undefined}
           onSend={send}
@@ -183,8 +187,8 @@ function Head({ filled, total }: { filled: number; total: number }) {
       title="Add your photos"
       lede={
         <>
-          Each item below shows where its photos go, in the shape they&rsquo;ll print. Add a photo once and use it
-          as often as you like.
+          Each item below has a place for every photo it takes, drawn in the shape it&rsquo;ll print. Add a photo
+          once and use it in as many places as you like.
         </>
       }
       aside={

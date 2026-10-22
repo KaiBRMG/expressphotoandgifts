@@ -2,16 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Button, NumberInput, SegmentedControl, Select, Textarea } from "@mantine/core";
+import { Button, NumberInput, Textarea } from "@mantine/core";
 import type { OrderEmail } from "@/lib/checkout/emails";
-import { rands } from "@/lib/catalog/listing";
-import { NOTE_MAX, STAGES, stageLabel, type Fulfilment, type OrderActionResult, type OrderStage } from "@/lib/checkout/order";
+import { itemCount, rands } from "@/lib/catalog/listing";
+import { NOTE_MAX, type OrderActionResult, type OrderStage } from "@/lib/checkout/order";
 import {
   acceptPayfastRecordAction,
   checkCardPaymentAction,
   recordRefundAction,
   resendOrderEmailAction,
   resolveOrderIssuesAction,
+  returnStockAction,
   setOrderStageAction,
 } from "@/app/admin/actions";
 
@@ -41,22 +42,6 @@ export function useOrderAction() {
   return { pending, error, notice, run };
 }
 
-/** Where the order is in the shop, as one control: pressing a stage moves it there. */
-export function StageControl({ ref_, stage, method }: { ref_: string; stage: OrderStage; method: Fulfilment["method"] }) {
-  const { pending, error, run } = useOrderAction();
-  const data = STAGES.map((s) => ({ value: s, label: stageLabel(s, method) }));
-  const move = (next: string | null) => {
-    if (next && next !== stage) run(() => setOrderStageAction(ref_, next));
-  };
-  return (
-    <div className="ostage">
-      <SegmentedControl className="plist__status" aria-label="Stage" data={data} value={stage} onChange={move} disabled={pending} />
-      <Select className="plist__statusSelect" aria-label="Stage" data={data} value={stage} onChange={move} allowDeselect={false} disabled={pending} />
-      {error ? <p className="admin-error" role="alert">{error}</p> : null}
-    </div>
-  );
-}
-
 /** The next step's button: moves the order to the stage it names. */
 export function AdvanceStage({ ref_, stage, label }: { ref_: string; stage: OrderStage; label: string }) {
   const { pending, error, run } = useOrderAction();
@@ -83,9 +68,9 @@ export function RecordRefund({ ref_, left }: { ref_: string; left: number }) {
 
   if (!open) {
     return (
-      <button type="button" className="admin-link osec__more" onClick={() => setOpen(true)}>
-        Record a refund made outside PayFast
-      </button>
+      <Button variant="default" size="sm" className="osec__more" onClick={() => setOpen(true)}>
+        Record a refund outside PayFast
+      </Button>
     );
   }
 
@@ -105,7 +90,7 @@ export function RecordRefund({ ref_, left }: { ref_: string; left: number }) {
         );
       }}
     >
-      <p className="hint">For money given back another way, such as cash at the counter. Refunds made in PayFast’s dashboard show on this order by themselves. Up to {rands(left)} is left to refund.</p>
+      <p className="hint">Money given back outside PayFast. Up to {rands(left)} left.</p>
       <NumberInput label="Amount refunded" leftSection="R" decimalScale={2} min={0} max={left / 100} value={amount} onChange={setAmount} required />
       <Textarea label="Why" autosize minRows={2} maxLength={NOTE_MAX} value={note} onChange={(e) => setNote(e.currentTarget.value)} required />
       {error ? <p className="admin-error" role="alert">{error}</p> : null}
@@ -118,6 +103,29 @@ export function RecordRefund({ ref_, left }: { ref_: string; left: number }) {
         </Button>
       </div>
     </form>
+  );
+}
+
+/**
+ * Puts what the order took out of tracked stock back on the shelf, once: for
+ * an order refunded or cancelled whose goods were never made or came back
+ * unused. Its own step, since a refund may be made in PayFast's dashboard.
+ */
+export function ReturnToStock({ ref_, units }: { ref_: string; units: number }) {
+  const { pending, error, run } = useOrderAction();
+  return (
+    <div className="oform">
+      <p className="hint">
+        Paying took {itemCount(units)} out of stock. If the order is refunded or cancelled and {units === 1 ? "it wasn’t" : "they weren’t"} made or used,
+        put {units === 1 ? "it" : "them"} back so {units === 1 ? "it" : "they"} can be sold again.
+      </p>
+      {error ? <p className="admin-error" role="alert">{error}</p> : null}
+      <div className="row">
+        <Button variant="default" size="sm" loading={pending} onClick={() => run(() => returnStockAction(ref_))}>
+          Put back in stock
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -135,7 +143,7 @@ export function ResolveIssues({ ref_ }: { ref_: string }) {
     >
       <Textarea
         label="What was done"
-        description="Check the payment in your PayFast dashboard first. Say what you found and did, such as a refund made."
+        placeholder="Checked PayFast: refunded the second payment"
         autosize
         minRows={2}
         maxLength={NOTE_MAX}
@@ -145,8 +153,8 @@ export function ResolveIssues({ ref_ }: { ref_: string }) {
       />
       {error ? <p className="admin-error" role="alert">{error}</p> : null}
       <div className="row">
-        <Button type="submit" variant="light" loading={pending}>
-          Mark as looked at
+        <Button type="submit" loading={pending}>
+          Resolve
         </Button>
       </div>
     </form>
@@ -158,9 +166,9 @@ export function ResendEmail({ ref_, who }: { ref_: string; who: OrderEmail }) {
   const { pending, error, run } = useOrderAction();
   return (
     <span className="oresend">
-      <button type="button" className="admin-link" disabled={pending} onClick={() => run(() => resendOrderEmailAction(ref_, who))}>
-        {pending ? "Sending…" : "Send again"}
-      </button>
+      <Button variant="default" size="xs" loading={pending} onClick={() => run(() => resendOrderEmailAction(ref_, who))}>
+        Resend
+      </Button>
       {error ? <span className="admin-error" role="alert">{error}</span> : null}
     </span>
   );
@@ -186,8 +194,8 @@ export function AcceptPayfastRecord({ ref_ }: { ref_: string }) {
           </Button>
         </>
       ) : (
-        <Button variant="light" onClick={() => setSure(true)}>
-          Accept PayFast’s record
+        <Button onClick={() => setSure(true)}>
+          Accept payment
         </Button>
       )}
       {error ? (
@@ -204,9 +212,9 @@ export function CheckWithPayfast({ ref_ }: { ref_: string }) {
   const { pending, error, run } = useOrderAction();
   return (
     <span className="oresend opay__ask">
-      <button type="button" className="admin-link" disabled={pending} onClick={() => run(() => checkCardPaymentAction(ref_))}>
-        {pending ? "Asking PayFast…" : "Check with PayFast"}
-      </button>
+      <Button variant="default" size="xs" loading={pending} onClick={() => run(() => checkCardPaymentAction(ref_))}>
+        Check with PayFast
+      </Button>
       {error ? (
         <span className="admin-error" role="alert">
           {error}

@@ -3,24 +3,29 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { FieldValue, type DocumentReference, type Transaction } from "firebase-admin/firestore";
 
-import { cartSubtotal } from "@/lib/catalog/cart";
+import { priceDeals } from "@/lib/catalog/campaigns";
 import { buildNeeds, WORDS_MAX } from "@/lib/catalog/checkout";
 import { rands } from "@/lib/catalog/listing";
+import type { Availability } from "@/lib/catalog/stock";
 import { clampQuantity } from "@/lib/catalog/purchase";
 import { getProducts } from "@/lib/catalog/queries";
+import { campaignsUsed, countUse, orderDeals } from "@/lib/campaigns";
 import { db } from "@/lib/firebase";
-import { boxForOrder, type BoxId } from "./boxes";
 import { cleanAddress, cleanContact, cleanRecipient, addressErrors, contactErrors, hasErrors, LIMITS, recipientErrors } from "./details";
-import { fullCover, quote } from "./courier";
+import { fullCover, packCart, quote } from "./courier";
 import { amountMatches, pfAmount } from "./payfast";
+import { liveAvailability, readStock, stockChanged, takeStock, unitsBySku } from "@/lib/stock";
 import {
   ATTEMPT,
   MAX_ATTEMPTS,
   MIN_PAYMENT,
+  orderFolder,
   REF,
+  refOfFile,
   type Attempt,
   type FulfilmentInput,
   type Issue,
+  lineWhat,
   type LogEntry,
   type Notice,
   type NoticeOutcome,
@@ -43,24 +48,33 @@ import {
 export const orders = () => db().collection("orders");
 
 export type Priced =
-  | { ok: true; order: Omit<Order, "token" | "createdAt" | "updatedAt" | "uid" | "status"> }
-  | { ok: false; error: string; field?: "contact" | "address" | "recipient" | "delivery" | "photos" | "cart" };
+  /** `skipped`: once-per-customer campaigns this email has had already, left out of the price. */
+  | { ok: true; order: Omit<Order, "token" | "createdAt" | "updatedAt" | "uid" | "status">; skipped: { id: string; name: string }[] }
+  | { ok: false; error: string; field?: "contact" | "address" | "recipient" | "delivery" | "photos" | "cart" | "stock"; limits?: Availability };
 
 /**
  * Checks and prices an order (already read by `readOrderInput`): every line
  * still on sale, every place filled with a file from this order's own
- * folder, the details complete, and for delivery, a service the courier
- * still offers.
+ * folder or, for a reorder, a file placed on one of the signed-in `owner`'s
+ * own paid orders (`reusableFiles`), the details complete, and for delivery, a service the courier
+ * still offers. Campaigns are read fresh and priced by the same engine the
+ * cart uses (`priceDeals`), so a deal that ended or filled since the cart
+ * was drawn is gone here, and the customer sees the new total before paying.
  */
-export async function priceOrder(input: OrderInput): Promise<Priced> {
+export async function priceOrder(input: OrderInput, owner: Promise<string | null> | null = null): Promise<Priced> {
   if (!REF.test(input.ref)) return { ok: false, error: "This order’s reference is missing. Go back to your photos and try again.", field: "cart" };
   if (hasErrors(contactErrors(input.contact))) return { ok: false, error: "Some of your details need another look.", field: "contact" };
   if (input.lines.length === 0) return { ok: false, error: "Your cart is empty.", field: "cart" };
 
-  const products = await getProducts();
+  // The campaigns need only the customer's email, so they load while everything else is checked.
+  const dealsLoad = orderDeals(input.contact.email, {});
+  dealsLoad.catch(() => {}); // awaited below; an early return mustn't leave it unhandled
+  const folder = orderFolder(input.ref);
+  const outside = input.lines.flatMap((l) => l.sets.flatMap((s) => s.files.map((f) => f.publicId))).filter((id) => !id.startsWith(folder));
+  // Only a reorder places files from outside its folder, so only it waits on who is signed in.
+  const [products, reusable] = await Promise.all([getProducts(), outside.length ? owner?.then((uid) => reusableFiles(uid, outside)) ?? NONE : NONE]);
   const needs = buildNeeds(products);
   const bySku = new Map(products.flatMap((p) => p.variants.map((v) => [v.sku, { p, v }] as const)));
-  const folder = `orders/${input.ref}/`;
 
   const lines: OrderLine[] = [];
   for (const l of input.lines) {
@@ -73,7 +87,7 @@ export async function priceOrder(input: OrderInput): Promise<Priced> {
     const complete =
       !photo ||
       (l.sets.length === (l.sets.length > 1 ? quantity : 1) &&
-        l.sets.every((s) => s.files.length === photo.slots.length && s.files.every((f) => f.publicId.startsWith(folder))));
+        l.sets.every((s) => s.files.length === photo.slots.length && s.files.every((f) => f.publicId.startsWith(folder) || reusable.has(f.publicId))));
     if (!complete) return { ok: false, error: `${found.p.name} still needs its photos. Go back to your photos to finish it.`, field: "photos" };
     const note = l.note.trim().slice(0, LIMITS.lineNote);
 
@@ -95,25 +109,58 @@ export async function priceOrder(input: OrderInput): Promise<Priced> {
     });
   }
 
-  const subtotal = cartSubtotal(lines);
-  const box = boxForOrder(lines.map((l) => bySku.get(l.sku)?.p.box));
-  const priced = await priceFulfilment(input.fulfilment, subtotal, box);
+  const items = lines.map((l) => ({ p: bySku.get(l.sku)!.p, sku: l.sku, quantity: l.quantity }));
+  // Stock against the counts as they stand now, not the shop's cached copy; alongside the campaigns, read fresh too.
+  const units = unitsBySku(lines);
+  const [limits, { deals, skipped }] = await Promise.all([liveAvailability(Object.keys(units)), dealsLoad]);
+  const over = Object.keys(units).filter((sku) => sku in limits && units[sku] > limits[sku]);
+  if (over.length) {
+    const names = over.map((sku) => lines.find((l) => l.sku === sku)!.name);
+    return {
+      ok: false,
+      error: `There isn’t enough ${names.join(" or ")} in stock for your order any more. Open your cart to choose what to do.`,
+      field: "stock",
+      limits: Object.fromEntries(over.map((sku) => [sku, limits[sku]])),
+    };
+  }
+
+  // Every deal live now, in the order they stack; each line keeps the catalogue price a price deal took it from.
+  const dealt = priceDeals(lines, deals);
+  dealt.lines.forEach((d, i) => {
+    lines[i] = { ...lines[i], price: d.price, ...(d.price < d.base ? { base: d.base } : {}), ...(d.net < d.price * d.quantity ? { paid: d.net } : {}) };
+  });
+  // The courier's cover is for what the goods sold for.
+  const priced = await priceFulfilment(input.fulfilment, dealt.total, items);
   if (!priced.ok) return priced;
-  const total = subtotal + priced.delivery;
+  const total = dealt.total + priced.delivery;
   if (total < MIN_PAYMENT) return { ok: false, error: `Orders paid online start at ${rands(MIN_PAYMENT)}. Add something to your cart, or call the shop.`, field: "cart" };
 
-  return { ok: true, order: { ref: input.ref, contact: cleanContact(input.contact), fulfilment: priced.fulfilment, lines, subtotal, delivery: priced.delivery, total } };
+  return {
+    ok: true,
+    skipped,
+    order: {
+      ref: input.ref,
+      contact: cleanContact(input.contact),
+      fulfilment: priced.fulfilment,
+      lines,
+      subtotal: dealt.subtotal,
+      ...(dealt.discount > 0 ? { discount: dealt.discount } : {}),
+      ...(dealt.savings.length ? { savings: dealt.savings } : {}),
+      delivery: priced.delivery,
+      total,
+    },
+  };
 }
 
 /**
  * Collection, free; or the courier service chosen, priced again for this
- * address, these goods and their box, insured to the full value when the
- * customer chose that.
+ * address, these goods and the parcels they pack into, insured to the full
+ * value when the customer chose that.
  */
 async function priceFulfilment(
   f: FulfilmentInput,
   subtotal: number,
-  box: BoxId,
+  items: Parameters<typeof packCart>[0],
 ): Promise<{ ok: true; fulfilment: Order["fulfilment"]; delivery: number } | Extract<Priced, { ok: false }>> {
   if (f.method === "collect") return { ok: true, fulfilment: f, delivery: 0 };
 
@@ -122,7 +169,8 @@ async function priceFulfilment(
   const recipient = f.recipient ? cleanRecipient(f.recipient) : null;
   if (recipient && hasErrors(recipientErrors(recipient))) return { ok: false, error: "The recipient’s details need another look.", field: "recipient" };
 
-  const q = await quote(address, subtotal, box);
+  const parcels = await packCart(items);
+  const q = await quote(address, subtotal, parcels);
   if (!q.ok) {
     return {
       ok: false,
@@ -136,7 +184,7 @@ async function priceFulfilment(
   const priced = f.insure ? option.full ?? (option.cover >= fullCover(subtotal) ? option : null) : option;
   if (!priced) return { ok: false, error: "Insuring the full value isn’t offered for this delivery any more. Check the price, then pay.", field: "delivery" };
 
-  const service: Service = { code: option.code, name: option.name, description: option.description, price: priced.price, cover: priced.cover, box };
+  const service: Service = { code: option.code, name: option.name, description: option.description, price: priced.price, cover: priced.cover, parcels };
   return { ok: true, fulfilment: { method: "courier", address, recipient, service }, delivery: priced.price };
 }
 
@@ -152,9 +200,10 @@ export type Started = { ok: true; order: Order; attempt: Attempt } | { ok: false
  * The first save claims the ref for the browser's key, and only that key can
  * save it after, so knowing a ref (it is on receipts and PayFast's email) is
  * not enough to rewrite someone's unpaid order. A paid order is never
- * overwritten.
+ * overwritten. Both keep `terms`: the policies the customer agreed to
+ * (`POLICIES_VERSION`) and when, on the attempt's own clock.
  */
-export async function startAttempt(priced: Extract<Priced, { ok: true }>["order"], uid: string | null, key: string): Promise<Started> {
+export async function startAttempt(priced: Extract<Priced, { ok: true }>["order"], uid: string | null, key: string, policies: string): Promise<Started> {
   const ref = orders().doc(priced.ref);
   const claim = createHash("sha256").update(key).digest("hex");
   return db().runTransaction(async (tx) => {
@@ -166,6 +215,7 @@ export async function startAttempt(priced: Extract<Priced, { ok: true }>["order"
     if (n > MAX_ATTEMPTS) return { ok: false, reason: "too-many" } as const;
 
     const now = new Date().toISOString();
+    const terms = { version: policies, at: now };
     const order: Order = {
       ...was,
       ...priced,
@@ -174,11 +224,13 @@ export async function startAttempt(priced: Extract<Priced, { ok: true }>["order"
       uid: uid ?? was?.uid ?? null,
       claim,
       attempts: n,
+      terms,
       createdAt: was?.createdAt ?? now,
       updatedAt: now,
     };
-    const { contact, fulfilment, lines, subtotal, delivery, total } = priced;
-    const attempt: Attempt = { id: `${priced.ref}-${n}`, ref: priced.ref, contact, fulfilment, lines, subtotal, delivery, total, createdAt: now };
+    const { contact, fulfilment, lines, subtotal, discount, savings, delivery, total } = priced;
+    const deals = { ...(discount ? { discount } : {}), ...(savings ? { savings } : {}) };
+    const attempt: Attempt = { id: `${priced.ref}-${n}`, ref: priced.ref, contact, fulfilment, lines, subtotal, ...deals, delivery, total, createdAt: now, terms };
     tx.set(ref, order);
     tx.create(ref.collection("attempts").doc(attempt.id), attempt);
     return { ok: true, order, attempt } as const;
@@ -275,7 +327,11 @@ export async function applyNotice(n: Notice, opts: { refused?: string; acceptedB
   // One record per PayFast payment and status, so a resent notice finds its own; a refused one apart, so it never blocks the same payment passing later.
   const recordRef = ref.collection("notices").doc(`${refused ? "refused-" : ""}${n.pfPaymentId || "none"}-${n.status || "none"}`.replace(/\//g, "_"));
 
-  return db().runTransaction(async (tx): Promise<Applied> => {
+  let soldOutChanged = false;
+  let used: string[] = [];
+  const applied = await db().runTransaction(async (tx): Promise<Applied> => {
+    soldOutChanged = false;
+    used = [];
     const [snap, attemptSnap, recorded] = await Promise.all([tx.get(ref), tx.get(attemptRef), tx.get(recordRef)]);
     if (!snap.exists) return { outcome: "no-order" };
     if (recorded.exists) return { outcome: "already" };
@@ -298,14 +354,50 @@ export async function applyNotice(n: Notice, opts: { refused?: string; acceptedB
     }
     if (order.status === "paid") return flag("duplicate", `${paid} came in after the order was already paid by ${order.payment?.pfPaymentId}. The customer paid twice: refund one.`);
 
+    // Read before any write, as a transaction must.
+    const shelf = await readStock(tx, attempt.lines);
     record("paid");
     const { contact, fulfilment, lines, subtotal, delivery, total } = attempt;
+    // The order takes on exactly what was paid for, deals included; an attempt from before campaigns had none.
+    const deals = { discount: attempt.discount ?? FieldValue.delete(), savings: attempt.savings ?? FieldValue.delete() };
     const payment: Payment = { provider: "payfast", ...n, at: now };
-    const update = { contact, fulfilment, lines, subtotal, delivery, total, status: "paid", stage: "new", payment, paidAt: now, updatedAt: now } satisfies Partial<Order>;
+    const took = takeStock(tx, shelf, lines, order.ref, now);
+    const { stock } = took;
+    soldOutChanged = took.soldOutChanged;
+    used = countUse(tx, attempt.savings, { ref: order.ref, email: contact.email, goods: subtotal - (attempt.discount ?? 0), at: now });
+    const update = { contact, fulfilment, lines, subtotal, delivery, total, status: "paid", stage: "new", payment, paidAt: now, updatedAt: now, ...(Object.keys(stock.taken).length ? { stock } : {}) } satisfies Partial<Order>;
     const log = acceptedBy ? { log: FieldValue.arrayUnion({ at: now, by: acceptedBy, text: `Marked paid from PayFast’s record of payment ${n.pfPaymentId} (R${n.amountGross}); its notice never arrived` } satisfies LogEntry) } : {};
-    tx.update(ref, { ...update, ...log });
-    return { outcome: "paid", order: { ...order, ...update } };
+    // Two customers paid for the last one at once: the money is taken, so the shop decides (make more, or refund).
+    const oversold = stock.oversold.length
+      ? { flagged: true, issues: FieldValue.arrayUnion({ at: now, text: `Oversold: ${stock.oversold.map((sku) => lineWhat(lines.find((l) => l.sku === sku)!)).join(", ")}. Stock ran out before this payment came in. Make more, or refund the customer.` } satisfies Issue) }
+      : {};
+    tx.update(ref, { ...update, ...deals, ...log, ...oversold });
+    const { discount, savings } = attempt;
+    return { outcome: "paid", order: { ...order, ...update, discount, savings } };
   });
+  if (applied.outcome === "paid" && applied.order.stock) stockChanged(soldOutChanged);
+  if (applied.outcome === "paid") campaignsUsed(used);
+  return applied;
+}
+
+const NONE: ReadonlySet<string> = new Set();
+
+/**
+ * Which of `publicIds` an order may place from outside its own folder: those
+ * placed on a paid order on the same account, at the version placed. What
+ * lets Order again (`lib/account/orders.ts`) send the old photos, and nobody
+ * else's.
+ */
+export async function reusableFiles(uid: string | null, publicIds: string[]): Promise<ReadonlySet<string>> {
+  const refs = [...new Set(publicIds.map(refOfFile).filter((r) => REF.test(r)))];
+  if (!uid || refs.length === 0) return NONE;
+  const ok = new Set<string>();
+  for (const s of await db().getAll(...refs.map((r) => orders().doc(r)))) {
+    const o = s.data() as Order | undefined;
+    if (o?.uid !== uid || o.status !== "paid") continue;
+    for (const l of o.lines) for (const set of l.sets) for (const f of set.files) ok.add(f.publicId);
+  }
+  return ok;
 }
 
 export async function attachCustomer(ref: string, uid: string): Promise<void> {

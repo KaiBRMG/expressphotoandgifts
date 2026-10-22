@@ -279,7 +279,7 @@ export function ProductEditor({
           </Tabs.List>
 
           <Tabs.Panel value="shelf">
-            <ShelfTab draft={draft} update={update} categories={categories} vocabulary={vocab} onAdded={addedTerm} />
+            <ShelfTab draft={draft} update={update} categories={categories} vocabulary={vocab} onAdded={addedTerm} slug={saved.slug} />
           </Tabs.Panel>
           <Tabs.Panel value="photos">
             <PhotosTab draft={draft} update={update} onUploading={(n) => setUploading((u) => u + n)} />

@@ -1,4 +1,5 @@
 import { CartDrawer, DockAction } from "./Cart";
+import { DockFrame } from "./DockFrame";
 import { WhatsApp } from "./icons";
 import { CHAT_HREF } from "./data";
 
@@ -25,11 +26,13 @@ import { CHAT_HREF } from "./data";
  *
  * Once the cart holds something the pill is the cart instead, at every width
  * and on every page, carrying the count of units and opening the drawer.
+ *
+ * It steps aside while a product's buy column passes under it (`DockFrame`).
  */
 export function OrderDock({ shopAction = true }: { shopAction?: boolean }) {
   return (
     <>
-      <div className="dock">
+      <DockFrame>
         <div className="dock__inner">
           <DockAction shopAction={shopAction} />
 
@@ -41,7 +44,7 @@ export function OrderDock({ shopAction = true }: { shopAction?: boolean }) {
             <WhatsApp size={21} />
           </a>
         </div>
-      </div>
+      </DockFrame>
       <CartDrawer />
     </>
   );

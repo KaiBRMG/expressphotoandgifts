@@ -130,8 +130,23 @@ export function Catalogue({ listings, shelfName, byType = false, vocabulary }: P
  * without scripts see, so the grid is never empty while the page wakes.
  */
 export function CatalogueFallback({ listings, shelfName, byType = false, vocabulary }: Props) {
-  return <CatalogueView listings={listings} shelfName={shelfName} byType={byType} vocabulary={vocabulary} view={DEFAULT_VIEW} />;
+  return (
+    <CatalogueView listings={listings} shelfName={shelfName} byType={byType} vocabulary={vocabulary} view={DEFAULT_VIEW} pending />
+  );
 }
+
+/** Every key the view reads from the URL. */
+const VIEW_KEYS = ["q", "sort", "price", "photo", ...FILTER_FACETS];
+
+/**
+ * Run as the static page is parsed, before the shop's scripts arrive. A link
+ * with filters in it (`?type=mugs`) would otherwise show the whole shelf as if
+ * it were the answer, so the shelf is marked as still applying them; and if
+ * the page has not woken in 8 seconds (a slow line, a failed download), it
+ * offers a reload rather than leaving every control dead. The live catalogue
+ * replaces this whole block, script and marks with it, once it renders.
+ */
+const PENDING_SCRIPT = `(function(){var m=document.currentScript.parentElement;var p=new URLSearchParams(location.search);if(${JSON.stringify(VIEW_KEYS)}.some(function(k){return p.has(k)}))m.setAttribute("data-pending","");setTimeout(function(){if(m.isConnected)m.setAttribute("data-slow","")},8000)})();`;
 
 function CatalogueView({
   listings,
@@ -141,10 +156,13 @@ function CatalogueView({
   view,
   ignored = [],
   onChange,
+  pending = false,
 }: Props & {
   view: View;
   ignored?: string[];
   onChange?: (patch: Partial<View>) => void;
+  /** The static stand-in, before the URL has been read. */
+  pending?: boolean;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -198,7 +216,23 @@ function CatalogueView({
   ].filter(Boolean);
 
   return (
-    <div className="catalog__main">
+    // The fallback's script marks this element before React wakes.
+    <div className="catalog__main" suppressHydrationWarning={pending}>
+      {pending ? (
+        <>
+          <script dangerouslySetInnerHTML={{ __html: PENDING_SCRIPT }} />
+          <p className="catalog__pending" role="status">
+            <span className="catalog__applying">Applying your filters&hellip;</span>
+            <span className="catalog__slow">
+              The shop is taking longer than it should to load.{" "}
+              <a className="inline-link" href="">
+                Reload the page
+              </a>
+            </span>
+          </p>
+        </>
+      ) : null}
+
       {view.q ? (
         <div className="searched">
           <p className="searched__label">

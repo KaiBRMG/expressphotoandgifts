@@ -24,7 +24,7 @@ export function ProductCard({
   eager?: boolean;
   yours?: boolean;
 }) {
-  const { slug, name, photo, hint, personalisable, special } = listing;
+  const { slug, name, photo, hint, personalisable, special, soldOut, was, deals } = listing;
   return (
     <Link className="pcard" href={productHref(slug)}>
       <span className="pcard__photo">
@@ -42,12 +42,22 @@ export function ProductCard({
              the gap reads as missing rather than broken. */
           <span className="pcard__nophoto">Photo to come</span>
         )}
-        {special ? <span className="pcard__special">Special</span> : null}
+        {/* The deal itself, in the shop's words, where there is one to say. */}
+        {special ? <span className="pcard__special">{deals[0] ?? "Special"}</span> : null}
+        {soldOut ? <span className="pcard__soldout">Sold out</span> : null}
       </span>
 
       <span className="pcard__body">
         <span className="pcard__name">{name}</span>
-        <span className="pcard__price">{priceLabel(listing)}</span>
+        <span className="pcard__price">
+          {priceLabel(listing)}
+          {was ? (
+            <s className="pcard__was">
+              <span className="visually-hidden">, was </span>
+              {priceLabel(was)}
+            </s>
+          ) : null}
+        </span>
         {hint ? <span className="pcard__hint">{hint}</span> : null}
         {personalisable && yours ? (
           <span className="pcard__yours">

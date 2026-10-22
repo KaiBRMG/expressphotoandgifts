@@ -38,29 +38,35 @@ export const adminAllowlist = () =>
 /** Whether an address is on the admin allowlist, however it was typed. */
 export const isStaffEmail = (email: string) => adminAllowlist().includes(email.trim().toLowerCase());
 
+/** What a wrong email or password is told, whichever it was. */
+const NO_MATCH = "That email and password don’t match.";
+
 /** Firebase's REST error codes, said the way a person would want to hear them. */
 const SIGN_IN_ERRORS: Record<string, string> = {
-  INVALID_LOGIN_CREDENTIALS: "That email and password don’t match.",
-  EMAIL_NOT_FOUND: "That email and password don’t match.",
-  INVALID_PASSWORD: "That email and password don’t match.",
+  INVALID_LOGIN_CREDENTIALS: NO_MATCH,
+  EMAIL_NOT_FOUND: NO_MATCH,
+  INVALID_PASSWORD: NO_MATCH,
   INVALID_EMAIL: "That doesn’t look like an email address.",
   TOO_MANY_ATTEMPTS_TRY_LATER: "Too many tries. Wait a few minutes, then try again.",
 };
 
 /**
  * Checks an email and password with Firebase, or says why not. `disabled`
- * and `notConfigured` are each caller's own words for those two cases.
+ * and `notConfigured` are each caller's own words for those two cases;
+ * `wrong` marks a password that simply doesn't match, for a caller that
+ * already knows the email (the account page) to say so in its own words.
  */
 export async function checkPassword(
   email: string,
   password: string,
   words: { disabled: string; notConfigured: string },
-): Promise<{ idToken: string; uid: string; email: string } | { error: string }> {
+): Promise<{ idToken: string; uid: string; email: string } | { error: string; wrong?: true }> {
   const result = await identityToolkit("signInWithPassword", { email, password, returnSecureToken: true });
   if (result.ok) return { idToken: String(result.data.idToken), uid: String(result.data.localId), email: String(result.data.email ?? email) };
   if (result.code === "NOT_CONFIGURED") return { error: words.notConfigured };
   if (result.code === "USER_DISABLED") return { error: words.disabled };
-  return { error: SIGN_IN_ERRORS[result.code] ?? "Signing in didn’t work. Check your connection and try again." };
+  const error = SIGN_IN_ERRORS[result.code] ?? "Signing in didn’t work. Check your connection and try again.";
+  return error === NO_MATCH ? { error, wrong: true } : { error };
 }
 
 /** Asks Firebase to email a reset link. Says nothing about whether the account exists. */

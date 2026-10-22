@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Autocomplete, Button, NumberInput, TagsInput, Tooltip } from "@mantine/core";
-import { LIMITS, priceProblem, priceRange, rebuildVariants, type ProductDraft } from "@/lib/catalog/edit";
+import { LIMITS, priceProblem, priceRange, rebuildVariants, toCents, toRands, type ProductDraft } from "@/lib/catalog/edit";
 import { rands } from "@/lib/catalog/listing";
 import type { ProductOption, ProductVariant } from "@/lib/catalog/types";
 import { Plus, Trash } from "@/app/site/icons";
@@ -13,8 +14,6 @@ import { Where } from "./Where";
 /** The choices the catalogue already uses, offered first. */
 const OPTION_NAMES = ["Size", "Colour", "Photos", "Background", "Filter", "Print sides"];
 
-const toCents = (v: string | number) => (v === "" ? null : Math.round(Number(v) * 100));
-const toRands = (c: number | null) => (c === null ? "" : c / 100);
 
 /** "R120", "R120 – R150", or "not priced yet", for a set of price lines. */
 function span(lines: ProductVariant[]): string {
@@ -164,6 +163,15 @@ export function PricesTab({ draft, update, errorOn }: { draft: ProductDraft; upd
             <Where>the price of what’s picked, on its product page. Its card shows the lowest, as “from R…”.</Where> In rand, VAT
             included. Leave one empty and shoppers see “Price on request” and can’t buy it online.
           </p>
+          {draft.code ? (
+            <p className="hint">
+              How many of each are on the shelf, and when {single ? "it sells" : "each sells"} out, is set on the{" "}
+              <Link href={`/admin/stock?q=${encodeURIComponent(draft.code)}`} className="admin-link">
+                Stock page
+              </Link>
+              .
+            </p>
+          ) : null}
         </div>
 
         {!single ? (

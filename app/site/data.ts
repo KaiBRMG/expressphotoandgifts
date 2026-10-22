@@ -267,11 +267,45 @@ export const SHOP = {
     "https://www.google.com/maps/search/?api=1&query=135+Scott+Street+Scottburgh+KwaZulu-Natal+4180",
 } as const;
 
+/**
+ * The business behind the shop, as the law asks a shop selling online to
+ * state it (ECTA s43) and a privacy policy to name who answers for it
+ * (POPIA's Information Officer). NOT YET SUPPLIED BY THE SHOP: each null shows
+ * on `/terms` and `/privacy` as a marked gap naming what is missing, never as
+ * a guess. Fill them in from the shop's CIPC and SARS records.
+ */
+export const LEGAL: {
+  /** The registered name, e.g. "Express Photo and Gifts (Pty) Ltd", or the owner's name for a sole proprietor. */
+  registeredName: string | null;
+  /** "Private company", "Close corporation", "Sole proprietor"… */
+  legalForm: string | null;
+  /** CIPC registration number; none for a sole proprietor. */
+  registrationNumber: string | null;
+  /** Only when VAT registered. */
+  vatNumber: string | null;
+  /** The person POPIA makes responsible: by default the owner or head of the business. */
+  informationOfficer: string | null;
+} = {
+  registeredName: null,
+  legalForm: null,
+  registrationNumber: null,
+  vatNumber: null,
+  informationOfficer: null,
+};
+
 export const HOURS: { days: string; time: string; closed?: boolean }[] = [
   { days: "Monday to Friday", time: "8:30am – 4pm" },
   { days: "Saturday", time: "9am – 1pm" },
   { days: "Sunday", time: "Closed", closed: true },
 ];
+
+/**
+ * How long an order takes to make, as one sentence the product page states
+ * under Add to cart ("Most orders are ready in 2 working days."). NOT YET
+ * CONFIRMED BY THE SHOP: until it is, this stays null and the page asks the
+ * customer to check a date instead of promising one.
+ */
+export const MAKE_TIME: string | null = null;
 
 /** Builds a WhatsApp deep link with the message already written. */
 export function whatsapp(message: string): string {

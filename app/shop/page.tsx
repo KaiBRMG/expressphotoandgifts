@@ -3,6 +3,11 @@ import Link from "next/link";
 
 import { getProducts, getVocabulary } from "@/lib/catalog/queries";
 import { PRICE_BANDS, productCount, shelfHref, type Listing } from "@/lib/catalog/listing";
+import { campaignsFor, type LiveCampaign } from "@/lib/catalog/campaigns";
+import { comingUp } from "@/lib/catalog/seasons";
+import type { Product } from "@/lib/catalog/types";
+import { getLiveDeals } from "@/lib/campaigns";
+import { SHOP_TZ } from "@/lib/shopTime";
 import { tag, termCounts } from "@/lib/catalog/tags";
 import { ProductImage } from "@/app/site/ProductImage";
 import { ArrowRight, WhatsApp } from "@/app/site/icons";
@@ -12,8 +17,8 @@ import { SizeChart } from "./SizeChart";
 import { ShelfRail } from "./ShelfRail";
 import { getListings, sizeFamily } from "./shelves";
 
-/** The catalogue is cached for an hour; the storefront follows it. */
-export const revalidate = 3600;
+/** Five minutes: the catalogue is cached for an hour, but a campaign starts and ends on its own time. */
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Shop",
@@ -33,20 +38,45 @@ const OCCASIONS_SHOWN = 6;
 /** How many products a shelf shows before handing over to its full page. */
 const SHELF_SIZE = 8;
 
+/**
+ * The campaign the specials band leads with: the newest-started live one the
+ * shop chose to feature, while something it reaches is still in stock.
+ */
+function featured(deals: LiveCampaign[], products: Product[], specials: Set<string>): LiveCampaign | null {
+  for (const c of [...deals].reverse()) {
+    if (!c.featured) continue;
+    if (products.some((p) => specials.has(p.slug) && p.variants.some((v) => campaignsFor(v.sku, [c]).length > 0))) return c;
+  }
+  return null;
+}
+
+/** "Until 24 December": a campaign's last day, in the shop's own time. */
+const until = (iso: string) =>
+  `Until ${new Date(Date.parse(iso) - 1).toLocaleDateString("en-ZA", { timeZone: SHOP_TZ, day: "numeric", month: "long" })}`;
+
 export default async function ShopPage() {
-  const [products, listings, vocabulary] = await Promise.all([getProducts(), getListings(), getVocabulary()]);
+  const [products, listings, vocabulary, deals] = await Promise.all([getProducts(), getListings(), getVocabulary(), getLiveDeals()]);
   // Already in the featured order, which opens on the lede's own products.
   const yours = listings.filter((l) => l.personalisable);
   const specials = listings.filter((l) => l.special);
+  const lead = featured(deals, products, new Set(specials.map((l) => l.slug)));
   const frames = listings.filter((l) => l.categoryId === "frames");
   const printing = listings.filter((l) => l.categoryId === "photo-printing");
   // Albums live under Add-ons, but they are where the prints go.
   const photos = [...printing, ...listings.filter((l) => l.tags.includes(tag("type", "albums")))];
   const occasions = termCounts(vocabulary, listings, "occasion").filter((o) => o.count > 0);
-  // The days with the most to choose from, kept in the vocabulary's order.
-  const busiest = new Set(
-    [...occasions].sort((a, b) => b.count - a.count).slice(0, OCCASIONS_SHOWN).map((o) => o.value),
-  );
+  // The days coming up lead, soonest first; the rest of the row is the days
+  // with the most to choose from, in the vocabulary's (calendar) order.
+  const stocked = new Set(occasions.map((o) => o.value));
+  const soon = comingUp().map((o) => o.value).filter((v) => stocked.has(v)).slice(0, OCCASIONS_SHOWN);
+  const busiest = new Set([
+    ...soon,
+    ...[...occasions].filter((o) => !soon.includes(o.value)).sort((a, b) => b.count - a.count).map((o) => o.value),
+  ].slice(0, OCCASIONS_SHOWN));
+  const shown = [
+    ...soon.map((v) => occasions.find((o) => o.value === v)!),
+    ...occasions.filter((o) => busiest.has(o.value) && !soon.includes(o.value)),
+  ];
   const family = sizeFamily(products);
   const familySlugs = new Set(family?.products.map((p) => p.slug));
   const inFamily = (l: Listing) => familySlugs.has(l.slug);
@@ -129,14 +159,21 @@ export default async function ShopPage() {
       </section>
 
       {/* ---- Specials ------------------------------------------------- */}
-      {/* Only when the shop has flagged something. No flag, no band — an
-          empty "specials" shelf would be a promise with nothing behind it. */}
+      {/* Only while a live campaign reaches something in stock. None, no
+          band: an empty "specials" shelf would be a promise with nothing
+          behind it. A featured campaign gives the band its name and line. */}
       {specials.length > 0 ? (
         <section className="specials on-dark" aria-labelledby="specials-title">
           <div className="shell">
+            {lead ? (
+              <div className="specials__lead">
+                <p className="specials__blurb">{lead.blurb}</p>
+                {lead.endsAt ? <p className="specials__until">{until(lead.endsAt)}</p> : null}
+              </div>
+            ) : null}
             <div className="shelf__head">
               <h2 id="specials-title" className="h2">
-                On special
+                {lead ? lead.name : "On special"}
               </h2>
               <Link className="inline-link shelf__all" href="/shop/specials">
                 See all {specials.length} specials
@@ -150,14 +187,16 @@ export default async function ShopPage() {
       {/* ---- Shop by occasion ----------------------------------------- */}
       {/* Most gifts here are bought for a day, not a category, so this comes
           before budget. Each is a filtered view of the whole shop, so the
-          link can be shared as is. The busiest days show; the rest wait
-          behind one more tap, so the row is a choice, not a wall. */}
+          link can be shared as is. The days coming up lead, then the busiest;
+          the rest wait behind one more tap, so the row is a choice, not a wall.
+          The page is rebuilt hourly, so the season is never more than an hour
+          stale. */}
       {occasions.length > 0 ? (
         <section className="occasions shell" aria-labelledby="occasions-title">
           <h2 id="occasions-title" className="h2">
             Shop by occasion
           </h2>
-          <OccasionList occasions={occasions.filter((o) => busiest.has(o.value))} />
+          <OccasionList occasions={shown} />
           {occasions.length > busiest.size ? (
             <details className="occasions__more">
               <summary>

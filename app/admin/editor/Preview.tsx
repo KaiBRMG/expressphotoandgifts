@@ -111,7 +111,6 @@ function Shelf({ draft, category, card, vocab }: { draft: ProductDraft; category
           ))}
         </dl>
       ) : null}
-      {draft.special ? <p className="pv__note">Also on the Specials shelf.</p> : null}
     </div>
   );
 }

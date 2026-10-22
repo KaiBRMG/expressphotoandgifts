@@ -246,6 +246,11 @@ export function Newsletter() {
       <p className="newsletter__fine">
         By entering your email you agree to receive email marketing from
         Express Photo and Gifts at your email address. Unsubscribe any time.
+        Our{" "}
+        <Link className="inline-link" href="/privacy">
+          Privacy Policy
+        </Link>{" "}
+        says how we use it.
       </p>
     </>
   );

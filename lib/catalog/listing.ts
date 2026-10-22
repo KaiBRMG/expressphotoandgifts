@@ -1,3 +1,5 @@
+import { productDeal, type LiveCampaign } from "./campaigns";
+import { productSoldOut, type Availability } from "./stock";
 import { filterTags } from "./tags";
 import type { Product } from "./types";
 
@@ -16,16 +18,23 @@ export type Listing = {
   personalisable: boolean;
   /** Only the shopper-facing tags ("type:", "occasion:", "for:"), for the catalogue's filters. */
   tags: string[];
+  /** A live campaign reaches it and it isn't sold out: it is on the Specials shelf. */
   special: boolean;
-  /** Cents; null for a product the shop has not priced. */
+  /** Cents, after any price deal; null for a product the shop has not priced. */
   min: number | null;
   max: number | null;
+  /** The range before the price deals, when they lower it. */
+  was: { min: number; max: number } | null;
+  /** The words for its deals: "20% off", "Buy 1, get 1 free". */
+  deals: string[];
   /** The primary photograph's code under `products/` (what `ProductImage` takes), or null when the shop has not supplied one. */
   photo: string | null;
   /** e.g. "6 sizes", "3 colours"; null for a single-variant product. */
   hint: string | null;
   /** Index in the shop's own order, for the Featured sort. */
   rank: number;
+  /** Every size it sells is out of stock. */
+  soldOut: boolean;
 };
 
 /** Plural nouns for the options the catalogue uses. */
@@ -45,7 +54,14 @@ function optionHint(product: Product): string | null {
   return `${widest.values.length} ${plural}`;
 }
 
-function toListing(product: Product, rank: number, category: string): Listing {
+/** A product's deals on the sizes it can sell: a sold-out size shows none. */
+export const dealOn = (product: { variants: readonly { sku: string; price: number | null }[] }, available: Availability, deals: readonly LiveCampaign[]) =>
+  productDeal({ variants: product.variants.filter((v) => available[v.sku] !== 0) }, deals);
+
+function toListing(product: Product, rank: number, category: string, available: Availability, deals: readonly LiveCampaign[]): Listing {
+  const soldOut = productSoldOut(product, available);
+  const deal = soldOut || deals.length === 0 ? null : dealOn(product, available, deals);
+  const lowered = deal?.was ? deal.range : null;
   return {
     slug: product.slug,
     name: product.name,
@@ -53,12 +69,15 @@ function toListing(product: Product, rank: number, category: string): Listing {
     category,
     personalisable: product.personalisation !== null,
     tags: filterTags(product.tags),
-    special: product.special,
-    min: product.priceRange?.min ?? null,
-    max: product.priceRange?.max ?? null,
+    special: deal?.special ?? false,
+    min: lowered?.min ?? product.priceRange?.min ?? null,
+    max: lowered?.max ?? product.priceRange?.max ?? null,
+    was: deal?.was ?? null,
+    deals: deal?.labels ?? [],
     photo: primaryPhoto(product),
     hint: optionHint(product),
     rank,
+    soldOut,
   };
 }
 
@@ -73,11 +92,15 @@ function featuredOrder(a: Product, b: Product): number {
   );
 }
 
-/** Cards in the shop's running order; `categoryNames` maps category ID to name. */
-export function toListings(products: Product[], categoryNames: ReadonlyMap<string, string>): Listing[] {
+/**
+ * Cards in the shop's running order; `categoryNames` maps category ID to
+ * name, `available` is stock (`lib/catalog/stock.ts`), `deals` the campaigns
+ * live now (`lib/catalog/campaigns.ts`).
+ */
+export function toListings(products: Product[], categoryNames: ReadonlyMap<string, string>, available: Availability = {}, deals: readonly LiveCampaign[] = []): Listing[] {
   return [...products]
     .sort(featuredOrder)
-    .map((p, rank) => toListing(p, rank, categoryNames.get(p.categoryId) ?? ""));
+    .map((p, rank) => toListing(p, rank, categoryNames.get(p.categoryId) ?? "", available, deals));
 }
 
 export const productHref = (slug: string) => `/shop/product/${slug}`;

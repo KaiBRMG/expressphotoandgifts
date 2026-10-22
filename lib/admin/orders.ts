@@ -5,6 +5,7 @@ import { FieldValue, type Query } from "firebase-admin/firestore";
 import { cartUnits } from "@/lib/catalog/cart";
 import { rands } from "@/lib/catalog/listing";
 import { EMAIL_NAMES, orderEmails, type OrderEmail } from "@/lib/checkout/emails";
+import { contactName } from "@/lib/checkout/details";
 import { changeOrder, getOrder, orders } from "@/lib/checkout/orders";
 import { NOTE_MAX, REF, refundedOf, STAGES, stageLabel, stageUpdate, type NoticeRecord, type Order, type OrderActionResult, type OrderStage, type Refund } from "@/lib/checkout/order";
 
@@ -39,12 +40,13 @@ export type OrderRow = {
   at: string;
 };
 
-const toRow = (o: Order): OrderRow => ({
+/** An order as its row: here, and on its customer's page. */
+export const orderRow = (o: Order): OrderRow => ({
   ref: o.ref,
   paid: o.status === "paid",
   stage: o.stage ?? null,
   flagged: o.flagged === true,
-  name: `${o.contact.firstName} ${o.contact.lastName}`,
+  name: contactName(o.contact),
   email: o.contact.email,
   phone: o.contact.phone,
   method: o.fulfilment.method,
@@ -67,7 +69,7 @@ export async function listOrders(): Promise<OrderRow[]> {
     // By `paidAt` alone: a stage filter beside it would need a composite index.
     orders().orderBy("paidAt", "desc").limit(RECENT).select(...fields).get(),
   ]);
-  const byRef = new Map(snaps.flatMap((s) => s.docs).map((d) => [d.id, toRow(d.data() as Order)]));
+  const byRef = new Map(snaps.flatMap((s) => s.docs).map((d) => [d.id, orderRow(d.data() as Order)]));
   return [...byRef.values()].sort((a, b) => b.at.localeCompare(a.at));
 }
 

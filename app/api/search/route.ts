@@ -13,7 +13,8 @@ export type SearchIndex = { listings: Listing[]; vocabulary: Vocabulary };
  * so opening search costs one small cached request and no Firestore read.
  */
 export const dynamic = "force-static";
-export const revalidate = 3600;
+/** Five minutes: a campaign starts and ends on its own time, so the prices it sets can't wait an hour. */
+export const revalidate = 300;
 
 export async function GET() {
   const [listings, vocabulary] = await Promise.all([getListings(), getVocabulary()]);

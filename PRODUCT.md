@@ -54,6 +54,7 @@ An actual local photo and gift shop selling online, not a faceless print-on-dema
 - Browse products and pricing — full catalogue with sizes, options, and prices.
 - Upload photos and order online — select a product, upload an image, configure it, and pay.
 - Find the store — location, hours, directions, contact.
+- A customer account (optional): every order with its receipt and live tracking, Order again with the same photos, saved checkout details, a marketing-email choice, password change and account deletion.
 - Checkout takes payment online, and the customer chooses pickup or shipping at checkout.
 - Commerce is custom-built in this repo; PayFast handles the payment step.
 
@@ -61,7 +62,6 @@ An actual local photo and gift shop selling online, not a faceless print-on-dema
 - Which of the catalogue's products, sizes, options and prices are final. The shop has supplied its catalogue as source data (`public/product_list.json`), but no price is stated anywhere on the site yet and none may be until the catalogue is wired in and confirmed.
 - Whether the bulk/corporate line launches, and what form it takes (quote request, tiered pricing, account). "Corporate Gifts" appears in the homepage's running band, as one of the things the shop makes; nothing more is promised.
 - Shipping: door delivery by The Courier Guy, priced live from TCG at checkout, to the buyer or straight to a gift's recipient. Locker and pickup-point delivery is not offered yet. The shop's box sizes and packed weights are still to be measured.
-- Order history on the customer's account — not confirmed as in scope. (Order tracking is built: every email's "Track my order" link follows the shop's stages and The Courier Guy's tracking.)
 - Image quality handling (minimum resolution, DPI warnings, crop preview) — a known hard problem for this product type, not yet specified.
 
 ## Brand Commitments

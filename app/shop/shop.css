@@ -227,14 +227,21 @@
   color: var(--ink-soft);
 }
 
-/* On a phone the square portrait took the whole first screen, so the first
-   product sat a full scroll down. Here it is a landscape crop of the same
-   print, tall enough to read as someone's photo, short enough that the first
-   row of products shows beneath it. */
+/* On a phone the portrait, even cropped landscape, held the first row of
+   products under the fold. Here it is a small print beside its line, the way
+   a customer's photo sits on the counter beside the order: still the picture
+   everything below takes, and the products start a short thumb away. */
 @media (max-width: 45.99rem) {
+  .board__yours figure {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+  }
+
   .board__yours img {
-    aspect-ratio: 16 / 10;
-    object-position: 50% 40%;
+    flex: none;
+    width: 96px;
+    border-radius: var(--radius-sm);
   }
 }
 
@@ -338,9 +345,26 @@
   position: absolute;
   top: 10px;
   left: 10px;
+  /* It carries the deal's words now, so a long one wraps rather than running off the photo. */
+  max-width: calc(100% - 20px);
   padding: 0.2rem 0.7rem;
-  border-radius: 999px;
+  border-radius: 14px;
   background: var(--gold);
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* White on the photo's corner, opposite a Special, so the two never cover each other. */
+.pcard__soldout {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--print);
   color: var(--ink);
   font-size: 1rem;
   font-weight: 600;
@@ -367,6 +391,14 @@
   font-size: 1rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+/* The price before a price deal, struck through beside the one paid. */
+.pcard__was {
+  margin-left: 0.5rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+  text-decoration-thickness: 1.5px;
 }
 
 .pcard__hint {
@@ -516,6 +548,33 @@
 
 /* After the blue Specials band the next section needs its own top space;
    after the white board the board's foot already gives it. */
+/* A featured campaign's own line over the band's heading, and its last day in mono, the shop's mark for a fact. */
+.specials__lead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  margin-bottom: clamp(18px, 2.4vw, 28px);
+  padding-bottom: clamp(14px, 2vw, 20px);
+  border-bottom: 1px solid var(--rule-leather);
+}
+
+.specials__blurb {
+  max-width: 40ch;
+  font-size: clamp(1.2rem, 2.2vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--gold);
+}
+
+.specials__until {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  color: var(--on-leather-soft);
+}
+
 .specials + section {
   padding-top: clamp(62px, 9vw, 130px);
 }
@@ -1035,6 +1094,40 @@
   .catalog__main {
     padding-top: 0;
   }
+}
+
+/* The static stand-in before the shop's scripts arrive (`CatalogueFallback`).
+   With filters in the link the shelf below is not yet the answer, so it waits
+   faded under one line; if the page never wakes, the line offers a reload. */
+.catalog__pending {
+  display: none;
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.catalog__slow {
+  display: none;
+}
+
+.catalog__main[data-pending] .catalog__pending,
+.catalog__main[data-slow] .catalog__pending {
+  display: block;
+}
+
+.catalog__main[data-slow] .catalog__applying {
+  display: none;
+}
+
+.catalog__main[data-slow] .catalog__slow {
+  display: inline;
+}
+
+.catalog__main[data-pending] .grid,
+.catalog__main[data-pending] .toolbar__count {
+  opacity: 0.35;
+  transition: opacity 0.3s var(--ease-out);
 }
 
 /* ---- Kinds: the shelf's types as one row of chips ---------------------- */

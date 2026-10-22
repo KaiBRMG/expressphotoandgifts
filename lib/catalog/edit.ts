@@ -10,7 +10,7 @@ import { optionKey, parseArea } from "./sizes";
 import { photoCount } from "./listing";
 import { findTerm, hasFacet, isKnownFilterTag, tagValues, type Facet, type Vocabulary } from "./tags";
 import type { Product, ProductOption, ProductVariant } from "./types";
-import { isBox } from "@/lib/checkout/boxes";
+import { cleanMeasurements, measureProblem, MEASURES } from "./measures";
 
 /** Everything staff edit. Slug, timestamps and the price range are not typed by hand. */
 export type ProductDraft = Pick<
@@ -19,13 +19,12 @@ export type ProductDraft = Pick<
   | "code"
   | "categoryId"
   | "status"
-  | "special"
   | "related"
   | "description"
   | "specifications"
   | "careNotes"
   | "personalisation"
-  | "box"
+  | "shipping"
   | "tags"
   | "options"
   | "variants"
@@ -38,13 +37,12 @@ export function toDraft(p: Product): ProductDraft {
     code: p.code,
     categoryId: p.categoryId,
     status: p.status,
-    special: p.special,
     related: p.related,
     description: p.description,
     specifications: p.specifications,
     careNotes: p.careNotes,
     personalisation: p.personalisation,
-    box: p.box,
+    shipping: p.shipping,
     tags: p.tags,
     options: p.options,
     variants: p.variants,
@@ -96,11 +94,11 @@ const facetsOf = (d: ProductDraft, facets: Facet[]) => d.tags.filter((t) => hasF
 /** The slice of a draft each place edits, for counting what changed where. */
 const SECTIONS: Record<Place | "visibility", (d: ProductDraft) => unknown> = {
   visibility: (d) => d.status,
-  shelf: (d) => [d.categoryId, d.special, facetsOf(d, ["type", "occasion", "for"])],
+  shelf: (d) => [d.categoryId, facetsOf(d, ["type", "occasion", "for"])],
   photos: (d) => d.media,
   page: (d) => [d.name, d.description, d.specifications, d.careNotes, d.related, facetsOf(d, ["holds", "fits"])],
-  prices: (d) => [d.options, d.variants],
-  checkout: (d) => [d.personalisation, d.tags.filter(isCustomerTag), d.box],
+  prices: (d) => [d.options, d.variants.map((v) => [v.sku, v.title, v.optionValues, v.price])],
+  checkout: (d) => [d.personalisation, d.tags.filter(isCustomerTag), d.shipping, d.variants.map((v) => v.shipping ?? null)],
   records: (d) => [d.code, facetsOf(d, ["process"])],
 };
 
@@ -161,8 +159,9 @@ const covers = (a: Record<string, string>, b: Record<string, string>) =>
 /**
  * The variants for a set of options: one per combination, in the options'
  * order. A combination that existed keeps its SKU and price, so carts and
- * orders still recognise it. A new one takes the price of the variant it grew
- * from (a size that gains a colour keeps its price) and a fresh SKU.
+ * orders still recognise it. A new one takes the price and measurements of
+ * the variant it grew from (a size that gains a colour keeps them) and a
+ * fresh SKU.
  */
 export function rebuildVariants(code: string, all: ProductOption[], previous: ProductVariant[]): ProductVariant[] {
   // A choice still waiting for its first value is left out until it has one,
@@ -181,7 +180,7 @@ export function rebuildVariants(code: string, all: ProductOption[], previous: Pr
     let sku = base;
     for (let n = 2; used.has(sku) || previous.some((v) => v.sku === sku); n++) sku = `${base}-${n}`;
     used.add(sku);
-    return { sku, title, optionValues: values, price: grewFrom?.price ?? null };
+    return { sku, title, optionValues: values, price: grewFrom?.price ?? null, ...(grewFrom?.shipping ? { shipping: grewFrom.shipping } : {}) };
   });
 }
 
@@ -312,6 +311,15 @@ export function codeProblem(code: string): string | null {
 }
 
 /** Why a price can't be used, or null. In cents; empty (null) is allowed and means not for sale online. */
+/** A money field's value (rand, as typed) as cents; null when empty. */
+export const toCents = (v: string | number) => (v === "" ? null : Math.round(Number(v) * 100));
+
+/** Cents as a money field shows them, in rand; "" for none. */
+export const toRands = (c: number | null) => (c === null ? "" : c / 100);
+
+/** A count field's value as a whole number of 1 or more; null when empty or nought. */
+export const wholeOrNull = (v: string | number) => (v !== "" && Number(v) >= 1 ? Math.round(Number(v)) : null);
+
 export function priceProblem(cents: number | null): string | null {
   if (cents === null) return null;
   if (!Number.isFinite(cents) || cents < 0) return "A price can’t be below zero";
@@ -373,6 +381,10 @@ export function blockingIssues(d: ProductDraft): Issue[] {
     add("checkout", "customer-count", `A photo count is a whole number from 1 to ${LIMITS.photos}`);
   if (tagValues(d.tags, "print").some((v) => !printArea(v)))
     add("checkout", "customer-print", `Printed sizes are ${LIMITS.printMin} to ${LIMITS.printMax} cm each way`);
+  const badMeasure = [d.shipping, ...d.variants.map((v) => v.shipping)]
+    .flatMap((s) => (s ? MEASURES.map((m) => measureProblem(m, s[m])) : []))
+    .find(Boolean);
+  if (badMeasure) add("checkout", "checkout-shipping", badMeasure);
 
   if (d.related.length > LIMITS.related) add("page", "field-goes", `Pick up to ${LIMITS.related} products for “Goes with this”`);
   const pairs = [...tagValues(d.tags, "holds"), ...tagValues(d.tags, "fits")];
@@ -465,18 +477,18 @@ export function cleanDraft(d: ProductDraft, vocab: Vocabulary): ProductDraft {
     code: normaliseCode(d.code),
     categoryId: d.categoryId,
     status: d.status,
-    special: d.special === true,
     related: Array.isArray(d.related) ? [...new Set(d.related.filter((s) => typeof s === "string" && SLUG_PATTERN.test(s)))] : [],
     description: d.description.trim(),
     specifications: d.specifications.map((s) => String(s).trim()).filter(Boolean),
     careNotes: typeof d.careNotes === "string" ? d.careNotes.trim() || null : null,
     personalisation: d.personalisation ? { kind: d.personalisation.kind === "print" ? "print" : "gift", text: d.personalisation.text === true } : null,
-    box: isBox(d.box) ? d.box : null,
+    shipping: cleanMeasurements(d.shipping),
     tags: d.personalisation ? tags : tags.filter((t) => !isCustomerTag(t)),
     options,
     variants: d.variants.map((v) => {
       const values = valuesOf(v);
-      return { sku: v.sku, title: variantTitle(options, values), optionValues: values, price: v.price === null ? null : Math.round(v.price) };
+      const shipping = cleanMeasurements(v.shipping);
+      return { sku: v.sku, title: variantTitle(options, values), optionValues: values, price: v.price === null ? null : Math.round(v.price), ...(shipping ? { shipping } : {}) };
     }),
     media: d.media.map((m) => ({ ...m, alt: m.alt.trim() })),
   };

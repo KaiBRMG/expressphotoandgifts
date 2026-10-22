@@ -1,4 +1,6 @@
+import type { Saving } from "@/lib/catalog/campaigns";
 import { orderWhat } from "@/lib/catalog/purchase";
+import type { Taken } from "@/lib/catalog/stock";
 import type { BoxId, Parcel, SizedParcel } from "./boxes";
 import { readAddress, readContact, readRecipient, type Address, type Contact, type Recipient } from "./details";
 
@@ -42,10 +44,12 @@ export type Quote = { ok: true; options: DeliveryOption[] } | { ok: false; reaso
 
 /**
  * The service an order pays for: the price paid, the value declared to the
- * courier (what booking sends as `declared_value`) and the box it was quoted
- * in. Orders from before cover and boxes lack them.
+ * courier (what booking sends as `declared_value`) and the parcels checkout
+ * packed the cart into and quoted, which the booking form starts from.
+ * Orders from before cover lack it; orders from before packing name only the
+ * box they were quoted in (`box`), and older ones neither.
  */
-export type Service = { code: string; name: string; description: string | null; price: number; cover?: number; box?: BoxId };
+export type Service = { code: string; name: string; description: string | null; price: number; cover?: number; parcels?: SizedParcel[]; box?: BoxId };
 
 /** Collect, or courier: as the browser chooses it, a service's code and whether to insure the full value. */
 export type FulfilmentInput =
@@ -64,6 +68,8 @@ export type OrderInput = {
   lines: LineInput[];
   /** The total the customer was shown, in cents: if the server's differs, they see the new one before paying. */
   shownTotal: number;
+  /** The policies the customer ticked to agree to (`POLICIES_VERSION`), or "" when they didn't. */
+  accepted: string;
 };
 
 export type OrderLine = {
@@ -71,8 +77,12 @@ export type OrderLine = {
   slug: string;
   name: string;
   variant: string | null;
-  /** Cents each, VAT inclusive, from the catalogue when the order was placed. */
+  /** Cents each, VAT inclusive, from the catalogue when the order was placed, after any price deal. */
   price: number;
+  /** The catalogue's price each, when a price deal took `price` below it. */
+  base?: number;
+  /** What the whole line came to after every deal (item deals and its share of a spend threshold), when that is less than price × quantity: what refunding it alone gives back. */
+  paid?: number;
   quantity: number;
   /** One set when the units are the same, one per unit otherwise; empty for a line that takes nothing. */
   sets: LineSet[];
@@ -97,14 +107,17 @@ export const stageLabel = (stage: OrderStage, method: Fulfilment["method"]) =>
   })[stage];
 
 /** What the customer paid for: the order as it stood when they pressed Pay. */
-export type Snapshot = Pick<Order, "contact" | "fulfilment" | "lines" | "subtotal" | "delivery" | "total">;
+export type Snapshot = Pick<Order, "contact" | "fulfilment" | "lines" | "subtotal" | "discount" | "savings" | "delivery" | "total">;
 
 /**
  * One press of Pay (`orders/{ref}/attempts/{id}`): the order frozen as it was
  * then, under the ID PayFast carries as `m_payment_id`. The customer can go on
  * changing the order, but a payment always pays for its own attempt.
  */
-export type Attempt = Snapshot & { id: string; ref: string; createdAt: string };
+export type Attempt = Snapshot & { id: string; ref: string; createdAt: string; terms?: Agreed };
+
+/** The version of the shop's policies (`lib/legal.ts`) a customer ticked to agree to before paying, and when. */
+export type Agreed = { version: string; at: string };
 
 /** A PayFast notice's facts: which attempt it is for (`m_payment_id`), PayFast's payment, and the amounts in rands ("123.45"). */
 export type Notice = { attempt: string; pfPaymentId: string; status: string; amountGross: string; amountFee: string; amountNet: string };
@@ -143,9 +156,14 @@ export type Order = {
   contact: Contact;
   fulfilment: Fulfilment;
   lines: OrderLine[];
-  /** Cents. */
+  /** Cents: the lines at their prices. */
   subtotal: number;
+  /** What item deals and spend thresholds took off the subtotal; absent before campaigns, or with none. */
+  discount?: number;
+  /** Every campaign saving, every stage, as priced when Pay was pressed (`lib/catalog/campaigns.ts`). */
+  savings?: Saving[];
   delivery: number;
+  /** Subtotal, less discount, plus delivery. */
   total: number;
   /** The signed-in customer who placed it, if any. */
   uid: string | null;
@@ -167,10 +185,14 @@ export type Order = {
   refunds?: Refund[];
   emails?: { shop?: EmailSent; customer?: EmailSent; shipped?: EmailSent; ready?: EmailSent; refund?: EmailSent };
   log?: LogEntry[];
+  /** What paying took out of tracked stock; absent on orders paid before stock was kept, or that took none. */
+  stock?: Taken;
   /** The courier waybill, once staff book one. */
   shipment?: Shipment;
   /** A return of the delivered waybill, back to the shop, once staff book one. */
   returnShipment?: Shipment;
+  /** The policies agreed to at the last press of Pay; absent on orders from before checkout asked. */
+  terms?: Agreed;
   /** PayFast's own word on the order's card payment, when staff last asked ("Check with PayFast"). */
   payfastCheck?: { at: string; by: string; pfPaymentId: string; status: string; amount: number | null; bankMessage: string } | { at: string; by: string; pfPaymentId: string; error: string };
 };
@@ -326,6 +348,10 @@ export type Checkout = {
 /** "EPG-7K2QX9", as the photo step makes it. */
 export const REF = /^EPG-[A-Z0-9]{6}$/;
 
+/** The Cloudinary folder an order's photos are uploaded to (`/api/uploads/sign`), and the order a stored photo's ID belongs to. */
+export const orderFolder = (ref: string) => `orders/${ref}/`;
+export const refOfFile = (publicId: string) => (publicId.startsWith("orders/") ? publicId.split("/")[1] : "");
+
 /** An attempt's ID, the order's ref and its number: "EPG-7K2QX9-3". */
 export const ATTEMPT = /^(EPG-[A-Z0-9]{6})-([1-9]\d{0,2})$/;
 
@@ -399,6 +425,7 @@ export function readOrderInput(x: unknown): OrderInput | null {
     fulfilment?: { method?: unknown; address?: unknown; recipient?: unknown; service?: unknown; insure?: unknown };
     lines?: unknown;
     shownTotal?: unknown;
+    accepted?: unknown;
   } | null;
   if (!o || typeof o.ref !== "string" || typeof o.key !== "string" || !ORDER_KEY.test(o.key) || typeof o.shownTotal !== "number" || !Array.isArray(o.lines) || o.lines.length > MAX_LINES) return null;
   const contact = readContact(o.contact);
@@ -413,5 +440,5 @@ export function readOrderInput(x: unknown): OrderInput | null {
     if (o.fulfilment.recipient != null && !recipient) return null;
     fulfilment = { method: "courier", address, recipient, service: o.fulfilment.service, insure: o.fulfilment.insure === true };
   }
-  return { ref: o.ref, key: o.key, contact, fulfilment, lines: lines as LineInput[], shownTotal: o.shownTotal };
+  return { ref: o.ref, key: o.key, contact, fulfilment, lines: lines as LineInput[], shownTotal: o.shownTotal, accepted: typeof o.accepted === "string" ? o.accepted : "" };
 }

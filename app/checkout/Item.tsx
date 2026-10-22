@@ -1,12 +1,12 @@
 "use client";
 
-import { useId, type CSSProperties, type DragEvent } from "react";
+import { useId, useState, type CSSProperties, type DragEvent } from "react";
 
 import { areaLabel, DEFAULT_EDIT, fit, framePrint, freshEdit, placedArea, TRIM_NOTE, wholePhoto, WORDS_MAX } from "@/lib/catalog/checkout";
 import { rands } from "@/lib/catalog/listing";
 import { MAX_QUANTITY } from "@/lib/catalog/purchase";
 import { cmLabel } from "@/lib/catalog/sizes";
-import { cart } from "@/app/site/cartStore";
+import { cart, useDealPrice, useUnitPrice } from "@/app/site/cartStore";
 import { Alert, Check, Plus } from "@/app/site/icons";
 import { ProductImage } from "@/app/site/ProductImage";
 import { QuantityStepper } from "@/app/site/QuantityStepper";
@@ -15,7 +15,7 @@ import { CharsLeft } from "./Field";
 import { WORKING } from "@/lib/checkout/photoUrls";
 import { photoSrc } from "./images";
 import { DRAG_TYPE, renderOf, slotId, target, type Row } from "./model";
-import { photos, type Photo, type PhotoState, type Placed, type Target } from "./photoStore";
+import { photos, type LineState, type Photo, type PhotoState, type Placed, type Target } from "./photoStore";
 
 /** What a tap on a slot asks for: whatever suits it, or explicitly the editor or a replacement. */
 export type SlotAction = "tap" | "edit" | "replace";
@@ -24,6 +24,7 @@ export type SlotAction = "tap" | "edit" | "replace";
 
 function Head({ row, titleId }: { row: Row; titleId: string }) {
   const { line } = row;
+  const unit = useUnitPrice();
   return (
     <header className="pitem__head">
       <span className="pitem__thumb">
@@ -35,7 +36,7 @@ function Head({ row, titleId }: { row: Row; titleId: string }) {
         </h2>
         <p className="pitem__meta">{[line.variant, line.takes].filter(Boolean).join(" · ")}</p>
       </div>
-      <p className="pitem__price">{rands(line.price * line.quantity)}</p>
+      <p className="pitem__price">{rands(unit(line) * line.quantity)}</p>
     </header>
   );
 }
@@ -80,12 +81,15 @@ export function PhotoItem({
   onSlot: (t: Target, action: SlotAction) => void;
 }) {
   const titleId = useId();
+  const unit = useUnitPrice();
   const { line, state } = row;
   const { armed } = store;
   const photo = row.needs!.photo!;
   const n = photo.slots.length;
   const byId = new Map(store.photos.map((p) => [p.id, p]));
   const many = line.quantity > 1;
+  // The line as it was before "one print of each", while that can still be taken back.
+  const [before, setBefore] = useState<{ quantity: number; state: LineState } | null>(null);
 
   const layout = photo.layouts.find((l) => l.sku === line.sku);
   const switchLayout = (sku: string) => {
@@ -99,6 +103,7 @@ export function PhotoItem({
   const onePerPhoto = () => {
     const tray = store.photos.slice(0, MAX_QUANTITY);
     const need = photo.slots[0];
+    setBefore({ quantity: line.quantity, state });
     cart.setQuantity(line.sku, tray.length);
     photos.setLine(line.sku, {
       ...state,
@@ -148,13 +153,28 @@ export function PhotoItem({
         ) : null}
       </div>
 
-      {photo.perPhoto && store.photos.length > 1 && !(state.each && line.quantity === store.photos.length) ? (
+      {before && state.each && line.quantity === Math.min(MAX_QUANTITY, store.photos.length) ? (
+        <p className="pitem__offer" role="status">
+          Now {line.quantity} prints, one of each photo, {rands(unit(line) * line.quantity)}.{" "}
+          <button
+            type="button"
+            className="inline-link"
+            onClick={() => {
+              cart.setQuantity(line.sku, before.quantity);
+              photos.setLine(line.sku, before.state);
+              setBefore(null);
+            }}
+          >
+            Undo
+          </button>
+        </p>
+      ) : photo.perPhoto && store.photos.length > 1 && !(state.each && line.quantity === store.photos.length) ? (
         <p className="pitem__offer">
           <button type="button" className="inline-link" onClick={onePerPhoto}>
             Make one print of each of your photos
           </button>{" "}
           <span>
-            ({Math.min(MAX_QUANTITY, store.photos.length)} prints, {rands(line.price * Math.min(MAX_QUANTITY, store.photos.length))})
+            ({Math.min(MAX_QUANTITY, store.photos.length)} prints, {rands(unit(line) * Math.min(MAX_QUANTITY, store.photos.length))})
           </span>
         </p>
       ) : null}
@@ -366,6 +386,7 @@ export function FrameItem({ row, inCart }: { row: Row; inCart: ReadonlySet<strin
   const frame = row.needs!.frame!;
   const size = cmLabel(frame.size);
   const print = frame.print;
+  const dealPrice = useDealPrice();
   const printIn = framePrint(frame, inCart) === "in-cart";
 
   return (
@@ -405,7 +426,7 @@ export function FrameItem({ row, inCart }: { row: Row; inCart: ReadonlySet<strin
                   onClick={() => cart.add({ ...print, quantity: line.quantity }, { quiet: true })}
                 >
                   <Plus size={19} />
-                  Add a {size} print · {rands(print.price * line.quantity)}
+                  Add a {size} print · {rands(dealPrice(print.sku, print.price) * line.quantity)}
                 </button>
                 <button type="button" className="inline-link" onClick={() => photos.flag(line.sku, { empty: true })}>
                   Keep it empty
@@ -438,6 +459,7 @@ export function FrameItem({ row, inCart }: { row: Row; inCart: ReadonlySet<strin
 /* ---- Everything that needs nothing ------------------------------------- */
 
 export function PlainItems({ rows }: { rows: Row[] }) {
+  const unit = useUnitPrice();
   return (
     <section className="plain" aria-labelledby="plain-title">
       <h2 id="plain-title" className="plain__title">
@@ -450,7 +472,7 @@ export function PlainItems({ rows }: { rows: Row[] }) {
               {line.quantity} × {line.name}
               {line.variant ? <span className="plain__variant"> · {line.variant}</span> : null}
             </span>
-            <span className="plain__price">{rands(line.price * line.quantity)}</span>
+            <span className="plain__price">{rands(unit(line) * line.quantity)}</span>
           </li>
         ))}
       </ul>

@@ -139,6 +139,9 @@ export function addressErrors(a: Address): Errors<Address> {
 
 export const hasErrors = (e: object) => Object.keys(e).length > 0;
 
+/** Nothing typed in any field: no address at all, rather than an incomplete one. */
+export const isBlankAddress = (a: Address) => Object.values(a).every((v) => !v.trim());
+
 /** Trimmed, with the phone in its national form: what is stored and sent on. */
 export function cleanContact(c: Contact): Contact {
   return {
@@ -187,6 +190,9 @@ export function readAddress(x: unknown): Address | null {
 }
 
 /** "10 Midas Ave, Olympus, Pretoria, 0081". */
+/** "Thandi Mokoena": the name a contact gave. */
+export const contactName = (c: Pick<Contact, "firstName" | "lastName">) => `${c.firstName} ${c.lastName}`.trim();
+
 export const addressLine = (a: Address) => [a.street, a.suburb, a.city, a.code].filter(Boolean).join(", ");
 
 /** The delivery row of an order's sums: "Collect from the shop", or "Delivery, Economy". */

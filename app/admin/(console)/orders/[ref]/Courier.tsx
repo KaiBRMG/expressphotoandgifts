@@ -1,10 +1,10 @@
 import { rands } from "@/lib/catalog/listing";
-import { DEFAULT_BOX, parcelFor, type Boxes } from "@/lib/checkout/boxes";
+import { parcelText, quotedParcels, type Boxes } from "@/lib/checkout/boxes";
 import type { Direction } from "@/lib/checkout/courier";
-import { hasLeftShop, needsLookUp, SHIPMENT_STATES, statusText, type Order, type Shipment } from "@/lib/checkout/order";
-import { External } from "@/app/site/icons";
+import { hasLeftShop, SHIPMENT_STATES, statusText, type Order, type Shipment } from "@/lib/checkout/order";
+import { Printer } from "@/app/site/icons";
 import { at } from "../../../when";
-import { BookReturn, ProofOfDelivery, SettleShipment, ShipmentControls, WaybillForm } from "./CourierActions";
+import { BookReturn, ProofOfDelivery, ShipmentControls } from "./CourierActions";
 
 /** How TCG says a delivery was confirmed, from the delivered event's message (TCG's docs name these three). */
 const CONFIRMED: Record<string, string> = {
@@ -17,9 +17,9 @@ const CONFIRMED: Record<string, string> = {
 const day = (date: string) => new Date(`${date}T12:00:00+02:00`).toLocaleDateString("en-ZA", { timeZone: "Africa/Johannesburg", weekday: "short", day: "numeric", month: "short" });
 
 /**
- * The order's courier waybills: booking it once packed, settling a booking
- * that didn't finish, and following it to the door, with its proof of
- * delivery; then, once delivered, a return of it to the shop.
+ * The order's waybills as TCG has them: the outbound one once booked (booking
+ * itself happens in the next step), its controls, proof and tracking; then,
+ * once delivered, a return of it to the shop.
  */
 export function Courier({ order: o, boxes }: { order: Order; boxes: Boxes }) {
   const f = o.fulfilment;
@@ -27,18 +27,15 @@ export function Courier({ order: o, boxes }: { order: Order; boxes: Boxes }) {
   const delivered = o.shipment?.state === "booked" && o.shipment.status === "delivered";
 
   return (
-    <section className="osec" aria-labelledby="ship-title">
-      <h2 id="ship-title" className="osec__title">
-        Courier
-      </h2>
-      <Waybill o={o} boxes={boxes} which="out" />
+    <div className="otab">
+      {o.shipment ? <Waybill o={o} boxes={boxes} which="out" /> : <p className="osec__soft">No waybill yet. Book it from the next step once it&rsquo;s packed.</p>}
       {delivered || o.returnShipment ? (
         <>
           <h3 className="osec__sub osec__sub--split">Return</h3>
           <Waybill o={o} boxes={boxes} which="return" />
         </>
       ) : null}
-    </section>
+    </div>
   );
 }
 
@@ -47,8 +44,8 @@ function Waybill({ o, boxes, which }: { o: Order; boxes: Boxes; which: Direction
   if (f.method !== "courier") return null;
   const s = which === "out" ? o.shipment : o.returnShipment;
   const open = !s || s.state === "failed" || s.state === "cancelled";
-  // A return starts from the boxes the order went out in; an order from the box checkout priced.
-  const parcels = which === "return" && o.shipment?.parcels.length ? o.shipment.parcels : [parcelFor(boxes, f.service.box ?? DEFAULT_BOX)];
+  // A return starts from the boxes the order went out in; an order from the parcels checkout priced.
+  const parcels = which === "return" && o.shipment?.parcels.length ? o.shipment.parcels : quotedParcels(boxes, f.service);
 
   return (
     <>
@@ -59,16 +56,7 @@ function Waybill({ o, boxes, which }: { o: Order; boxes: Boxes; which: Direction
         </p>
       ) : null}
 
-      {open ? which === "out" ? <WaybillForm ref_={o.ref} which="out" parcels={parcels} boxes={boxes} /> : <BookReturn ref_={o.ref} parcels={parcels} boxes={boxes} /> : null}
-
-      {s?.state === "booking" && !needsLookUp(s) ? <p className="hint">If this doesn&rsquo;t change within two minutes, reload: you&rsquo;ll be asked to look it up.</p> : null}
-
-      {needsLookUp(s) ? (
-        <>
-          <p className="hint">The Courier Guy may have made the waybill. Look it up before booking again, or it could be sent, and charged, twice.</p>
-          <SettleShipment ref_={o.ref} which={which} />
-        </>
-      ) : null}
+      {open && which === "return" ? <BookReturn ref_={o.ref} parcels={parcels} boxes={boxes} /> : null}
 
       {s?.state === "booked" && s.tracking ? <Booked o={o} s={s} boxes={boxes} which={which} /> : null}
     </>
@@ -132,18 +120,17 @@ function Booked({ o, s, boxes, which }: { o: Order; s: Shipment; boxes: Boxes; w
         ) : null}
         <div>
           <dt>Parcels</dt>
-          <dd>{s.parcels.map((p) => `${"label" in p ? p.label : boxes[p.box].label} box, ${p.weight} kg`).join("; ")}</dd>
+          <dd>{s.parcels.map((p) => parcelText(boxes, p)).join("; ")}</dd>
         </div>
       </dl>
-      <p className="osec__lines">
-        <a className="admin-link" href={`${labels}waybill`} target="_blank" rel="noopener">
-          Print the waybill <External size={14} />
+      <div className="obtns">
+        <a className="obtn" href={`${labels}waybill`} target="_blank" rel="noopener">
+          <Printer size={18} /> Waybill
         </a>
-        {" · "}
-        <a className="admin-link" href={`${labels}stickers`} target="_blank" rel="noopener">
-          Parcel stickers <External size={14} />
+        <a className="obtn" href={`${labels}stickers`} target="_blank" rel="noopener">
+          <Printer size={18} /> Stickers
         </a>
-      </p>
+      </div>
       <ShipmentControls ref_={o.ref} which={which} collected={hasLeftShop(s.status)} />
 
       {delivered ? (

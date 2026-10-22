@@ -13,6 +13,7 @@ export function QuantityStepper({
   onChange,
   id,
   label,
+  max = MAX_QUANTITY,
 }: {
   value: number;
   onChange: (n: number) => void;
@@ -20,6 +21,8 @@ export function QuantityStepper({
   id?: string;
   /** What is being counted, for the steps' names and, without an `id`, the field's. */
   label?: string;
+  /** Fewer than MAX_QUANTITY when stock is short: + stops there, though a number typed past it is kept for the stock notice to answer. */
+  max?: number;
 }) {
   const set = (n: number) => onChange(clampQuantity(n));
   const of = label ? ` ${label}` : "";
@@ -51,7 +54,7 @@ export function QuantityStepper({
         type="button"
         className="qty__step"
         aria-label={`One more${of}`}
-        disabled={value >= MAX_QUANTITY}
+        disabled={value >= Math.min(max, MAX_QUANTITY)}
         onClick={() => set(value + 1)}
       >
         <Plus size={20} />

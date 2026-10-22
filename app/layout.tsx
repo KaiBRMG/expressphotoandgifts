@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Archivo, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SHOP } from "./site/data";
+import { SiteAnalytics } from "./site/SiteAnalytics";
 
 const archivo = Archivo({
   variable: "--font-archivo",
@@ -53,7 +54,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
       </head>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        {children}
+        <SiteAnalytics />
+      </body>
     </html>
   );
 }

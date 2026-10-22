@@ -5,8 +5,8 @@
  * white, every item that takes a photo is a white door holding its places,
  * each drawn at its real proportions and outline; beside it, on blue, the
  * customer's tray of photos. Amber marks the photo in hand, the places it can
- * go, the gold actions and a print that will come out soft. No new colour:
- * every warning is a glyph and words first.
+ * go and the gold actions. No new colour: every warning is a glyph and words
+ * first.
  */
 
 .ck {
@@ -33,6 +33,28 @@
 }
 
 /* The count is the line worth remembering, so it carries the amber. */
+/* The shop's WhatsApp, in reach on every step: checkout drops the order dock. */
+.ckhead__ask {
+  margin-top: 0.7rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--on-leather-soft);
+}
+
+.ckhead__ask .inline-link {
+  color: var(--print);
+  font-weight: 600;
+}
+
+/* Standalone links set in a line of text, each still a 44px target. */
+.acct .inline-link,
+.review__change .inline-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-block: -12px;
+}
+
 .ckhead__count {
   display: grid;
   justify-items: end;
@@ -42,7 +64,7 @@
 
 .ckhead__count strong {
   font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: clamp(2.2rem, 4.6vw, 3.6rem);
+  font-size: clamp(1.9rem, 4.4vw, 3.6rem);
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.04em;
@@ -475,6 +497,25 @@
   cursor: pointer;
 }
 
+/* The agreement under the review: a sentence, not a label, so it reads at
+   body weight, and its box holds the first line rather than the middle. */
+.check.coagree {
+  display: flex;
+  align-items: flex-start;
+  max-width: 62ch;
+  margin-top: 1.4rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--rule-paper);
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+/* The blockers under Pay link here: clear of the sticky header when it lands. */
+.check.coagree input {
+  margin-top: 0.1rem;
+  scroll-margin-top: calc(var(--header-h) + 48px);
+}
+
 /* The words a gift can carry. */
 .words {
   display: grid;
@@ -760,6 +801,25 @@
 .addphotos:has(input:focus-visible) {
   outline: 3px solid var(--print);
   outline-offset: 3px;
+}
+
+/* What just happened, on the tray's own ground: in for a moment, then gone. */
+.tray__said {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-sm);
+  background: rgb(255 255 255 / 0.12);
+  color: var(--print);
+  font-size: 1rem;
+  line-height: 1.45;
+  animation: said-in 0.4s var(--ease-out);
+}
+
+@keyframes said-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
 .tray__hint {
@@ -1154,9 +1214,18 @@
     gap: 0.35rem;
   }
 
-  .tray__problems,
   .tray__total,
   .tray__note {
+    display: none;
+  }
+
+  /* The first thing in the way, under the count, so Continue never scrolls without a word. */
+  .tray__problems {
+    grid-column: 1 / -1;
+    order: 1;
+  }
+
+  .tray__problems li + li {
     display: none;
   }
 
@@ -1450,9 +1519,7 @@ html:has(.editor[open]) {
 }
 
 .editor__borders {
-  display: block;
-  margin-top: 0.15rem;
-  font-weight: 400;
+  font-size: 1rem;
   color: var(--ink-soft);
 }
 
@@ -1491,29 +1558,6 @@ html:has(.editor[open]) {
   display: grid;
   gap: 0.85rem;
   padding: 1rem var(--ed-pad) calc(1rem + env(safe-area-inset-bottom, 0px));
-}
-
-.editor__verdict {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: 0.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.editor__verdict[data-quality="soft"] svg {
-  padding: 2px;
-  border-radius: 999px;
-  background: var(--gold);
-  color: var(--ink);
-}
-
-.editor__dpi {
-  margin-left: 0.6rem;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-weight: 400;
-  color: var(--ink-faint);
 }
 
 .editor__shape {
@@ -1718,7 +1762,7 @@ html:has(.editor[open]) {
 
 .ckhead__ref strong {
   font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: clamp(1.35rem, 2.6vw, 2rem);
+  font-size: clamp(1.2rem, 2.2vw, 1.75rem);
   font-weight: 500;
   letter-spacing: -0.02em;
   color: var(--gold);
@@ -1884,7 +1928,8 @@ html:has(.editor[open]) {
 .services__none svg,
 .coslip__error svg,
 .receipt__paid svg,
-.receipt__saved svg {
+.receipt__saved svg,
+.aorder__standing[data-tone="problem"] svg {
   flex: none;
   box-sizing: content-box;
   padding: 2px;
@@ -2435,7 +2480,7 @@ html:has(.editor[open]) {
 }
 
 .coslip__total strong {
-  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-size: clamp(1.5rem, 3.4vw, 2.6rem);
   font-weight: 600;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
@@ -2469,7 +2514,21 @@ html:has(.editor[open]) {
   font-variant-numeric: tabular-nums;
 }
 
-/* On a phone the slip docks at the foot: the total beside Pay, and what stands in the way above them. */
+/* Beside the form the breakdown is simply part of the slip. */
+.coslip__breakdown {
+  display: contents;
+}
+
+.coslip__more {
+  display: none;
+}
+
+/*
+ * On a phone the slip docks at the foot: the total beside Pay, what stands in
+ * the way above them, and who takes the payment under them. The lines and
+ * sums open from the total, above everything, so the dock stays short until
+ * the customer asks what they are paying for.
+ */
 @media (max-width: 61.99rem) {
   .co.ck__grid {
     padding-bottom: calc(clamp(62px, 9vw, 130px) + var(--dock-h, 150px));
@@ -2481,9 +2540,40 @@ html:has(.editor[open]) {
     gap: 0.6rem 1rem;
   }
 
-  .coslip__lines,
-  .coslip__sums,
+  .coslip__breakdown {
+    display: none;
+  }
+
+  .coslip[data-open] .coslip__breakdown {
+    display: grid;
+    grid-column: 1 / -1;
+    order: -2;
+    gap: 0.9rem;
+    max-height: 42dvh;
+    overflow-y: auto;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--rule-leather);
+    animation: breakdown-in 0.35s var(--ease-out);
+  }
+
+  .coslip__lines ul {
+    max-height: none;
+  }
+
+  .coslip .coslip__more {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin: -12px 0 -12px 0.6rem;
+    color: var(--print);
+    font-weight: 600;
+  }
+
   .coslip__note {
+    grid-column: 1 / -1;
+  }
+
+  .coslip__noteMore {
     display: none;
   }
 
@@ -2491,6 +2581,11 @@ html:has(.editor[open]) {
   .coslip__problems {
     grid-column: 1 / -1;
     order: -1;
+  }
+
+  /* One thing in the way at a time, so the dock stays short; the next shows once it is dealt with. */
+  .coslip__problems li + li {
+    display: none;
   }
 
   .coslip__total {
@@ -2507,6 +2602,13 @@ html:has(.editor[open]) {
 
   .coslip__pay {
     padding: 0.85rem 1.3rem;
+  }
+}
+
+@keyframes breakdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
 }
 
@@ -2588,6 +2690,34 @@ html:has(.editor[open]) {
   font-size: 1rem;
   font-weight: 400;
   color: var(--ink-soft);
+}
+
+/* The line's photos as small prints on white paper, the review's proofs carried to the end. */
+.receipt__proofs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.receipt__proofs img {
+  width: auto;
+  max-width: 96px;
+  height: 72px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--print);
+  object-fit: contain;
+  box-shadow: var(--shadow-card);
+  outline: 1px solid var(--rule-card);
+}
+
+.receipt__more {
+  align-self: center;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  color: var(--ink-faint);
 }
 
 .receipt__lines li > span:last-child {
@@ -2868,7 +2998,7 @@ html:has(.editor[open]) {
 
 .track__waybill {
   font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: clamp(1.1rem, 1.8vw, 1.3rem);
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
   letter-spacing: 0.02em;
   overflow-wrap: anywhere;
   user-select: all;
@@ -2918,13 +3048,440 @@ html:has(.editor[open]) {
 
 /* ---- The account page -------------------------------------------------- */
 
+/*
+ * One page, in checkout's world: an order on its way first, on the receipt's
+ * own tracking card; then the history as a ruled ledger, each order shown by
+ * the customer's prints laid on the counter a little askew. On a wide screen
+ * what the account keeps sits beside it, past a hairline. Amber marks only
+ * the step happening now, a note's glyph and the list's markers.
+ */
+
 .account {
+  /* The shop's quiet wash: notes, the offer to find orders, a print still loading. */
+  --wash: rgb(1 38 186 / 0.05);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(30px, 4vw, 56px);
   padding-block: clamp(18px, 2.4vw, 32px) clamp(62px, 9vw, 130px);
 }
 
-.account > * {
+.account--out > * {
   max-width: 50rem;
 }
+
+@media (min-width: 72rem) {
+  .account:not(.account--out) {
+    grid-template-columns: minmax(0, 1fr) 26rem;
+    align-items: start;
+    column-gap: clamp(30px, 4vw, 64px);
+  }
+
+  .account__banner {
+    grid-column: 1 / -1;
+  }
+
+  .account__side {
+    padding-left: clamp(30px, 3vw, 48px);
+    border-left: 1px solid var(--rule-paper);
+  }
+
+  .account__side > .costep:first-of-type {
+    padding-top: 0;
+  }
+}
+
+.account__main {
+  display: grid;
+  gap: clamp(26px, 3.2vw, 40px);
+  min-width: 0;
+}
+
+.account__side {
+  container: aside / inline-size;
+  min-width: 0;
+}
+
+/* In the side column the fields stack: a 26rem column can't hold two at 16px with their hints. */
+@container aside (max-width: 32rem) {
+  .account__side .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The band's right end: who is signed in, and the way out, in white on blue. */
+.ckhead__who {
+  display: grid;
+  justify-items: start;
+  gap: 0.15rem;
+  font-size: 1rem;
+  color: var(--on-leather-soft);
+}
+
+.ckhead__who strong {
+  font-weight: 600;
+  color: var(--print);
+  overflow-wrap: anywhere;
+}
+
+.ckhead__who .account__out {
+  margin-top: 0.35rem;
+  color: var(--print);
+}
+
+@media (min-width: 48rem) {
+  .ckhead__who {
+    justify-items: end;
+    text-align: right;
+  }
+}
+
+/* A note set on the wash: what an action did, or why it couldn't (`Note`). */
+.anote {
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--radius-sm);
+  background: var(--wash);
+  line-height: 1.5;
+}
+
+/* What the email link found, or why it couldn't: a note, not an alarm. */
+.account__banner {
+  max-width: 50rem;
+  font-weight: 600;
+}
+
+.account__ref,
+.aorder__ref {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.aorder__ref {
+  font-size: 1rem;
+  color: var(--ink-faint);
+}
+
+/* ---- An order on its way: the receipt's tracking card, with its way to the receipt */
+
+.track__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule-paper);
+  font-size: 1rem;
+}
+
+@media (min-width: 62rem) {
+  .track__foot {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---- The history ------------------------------------------------------- */
+
+.aorders__wrap {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+/* How many, in the Count role: mono, tabular, faint. */
+.aorders__count {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.aorders {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aorder {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  grid-template-areas:
+    "prints what"
+    "prints total"
+    "acts acts"
+    "said said";
+  gap: 0.35rem 1.1rem;
+  padding-block: 1.25rem;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.aorder:last-child {
+  border-bottom: 1px solid var(--rule-paper);
+}
+
+@media (min-width: 40rem) {
+  .aorder {
+    grid-template-columns: 104px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "prints what total"
+      "prints what acts"
+      "said said said";
+    gap: 0.5rem clamp(16px, 2.4vw, 28px);
+    padding-block: 1.4rem;
+  }
+}
+
+/* The prints, laid on the counter: white-bordered paper, each turned a little. */
+.aorder__prints {
+  grid-area: prints;
+  position: relative;
+  align-self: start;
+  width: 84px;
+  height: 84px;
+}
+
+@media (min-width: 40rem) {
+  .aorder__prints {
+    width: 104px;
+    height: 104px;
+  }
+}
+
+/* Each print's turn is `--r`; under the pointer the turns open a little, as a hand would fan them. */
+.aorder__print {
+  --r: -3deg;
+  position: absolute;
+  inset: 8%;
+  width: 84%;
+  height: 84%;
+  object-fit: cover;
+  border: 4px solid var(--print);
+  border-radius: 8px;
+  background: var(--wash);
+  box-shadow:
+    0 0 0 1px var(--rule-card),
+    0 14px 24px -14px rgb(1 38 186 / 0.55);
+  transform: rotate(var(--r));
+  transition: transform 0.5s var(--ease-out);
+}
+
+.aorder__prints[data-n="2"] .aorder__print,
+.aorder__prints[data-n="3"] .aorder__print {
+  width: 68%;
+  height: 68%;
+}
+
+.aorder__prints[data-n="2"] .aorder__print:nth-child(1) {
+  --r: -6deg;
+  inset: 4% auto auto 2%;
+}
+
+.aorder__prints[data-n="2"] .aorder__print:nth-child(2) {
+  --r: 4deg;
+  inset: auto 2% 4% auto;
+}
+
+.aorder__prints[data-n="3"] .aorder__print:nth-child(1) {
+  --r: -8deg;
+  inset: 0 auto auto 0;
+}
+
+.aorder__prints[data-n="3"] .aorder__print:nth-child(2) {
+  --r: 6deg;
+  inset: 2% 0 auto auto;
+}
+
+.aorder__prints[data-n="3"] .aorder__print:nth-child(3) {
+  --r: -1deg;
+  inset: auto auto 0 16%;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .aorder:hover .aorder__print {
+    transform: rotate(calc(var(--r) * 1.4));
+  }
+}
+
+/* No photo on the order: the product's own photograph, on the shop's wash. */
+.aorder__prints--product {
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--wash);
+}
+
+.aorder__what {
+  grid-area: what;
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.aorder__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.75rem;
+  font-size: clamp(1.05rem, 1.4vw, 1.15rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.aorder__items {
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.aorder__standing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.aorder__standing[data-tone="refunded"] {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* Happening now: the tracking rail's amber disc, small. */
+.aorder__dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--gold);
+  box-shadow: 0 0 0 3px rgb(255 183 42 / 0.3);
+}
+
+.aorder__total {
+  grid-area: total;
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.aorder__acts {
+  grid-area: acts;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.25rem;
+  margin-top: 0.6rem;
+  font-size: 1rem;
+}
+
+@media (min-width: 40rem) {
+  .aorder__total {
+    justify-self: end;
+    font-size: clamp(1.05rem, 1.4vw, 1.15rem);
+  }
+
+  .aorder__acts {
+    align-self: end;
+    justify-content: flex-end;
+    margin-top: 0;
+  }
+}
+
+.aorder .anote {
+  grid-area: said;
+  margin-top: 0.75rem;
+}
+
+.aorders__more {
+  justify-self: start;
+  margin-top: 0.9rem;
+}
+
+.aorders__none {
+  display: grid;
+  justify-items: start;
+  gap: 0.8rem;
+  padding-block: 1.4rem;
+  border-top: 1px solid var(--rule-paper);
+  font-size: 1rem;
+}
+
+.aorders__none p {
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+/* Orders from before the account: the shop's quiet wash, an offer rather than a task. */
+.afind {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.9rem;
+  margin-top: 1.4rem;
+  padding: clamp(16px, 2vw, 22px);
+  border-radius: var(--radius-sm);
+  background: var(--wash);
+}
+
+.afind__mark {
+  margin-top: 0.1rem;
+}
+
+.afind__body {
+  display: grid;
+  justify-items: start;
+  gap: 0.6rem;
+}
+
+/* ---- The pill a row's action wears: the shop's filter pill, on white ---- */
+
+.pillbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--print);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.25s,
+    border-color 0.25s,
+    color 0.25s,
+    transform 0.45s var(--ease-out);
+}
+
+.pillbtn:hover {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: var(--print);
+}
+
+.pillbtn:hover .aorders__count {
+  color: var(--on-leather-soft);
+}
+
+.pillbtn:active {
+  transform: scale(0.98);
+}
+
+.pillbtn[aria-disabled] {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+/* ---- What the account keeps -------------------------------------------- */
 
 .account__list {
   display: grid;
@@ -2933,7 +3490,7 @@ html:has(.editor[open]) {
 
 .account__list div {
   display: grid;
-  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 9.5rem) minmax(0, 1fr);
   gap: 1rem;
   padding-block: 0.8rem;
   border-top: 1px solid var(--rule-paper);
@@ -2956,12 +3513,162 @@ html:has(.editor[open]) {
   }
 }
 
+.account__none {
+  color: var(--ink-soft);
+}
+
+.account__edit,
+.account__shop {
+  justify-self: start;
+}
+
 .account__out {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
   justify-self: start;
   font-size: 1rem;
+}
+
+.account__form {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.account__set {
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.account__legend {
+  padding: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.account__legend span {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* A setting's row: what it is on the left, its one action on the right. */
+.arow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem 1.25rem;
+}
+
+.arow > div {
+  display: grid;
+  flex: 1 1 14rem;
+  gap: 0.25rem;
+}
+
+.arow__label,
+.optin__label {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.account__rows > * + * {
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.adelete__list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.adelete__list strong {
+  color: var(--ink);
+}
+
+.adelete__list li::marker {
+  color: var(--gold);
+}
+
+/* ---- The marketing switch ---------------------------------------------- */
+
+.optin {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.optin__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+.optin__row > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+/* A switch drawn in the shop's terms: a hairline track that fills blue when on, a white knob that slides. */
+.switch {
+  position: relative;
+  flex: none;
+  width: 56px;
+  height: 32px;
+  margin-top: 0.1rem;
+  padding: 0;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: rgb(1 38 186 / 0.08);
+  cursor: pointer;
+  transition:
+    background-color 0.25s,
+    border-color 0.25s;
+}
+
+/* A 44px target round a 32px track. */
+.switch::before {
+  content: "";
+  position: absolute;
+  inset: -7px -4px;
+}
+
+.switch__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--print);
+  box-shadow:
+    0 0 0 1px var(--rule-hair),
+    0 4px 8px -3px rgb(1 38 186 / 0.45);
+  transition: transform 0.4s var(--ease-out);
+}
+
+.switch[aria-checked="true"] {
+  border-color: var(--blue);
+  background: var(--blue);
+}
+
+.switch[aria-checked="true"] .switch__knob {
+  transform: translateX(24px);
+  box-shadow: 0 4px 8px -3px rgb(1 38 186 / 0.5);
+}
+
+.switch[aria-disabled] {
+  cursor: progress;
 }
 
 .signin {
@@ -2976,6 +3683,11 @@ html:has(.editor[open]) {
 
   .proof:hover .proof__face {
     transform: rotate(0);
+  }
+
+  .aorder__print,
+  .switch__knob {
+    transition: none;
   }
 
   /* The page-wide reduced-motion rule stops every animation; a slow turn is

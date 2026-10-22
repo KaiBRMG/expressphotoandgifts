@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { currentCustomer } from "@/lib/account/auth";
-import { photoCount, rands } from "@/lib/catalog/listing";
+import { cartSavings } from "@/lib/catalog/campaigns";
+import { photoCount, rands, signedRands } from "@/lib/catalog/listing";
 import { addressLine, deliveryLabel, deliveryPrice } from "@/lib/checkout/details";
-import { fileCount, lineWhat, orderPhotos } from "@/lib/checkout/order";
+import { fileCount, lineWhat, orderPhotos, type OrderLine } from "@/lib/checkout/order";
+import { fittedUrl, THUMB } from "@/lib/checkout/photoUrls";
 import { orderForReceipt } from "@/lib/checkout/orders";
 import { refreshIfStale } from "@/lib/checkout/shipments";
 import { trackOrder } from "@/lib/checkout/tracking";
@@ -58,6 +60,7 @@ export default async function DonePage({ searchParams }: PageProps<"/checkout/do
       <CheckoutHead
         step="done"
         title={paid ? `Thank you, ${order.contact.firstName}` : "Confirming your payment"}
+        orderRef={order.ref}
         lede={paid ? (tracking?.finished ? undefined : "Here’s where your order is. This page keeps itself up to date while it’s open.") : "PayFast is confirming your payment with the shop. This usually takes a few seconds."}
         aside={
           <p className="ckhead__ref">
@@ -89,6 +92,8 @@ export default async function DonePage({ searchParams }: PageProps<"/checkout/do
                   {l.frame?.empty ? <small>Frame only, no print</small> : null}
                   {l.frame?.quote ? <small>We&rsquo;ll quote you for the print</small> : null}
                   {l.note ? <small>Your note: &ldquo;{l.note}&rdquo;</small> : null}
+                  {l.base ? <small>On special, was {rands(l.base * l.quantity)}</small> : null}
+                  <Proofs line={l} />
                 </span>
                 <span>{rands(l.price * l.quantity)}</span>
               </li>
@@ -99,6 +104,12 @@ export default async function DonePage({ searchParams }: PageProps<"/checkout/do
               <dt>Subtotal</dt>
               <dd>{rands(order.subtotal)}</dd>
             </div>
+            {cartSavings(order).map((s) => (
+              <div key={`${s.campaign}/${s.rule}`}>
+                <dt>{s.label}</dt>
+                <dd>{signedRands(-s.amount)}</dd>
+              </div>
+            ))}
             <div>
               <dt>{deliveryLabel(order.fulfilment)}</dt>
               <dd>{deliveryPrice(order.delivery)}</dd>
@@ -157,5 +168,29 @@ export default async function DonePage({ searchParams }: PageProps<"/checkout/do
         {offerAccount ? <SaveAccount ref_={order.ref} token={order.token} email={order.contact.email} /> : null}
       </div>
     </>
+  );
+}
+
+/** Proofs shown on a line before the rest are counted. */
+const PROOFS = 8;
+
+/**
+ * The line's own photos, as the shop will print them: each file once, the
+ * customer's edit where they made one and the whole photo where they didn't.
+ * The receipt is the page every email leads back to, so it ends on their pictures.
+ */
+function Proofs({ line }: { line: OrderLine }) {
+  const seen = new Set<string>();
+  const files = line.sets.flatMap((s) => s.files).filter((f) => !seen.has(f.publicId) && seen.add(f.publicId));
+  if (files.length === 0) return null;
+  const more = files.length - PROOFS;
+  return (
+    <span className="receipt__proofs" aria-hidden="true">
+      {files.slice(0, PROOFS).map((f) => (
+        // eslint-disable-next-line @next/next/no-img-element -- a customer photo at the step's one thumbnail size, from Cloudinary as is
+        <img key={f.publicId} src={fittedUrl(f.publicId, f.version, THUMB)} alt="" loading="lazy" decoding="async" />
+      ))}
+      {more > 0 ? <span className="receipt__more">+{more}</span> : null}
+    </span>
   );
 }

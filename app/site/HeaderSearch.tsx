@@ -9,6 +9,7 @@ import { queryWords, searchItems, searchShortcuts } from "@/lib/catalog/search";
 import type { SearchIndex } from "@/app/api/search/route";
 import { ArrowRight, Close, Search } from "./icons";
 import { ProductImage } from "./ProductImage";
+import { track } from "./track";
 
 /** Products the window lists before handing over to "See all". */
 const SHOWN = 6;
@@ -96,6 +97,14 @@ export function HeaderSearch() {
   );
   const top = products.slice(0, SHOWN);
   const typed = queryWords(query).length > 0;
+
+  // A search that finds nothing, once the customer has stopped typing: what they wanted that the shop doesn't list.
+  const missed = loaded !== null && typed && products.length === 0 && shortcuts.length === 0;
+  useEffect(() => {
+    if (!missed) return;
+    const timer = setTimeout(() => track({ step: "miss", q: query }), 1500);
+    return () => clearTimeout(timer);
+  }, [missed, query]);
 
   // Every row the arrow keys reach, in the order they are drawn.
   const rows = [

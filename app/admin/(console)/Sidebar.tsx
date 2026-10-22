@@ -5,15 +5,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Tooltip } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { Box, Card, External, Panels, Parcel, SignOut, Sliders, Truck } from "@/app/site/icons";
+import { Box, Card, Chart, External, Panels, Parcel, People, Shelves, SignOut, Sliders, Tag, Truck } from "@/app/site/icons";
 import { signOutAction } from "../actions";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", Icon: Panels },
+  { href: "/admin/analytics", label: "Analytics", Icon: Chart },
   { href: "/admin/orders", label: "Orders", Icon: Parcel },
+  { href: "/admin/customers", label: "Customers", Icon: People },
   { href: "/admin/payments", label: "Payments", Icon: Card },
   { href: "/admin/courier", label: "Courier", Icon: Truck },
   { href: "/admin/products", label: "Products", Icon: Box },
+  { href: "/admin/stock", label: "Stock", Icon: Shelves },
+  { href: "/admin/campaigns", label: "Campaigns", Icon: Tag },
   { href: "/admin/settings", label: "Settings", Icon: Sliders },
 ];
 

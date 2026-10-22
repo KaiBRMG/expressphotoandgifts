@@ -1,5 +1,5 @@
 import { fromShopTime, SHOP_TZ } from "@/lib/shopTime";
-import { COURIER_TROUBLE, FINAL_STATUSES, hasLeftShop, statusText, trackingWords, type Order, type TrackingEvent } from "./order";
+import { COURIER_TROUBLE, FINAL_STATUSES, hasLeftShop, refundedOf, statusText, trackingWords, type Order, type TrackingEvent } from "./order";
 
 /**
  * An order's progress as the customer follows it: the shop's own stages
@@ -158,6 +158,9 @@ export function trackOrder(o: Order): Tracking | null {
     ...(s ? { courier: { tracking: s.tracking!, events, estimate: delivered ? undefined : s.estimate, checkedAt: s.checkedAt } } : {}),
   };
 }
+
+/** Nothing more for the customer to wait for: delivered, collected or stopped, or refunded in full. `t` is its tracking, when already worked out. */
+export const orderSettled = (o: Order, t: Tracking | null = trackOrder(o)) => refundedOf(o) >= o.total || t?.finished === true;
 
 const zone = { timeZone: SHOP_TZ } as const;
 

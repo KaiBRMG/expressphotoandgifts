@@ -197,6 +197,17 @@ export function Profile(props: IconProps) {
   );
 }
 
+export function People(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="9.2" cy="8.4" r="3.4" {...stroke} />
+      <path d="M2.8 19.6a6.4 6.4 0 0 1 12.8 0" {...stroke} />
+      <path d="M15.4 5.2a3.4 3.4 0 0 1 0 6.4" {...stroke} />
+      <path d="M18 14.2a6.4 6.4 0 0 1 3.2 5.4" {...stroke} />
+    </Svg>
+  );
+}
+
 export function Cart(props: IconProps) {
   return (
     <Svg {...props}>
@@ -347,6 +358,26 @@ export function Upload(props: IconProps) {
   );
 }
 
+export function Download(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 4v11" {...stroke} />
+      <path d="M7.5 10.5 12 15l4.5-4.5" {...stroke} />
+      <path d="M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14" {...stroke} />
+    </Svg>
+  );
+}
+
+export function Printer(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M7 9V4h10v5" {...stroke} />
+      <path d="M7 17H5.5A1.5 1.5 0 0 1 4 15.5v-5A1.5 1.5 0 0 1 5.5 9h13a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5H17" {...stroke} />
+      <path d="M7 14h10v6H7z" {...stroke} />
+    </Svg>
+  );
+}
+
 /** A quarter turn, clockwise. */
 export function Rotate(props: IconProps) {
   return (
@@ -451,6 +482,18 @@ export function Panels(props: IconProps) {
   );
 }
 
+/** Three columns on a baseline: analytics. */
+export function Chart(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 20h16" {...stroke} />
+      <rect x="5.5" y="12" width="3" height="5.5" rx="1" {...stroke} />
+      <rect x="10.5" y="8" width="3" height="9.5" rx="1" {...stroke} />
+      <rect x="15.5" y="4.5" width="3" height="13" rx="1" {...stroke} />
+    </Svg>
+  );
+}
+
 /** Three sliders: settings. */
 export function Sliders(props: IconProps) {
   return (
@@ -468,6 +511,16 @@ export function Box(props: IconProps) {
     <Svg {...props}>
       <path d="M12 3.4l7.6 4v9.2L12 20.6l-7.6-4V7.4z" {...stroke} />
       <path d="M4.4 7.4L12 11.4l7.6-4M12 11.4v9.2" {...stroke} />
+    </Svg>
+  );
+}
+
+/** Shelving with stock on it: the console's Stock page. */
+export function Shelves(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 3.5v17M20 3.5v17M4 12h16M4 20.5h16" {...stroke} />
+      <path d="M7 12V7.5h4.5V12M13.5 20.5v-5h4v5" {...stroke} />
     </Svg>
   );
 }

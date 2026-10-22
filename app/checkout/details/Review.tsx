@@ -6,6 +6,7 @@ import { rands } from "@/lib/catalog/listing";
 import { cmLabel } from "@/lib/catalog/sizes";
 import { LIMITS } from "@/lib/checkout/details";
 import { Plus } from "@/app/site/icons";
+import { useUnitPrice } from "@/app/site/cartStore";
 import { ProductImage } from "@/app/site/ProductImage";
 import { Cropped } from "../Cropped";
 import { CharsLeft, Field } from "../Field";
@@ -22,6 +23,7 @@ import { photos as photoActions, type Photo } from "../photoStore";
  */
 export const Review = memo(function Review({ rows, photos }: { rows: Row[]; photos: Photo[] }) {
   const byId = new Map(photos.map((p) => [p.id, p]));
+  const unit = useUnitPrice();
   return (
     <ul className="review">
       {rows.map(({ line, needs, state }) => {
@@ -36,10 +38,10 @@ export const Review = memo(function Review({ rows, photos }: { rows: Row[]; phot
             <div className="review__what">
               <p className="review__name">{line.name}</p>
               <p className="review__meta">
-                {[line.variant, `${line.quantity} × ${rands(line.price)}`].filter(Boolean).join(" · ")}
+                {[line.variant, `${line.quantity} × ${rands(unit(line))}`].filter(Boolean).join(" · ")}
               </p>
             </div>
-            <p className="review__price">{rands(line.price * line.quantity)}</p>
+            <p className="review__price">{rands(unit(line) * line.quantity)}</p>
 
             {photo ? (
               <div className="review__sets">

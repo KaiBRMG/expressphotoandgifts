@@ -268,7 +268,9 @@
   list-style: none;
 }
 
+/* Positioned, so its hidden label stays inside it (and inside the phone's scrolling row) instead of widening the page. */
 .sidebar__item {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1654,6 +1656,113 @@
   color: var(--ink-soft);
 }
 
+/* Size and weight, packed. An estimate is marked in the warning orange, apart
+   from the amber of an unsaved change, until staff measure or confirm it. */
+.measures__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+
+.measures__row .measure {
+  flex: 0 1 9rem;
+  min-width: 7.5rem;
+}
+
+.measures__scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.measures {
+  border-collapse: collapse;
+}
+
+.measures th {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--rule-hair);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.measures td {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--rule-paper);
+  vertical-align: top;
+}
+
+.measures td:first-child {
+  padding-top: 14px;
+  white-space: nowrap;
+}
+
+.measures .measure {
+  width: 6.5rem;
+}
+
+.measures__ships {
+  min-width: 12rem;
+  padding-top: 14px;
+  color: var(--ink-soft);
+}
+
+.measure {
+  display: grid;
+  gap: 4px;
+}
+
+.measure--estimated .mantine-NumberInput-input {
+  border-color: var(--mantine-color-orange-6);
+  border-style: dashed;
+}
+
+.estimate {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  color: var(--mantine-color-orange-9);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.estimate__note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  max-width: 44rem;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--mantine-color-orange-0);
+  color: var(--ink);
+}
+
+.estimate__note > svg {
+  flex: none;
+  color: var(--mantine-color-orange-9);
+}
+
+.estimate__note p {
+  flex: 1 1 16rem;
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 46rem) {
+  .estimate,
+  .estimate__note p,
+  .measures th,
+  .measures__ships {
+    font-size: 1rem;
+  }
+}
+
 /* Shop filters */
 .chips {
   display: flex;
@@ -2301,11 +2410,20 @@
     display: none;
   }
 
+  .sidebar__brand {
+    flex: none;
+  }
+
+  /* More pages than a phone is wide: the icons scroll sideways under the logo's edge. */
   .sidebar__nav {
     display: flex;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
   .sidebar__item {
+    flex: none;
     width: auto;
     min-height: 44px;
     padding: 0 10px;
@@ -2458,59 +2576,325 @@
   color: var(--ink-soft);
 }
 
-/* The stage's dot fills as the order moves along: hollow when new, solid once done. */
-.ostage--new::before {
-  border-color: var(--gold);
-  background: var(--gold);
-}
-
-.ostage--making::before {
-  background: linear-gradient(90deg, var(--blue) 50%, transparent 50%);
-}
-
-.ostage--ready::before {
-  background: var(--blue);
-}
-
-.ostage--done {
-  color: var(--ink-faint);
-}
-
-.ostage--done::before {
-  border-color: var(--ink-faint);
-  background: var(--ink-faint);
-}
-
-.ostage {
-  display: grid;
-  gap: 8px;
-  justify-items: end;
-}
-
 /*
- * The order's next step: what staff do now, held under the page head as
- * they scroll, so the next press is never more than a glance away. Tinted
- * blue when it's staff's move, red-edged when something's wrong, plain
- * hairline when they're waiting on someone else or it's done.
+ * One order, as a workbench. The head names it; the stage track says where
+ * it is; the next step is the one thing to do, done in place; the print sheet
+ * is everything to make; the glance card beside them is who, where and how
+ * much; the records sit in tabs under the work. Facts are chips and figures,
+ * not sentences, and every action is a button that names it.
  */
-.onext {
-  z-index: 5;
+
+.order .back {
+  margin-bottom: 4px;
+}
+
+/* ---- Head ---- */
+
+.ohead {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.ohead__chips {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px 28px;
+  gap: 8px;
+}
+
+.ohead__placed {
+  margin-left: 4px;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+/* The receipt PDF, at the end of the chips on a wide screen. */
+.ohead__receipt {
+  margin-left: auto;
+}
+
+/* A fact as a pill: what a sentence used to carry. */
+.ochip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgb(1 38 186 / 0.07);
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.ochip--ref {
+  background: transparent;
+  border-color: var(--rule-hair);
+}
+
+.ochip--paid {
+  background: var(--blue);
+  color: var(--on-leather);
+}
+
+.ochip--unpaid {
+  background: transparent;
+  border: 1px dashed var(--ink-faint);
+  color: var(--ink-soft);
+}
+
+.ochip--quiet {
+  background: transparent;
+  border-color: var(--rule-hair);
+  color: var(--ink-soft);
+}
+
+.ochip--edit {
+  background: color-mix(in srgb, var(--gold) 28%, var(--paper));
+}
+
+.ochip--bad {
+  background: color-mix(in srgb, var(--mantine-color-red-8) 10%, var(--paper));
+  color: var(--mantine-color-red-8);
+}
+
+/* A plain action as a pill: a call, an email, a reprint. */
+.obtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.obtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
+}
+
+.obtn svg {
+  flex: none;
+}
+
+.obtn:hover {
+  border-color: var(--blue);
+  background: rgb(1 38 186 / 0.05);
+}
+
+.obtn:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.obtn--wrap {
+  overflow-wrap: anywhere;
+}
+
+/* ---- Stage track ---- */
+
+.otrack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
   margin-bottom: 20px;
-  padding: 16px 20px;
+  padding: 14px 20px;
   border: 1px solid var(--rule-card);
   border-radius: 18px;
   background: var(--paper);
 }
 
-@media (min-width: 62rem) {
-  .onext {
+.otrack__steps {
+  display: grid;
+  flex: 1 1 36rem;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.otrack__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-rows: 24px auto;
+  column-gap: 10px;
+  align-items: center;
+  padding-right: 12px;
+}
+
+/* The line from this step's dot to the next: solid once passed. */
+.otrack__step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 11px;
+  left: 34px;
+  right: 6px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--rule-paper);
+  z-index: 0;
+}
+
+.otrack__step--done:not(:last-child)::after {
+  background: var(--blue);
+}
+
+.otrack__dot {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--on-leather);
+}
+
+.otrack__step--done .otrack__dot {
+  border-color: var(--blue);
+  background: var(--blue);
+}
+
+.otrack__step--now .otrack__dot {
+  border-color: var(--blue);
+  box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 12px var(--blue);
+}
+
+.otrack__label,
+.otrack__at {
+  position: relative;
+  z-index: 1;
+  grid-column: 2;
+  width: fit-content;
+  padding-right: 8px;
+  background: var(--paper);
+}
+
+.otrack__label {
+  grid-row: 1;
+  font-weight: 500;
+  line-height: 24px;
+  white-space: nowrap;
+  color: var(--ink-faint);
+}
+
+.otrack__step--done .otrack__label {
+  color: var(--ink-soft);
+}
+
+.otrack__step--now .otrack__label {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.otrack__at {
+  grid-row: 2;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.otrack__back {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.otrack__ask {
+  font-weight: 500;
+}
+
+/* ---- The grid ---- */
+
+.order__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.order__main {
+  display: grid;
+  gap: 20px;
+}
+
+/* Grid items size to their content by default; these must shrink to the column instead. */
+.order__grid > *,
+.order__main > * {
+  min-width: 0;
+}
+
+@media (min-width: 75rem) {
+  .order__grid {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+  }
+
+  .glance {
     position: sticky;
     top: 12px;
+  }
+}
+
+/* One column: the glance card comes straight after the next step, before the photos. */
+@media (max-width: 74.99rem) {
+  .order__main {
+    display: contents;
+  }
+
+  .onext {
+    order: 1;
+  }
+
+  .glance {
+    order: 2;
+  }
+
+  .sheet {
+    order: 3;
+  }
+
+  .orecords {
+    order: 4;
+  }
+}
+
+/* ---- Next step ---- */
+
+/*
+ * Tinted blue when it's staff's move, red-edged when something's wrong,
+ * plain when they're waiting or it's done. Held at the top while scrolling
+ * when it's a button; a task (a form) scrolls with the page.
+ */
+.onext {
+  padding: 18px 20px;
+  border: 1px solid var(--rule-card);
+  border-radius: 18px;
+  background: var(--paper);
+}
+
+@media (min-width: 75rem) {
+  .onext:not(.onext--task) {
+    position: sticky;
+    top: 12px;
+    z-index: 5;
     box-shadow: 0 16px 30px -26px rgb(1 38 186 / 0.55);
   }
 }
@@ -2522,33 +2906,62 @@
 
 .onext--alert {
   border-color: var(--mantine-color-red-8);
-  background: color-mix(in srgb, var(--mantine-color-red-8) 5%, var(--paper));
+  background: color-mix(in srgb, var(--mantine-color-red-8) 4%, var(--paper));
+}
+
+.onext__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 18px;
+}
+
+.onext__icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgb(1 38 186 / 0.08);
+  color: var(--ink);
+}
+
+.onext--act .onext__icon {
+  background: var(--blue);
+  color: var(--on-leather);
+}
+
+.onext--alert .onext__icon {
+  background: var(--mantine-color-red-8);
+  color: var(--paper);
 }
 
 .onext__text {
   display: grid;
+  flex: 1 1 20rem;
   gap: 4px;
-  flex: 1 1 28rem;
   min-width: 0;
 }
 
 .onext__title {
-  font-size: clamp(1.2rem, 1.8vw, 1.4rem);
+  font-size: 1.375rem;
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.02em;
 }
 
-.onext--done .onext__title,
-.onext--wait .onext__title {
-  font-size: 1.125rem;
+.onext__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 0;
+  color: var(--ink-soft);
 }
 
-.onext__detail {
-  max-width: 70ch;
-  line-height: 1.5;
-  color: var(--ink-soft);
-  text-wrap: pretty;
+.onext__facts span + span::before {
+  content: "·";
+  margin: 0 8px;
+  color: var(--ink-faint);
 }
 
 .onext__acts {
@@ -2562,10 +2975,10 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 42px;
-  padding: 0 18px;
+  min-height: 44px;
+  padding: 0 20px;
   border: 1px solid var(--blue);
-  border-radius: var(--mantine-radius-default, 8px);
+  border-radius: 999px;
   background: var(--blue);
   color: var(--on-leather);
   font-weight: 600;
@@ -2583,7 +2996,7 @@
 }
 
 .onext__btn--quiet {
-  background: transparent;
+  background: var(--paper);
   color: var(--ink);
 }
 
@@ -2591,46 +3004,481 @@
   background: color-mix(in srgb, var(--blue) 8%, var(--paper));
 }
 
-.onext--alert .onext__btn {
-  border-color: var(--mantine-color-red-8);
-  background: var(--mantine-color-red-8);
+.onext__task {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule-paper);
 }
 
-/* The part the next step jumps to lands below the held bar, not under it. */
-.order .osec__title {
-  scroll-margin-top: 170px;
+.onext__task > .oform:first-child,
+.onext__task > .waybill {
+  margin-top: 0;
 }
 
-.order .back {
-  margin-bottom: 8px;
-}
-
-.order__grid {
+.onext__issues {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  line-height: 1.5;
 }
 
-@media (min-width: 75rem) {
-  .order__grid {
-    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-  }
-}
-
-.order__side {
+.onext__issues li {
   display: grid;
-  gap: 20px;
+  gap: 2px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--mantine-color-red-8) 25%, var(--paper));
 }
 
-/* A part of the order: a widget's card (see .widget), with room for reading. */
+.onext__when {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* PayFast's record for an unpaid order: found, none, or couldn't read. */
+.onext__pf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-top: 14px;
+  line-height: 1.5;
+}
+
+.onext__task > .onext__pf:first-child {
+  margin-top: 0;
+}
+
+.onext__pf--wait {
+  color: var(--ink-soft);
+}
+
+.onext__pf--bad {
+  color: var(--mantine-color-red-8);
+  font-weight: 500;
+}
+
+.onext__pf--bad svg {
+  flex: none;
+}
+
+.onext__pf--found {
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgb(1 38 186 / 0.06);
+}
+
+/* ---- Print sheet ---- */
+
 .osec {
   padding: 18px 20px;
 }
 
-.order > .osec {
-  margin-bottom: 20px;
+.sheet__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 4px;
 }
+
+.sheet__head .osec__title {
+  margin: 0;
+}
+
+.ocount {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.sheet__acts,
+.sline__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sheet__lines {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sline {
+  display: grid;
+  gap: 14px;
+  padding: 18px 0;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.sline:first-child {
+  border-top: 0;
+}
+
+.sline:last-child {
+  padding-bottom: 0;
+}
+
+.sline__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 16px;
+  align-items: start;
+}
+
+.sline__what {
+  display: grid;
+  gap: 6px;
+}
+
+.sline__name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.sline__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.sline__meta .mono {
+  margin-right: 4px;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+.sline__price {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sline__acts {
+  grid-column: 1 / -1;
+}
+
+.sline__notes {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sline__notes li {
+  width: fit-content;
+  max-width: 62ch;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gold) 22%, var(--paper));
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.sset {
+  display: grid;
+  gap: 10px;
+}
+
+.sset__title {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.sset__words {
+  max-width: 62ch;
+  line-height: 1.5;
+}
+
+.sset__words span {
+  margin-right: 6px;
+  font-weight: 600;
+}
+
+.stiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stile {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 10px;
+  border: 1px solid var(--rule-card);
+  border-radius: 18px;
+  background: var(--paper);
+}
+
+.stile__img {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgb(1 38 186 / 0.05);
+}
+
+.stile__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: scale 0.25s var(--ease-out);
+}
+
+.stile__img:hover img {
+  scale: 1.03;
+}
+
+.stile__img:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.stile__info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.stile__label {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.stile__acts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.stile__acts .mantine-Button-root {
+  padding-inline: 10px;
+}
+
+/* ---- Glance card ---- */
+
+.glance {
+  border: 1px solid var(--rule-card);
+  border-radius: 18px;
+  background: var(--paper);
+}
+
+.glance__part {
+  display: grid;
+  gap: 10px;
+  padding: 16px 20px;
+}
+
+.glance__part + .glance__part {
+  border-top: 1px solid var(--rule-paper);
+}
+
+.glance__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.glance__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.glance__acts {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.glance__acts--row {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.glance__lines {
+  line-height: 1.5;
+}
+
+.glance__note {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gold) 22%, var(--paper));
+  line-height: 1.45;
+}
+
+.glance__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.glance__waybill,
+.calso {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--rule-paper);
+}
+
+.glance__waybill p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.glance__sums {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.glance__sums div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.glance__sums dt {
+  color: var(--ink-soft);
+}
+
+.glance__sums dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.glance__total {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule-hair);
+  font-weight: 600;
+}
+
+.glance__total dt {
+  color: var(--ink);
+}
+
+/* ---- Records ---- */
+
+.orecords {
+  padding: 0;
+  overflow: hidden;
+}
+
+.orecords__list {
+  padding: 0 12px;
+  --tab-border-color: var(--rule-paper);
+}
+
+.orecords__tab {
+  min-height: 50px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.orecords__tab[data-active] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.orecords__panel {
+  padding: 18px 20px 20px;
+}
+
+.orecords__dot {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--mantine-color-red-8);
+}
+
+.orecords__count {
+  min-width: 24px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgb(1 38 186 / 0.07);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.otab {
+  display: grid;
+  gap: 12px;
+}
+
+.otab > .osec__sub:first-child {
+  margin-top: 0;
+}
+
+/* A record as one line: what, when or how it went, and its action at the end. */
+.orows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.orow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  min-height: 48px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule-paper);
+}
+
+.orow:last-child {
+  border-bottom: 0;
+}
+
+.orow__main {
+  flex: 1 1 16rem;
+  min-width: 0;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.orow__state {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.orow__state--bad {
+  color: var(--mantine-color-red-8);
+  font-weight: 500;
+}
+
+/* ---- Shared by the order's records and the settings page ---- */
 
 .osec__title {
   display: flex;
@@ -2659,139 +3507,7 @@
 
 .osec__more {
   margin-top: 14px;
-}
-
-/* Something the shop must look at: the one red-edged part of the order. */
-.issues {
-  border-color: var(--mantine-color-red-8);
-}
-
-.issues .osec__title svg {
-  color: var(--mantine-color-red-8);
-}
-
-.issues__list {
-  display: grid;
-  gap: 8px;
-  margin: 0 0 14px;
-  padding: 0;
-  list-style: none;
-  line-height: 1.5;
-}
-
-.oitems {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.oitem {
-  padding: 14px 0;
-  border-bottom: 1px solid var(--rule-paper);
-}
-
-.oitem:first-child {
-  padding-top: 0;
-}
-
-.oitem__head {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.oitem__name {
-  font-weight: 600;
-  line-height: 1.35;
-}
-
-.oitem__note,
-.oitem__words {
-  margin-top: 8px;
-  line-height: 1.5;
-}
-
-.oset {
-  margin-top: 12px;
-}
-
-.oset__title {
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: var(--ink-soft);
-}
-
-.ophotos {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
-  gap: 14px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.ophoto {
-  display: grid;
-  gap: 4px;
-  align-content: start;
-}
-
-.ophoto__link {
-  display: block;
-  aspect-ratio: 1;
-  overflow: hidden;
-  border: 1px solid var(--rule-card);
-  border-radius: 12px;
-  background: rgb(1 38 186 / 0.05);
-}
-
-.ophoto__link img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.ophoto__link:focus-visible {
-  outline: 3px solid var(--blue);
-  outline-offset: 2px;
-}
-
-.ophoto__label {
-  font-size: 0.9375rem;
-  line-height: 1.35;
-}
-
-.ophoto__open {
   width: fit-content;
-  font-size: 0.9375rem;
-}
-
-.osums {
-  display: grid;
-  gap: 4px;
-  margin: 16px 0 0;
-}
-
-.osums div,
-.ofacts div {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.osums dd,
-.ofacts dd {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.osums__total {
-  margin-top: 6px;
-  padding-top: 8px;
-  border-top: 1px solid var(--rule-hair);
-  font-weight: 600;
 }
 
 .ofacts {
@@ -2800,8 +3516,20 @@
   margin: 0;
 }
 
+.ofacts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .ofacts dt {
   color: var(--ink-soft);
+}
+
+.ofacts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .olog {
@@ -2820,8 +3548,8 @@
 .oresend {
   display: inline-flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px 10px;
-  margin-left: 10px;
 }
 
 .oform {
@@ -2830,19 +3558,131 @@
   margin-top: 14px;
 }
 
-@media (max-width: 46rem) {
-  .ostage {
-    justify-items: stretch;
-    width: 100%;
+/* ---- Print view ---- */
+
+.pview {
+  min-height: 100vh;
+  padding: 0 16px 48px;
+  background: rgb(1 38 186 / 0.05);
+}
+
+.pview__bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 60rem;
+  margin: 0 auto 24px;
+  padding: 14px 0;
+  background: color-mix(in srgb, var(--blue) 5%, var(--paper));
+  font-weight: 500;
+}
+
+.pview__page {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-width: 60rem;
+  margin: 0 auto 24px;
+  padding: 24px;
+  border-radius: 18px;
+  background: var(--paper);
+  box-shadow: 0 18px 40px -30px rgb(1 38 186 / 0.6);
+}
+
+.pview__img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+}
+
+.pview__img--sized {
+  max-height: none;
+}
+
+.pview__cap {
+  color: var(--ink-soft);
+}
+
+@media print {
+  @page {
+    margin: 10mm;
   }
 
-  .osec {
+  .pview {
+    padding: 0;
+    background: none;
+  }
+
+  .pview__bar,
+  .pview__cap {
+    display: none;
+  }
+
+  .pview__page {
+    display: block;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    break-after: page;
+  }
+
+  .pview__page:last-child {
+    break-after: auto;
+  }
+
+  .pview__img {
+    display: block;
+    max-height: 100vh;
+  }
+
+  .pview__img--sized {
+    max-width: none;
+    max-height: none;
+  }
+}
+
+@media (max-width: 46rem) {
+  .osec,
+  .onext,
+  .glance__part {
     padding: 16px;
   }
 
-  .oresend {
-    display: flex;
-    margin: 4px 0 0;
+  .otrack {
+    padding: 14px 16px;
+  }
+
+  /* Five steps don't fit across a phone: they stack, the line running down. */
+  .otrack__steps {
+    grid-auto-flow: row;
+    row-gap: 10px;
+  }
+
+  .otrack__step:not(:last-child)::after {
+    top: 30px;
+    bottom: -8px;
+    left: 11px;
+    right: auto;
+    width: 2px;
+    height: auto;
+  }
+
+  .sline__head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .onext__facts {
+    flex-direction: column;
+  }
+
+  .onext__facts span + span::before {
+    content: none;
   }
 }
 
@@ -2860,16 +3700,12 @@
   text-align: right;
 }
 
-/* A quiet tinted strip: PayFast's status when it reports trouble, and an order's missed payment to accept. */
-.pay__status,
-.opay__accept {
+/* A quiet tinted strip: PayFast's status when it reports trouble. */
+.pay__status {
   padding: 12px 16px;
   border-radius: 12px;
   background: rgb(1 38 186 / 0.05);
   line-height: 1.5;
-}
-
-.pay__status {
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -3039,11 +3875,6 @@ a.pay__step:focus-visible {
 }
 
 /* On an order: accepting PayFast's record, and asking PayFast. */
-.opay__accept {
-  display: grid;
-  gap: 12px;
-  margin-top: 16px;
-}
 
 .opay__check {
   display: grid;
@@ -3157,8 +3988,14 @@ a.pay__step:focus-visible {
   .login__where,
   .olist__refund,
   .osec__soft,
-  .ophoto__label,
-  .ophoto__open,
+  .ochip,
+  .ohead__placed,
+  .otrack__at,
+  .onext__when,
+  .sline__meta .mono,
+  .glance__title,
+  .orecords__count,
+  .orow__state,
   .pay__checked,
   .pay__sandbox,
   .mantine-InputWrapper-description {
@@ -3187,6 +4024,11 @@ a.pay__step:focus-visible {
 .boxes__num {
   flex: 0 1 8rem;
   min-width: 7rem;
+}
+
+.waybill__side {
+  flex: 0 1 7rem;
+  min-width: 6rem;
 }
 
 .waybill__group,
@@ -3351,4 +4193,2140 @@ a.pay__step:focus-visible {
 .pod__photo:focus-visible {
   outline: 3px solid var(--blue);
   outline-offset: 2px;
+}
+
+/* ---- Stock ------------------------------------------------------------------ */
+
+/* A save that failed or met a newer count: the bar turns to the problem. */
+.savebar--alert {
+  border-color: var(--mantine-color-red-8);
+  box-shadow:
+    inset 0 0 0 1px var(--mantine-color-red-8),
+    0 18px 40px -22px rgb(1 38 186 / 0.6);
+}
+
+.savebar--alert .savebar__text svg {
+  color: var(--mantine-color-red-8);
+}
+
+.page--stock {
+  max-width: 76rem;
+}
+
+.stk__start {
+  max-width: 62ch;
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: rgb(1 38 186 / 0.05);
+  line-height: 1.55;
+}
+
+.stk {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.stk thead th {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--rule-hair);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.stk__numCol {
+  width: 7.5rem;
+}
+
+/* Each product leads its sizes: a quiet band, the photo small, the name a way to its editor. */
+.stk__product th {
+  padding: 22px 10px 8px;
+  border-bottom: 1px solid var(--rule-paper);
+  text-align: left;
+}
+
+.stk__group:first-of-type .stk__product th {
+  padding-top: 14px;
+}
+
+.stk__productInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.stk__thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.stk__name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+.stk__name:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+}
+
+.stk__product .plist__code {
+  margin: 0;
+}
+
+.stk__hidden {
+  padding: 1px 10px;
+  border: 1px dashed var(--rule-hair);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.stk__row td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--rule-paper);
+  vertical-align: middle;
+}
+
+.stk__row {
+  transition: background-color 0.15s var(--ease-out);
+}
+
+.stk__row:hover {
+  background: rgb(1 38 186 / 0.03);
+}
+
+/* Changed and not yet saved: the console's one use of amber, a mark at the row's edge. */
+.stk__row[data-changed] td:first-child {
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+
+.stk__row[data-flagged] {
+  background: rgb(224 49 49 / 0.05);
+}
+
+.stk__size {
+  min-width: 12rem;
+}
+
+.stk__sizeName {
+  display: block;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.stk__size .plist__code {
+  margin-top: 1px;
+}
+
+.stk__problem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--mantine-color-red-8);
+}
+
+.stk__num .mantine-NumberInput-input {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* On hand while a delivery is typed: the total it will come to, read-only. */
+.stk__num .stk__after {
+  border-style: dashed;
+  color: var(--ink);
+  font-weight: 600;
+  opacity: 1;
+}
+
+.stk__always {
+  color: var(--ink-soft);
+}
+
+.stk__stateCol {
+  white-space: nowrap;
+}
+
+.stk__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.stk__state::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--blue);
+  border-radius: 999px;
+}
+
+.stk__state--in::before {
+  background: var(--blue);
+}
+
+.stk__state--low::before {
+  border-color: var(--gold);
+  background: var(--gold);
+}
+
+.stk__state--out {
+  color: var(--mantine-color-red-8);
+}
+
+.stk__state--out::before {
+  border-color: currentColor;
+  background: currentColor;
+}
+
+.stk__state--untracked {
+  color: var(--ink-faint);
+}
+
+.stk__state--untracked::before {
+  border-style: dotted;
+  border-color: var(--ink-faint);
+}
+
+.stk__more {
+  width: 1%;
+  text-align: right;
+}
+
+.stk__drawerTitle {
+  display: grid;
+  gap: 2px;
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+.stk__history {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stk__history li {
+  display: grid;
+  gap: 2px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule-paper);
+}
+
+.stk__hwhat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 600;
+}
+
+.stk__change {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 500;
+  color: var(--blue);
+}
+
+.stk__change--off {
+  color: var(--ink-soft);
+}
+
+.stk__hnote {
+  line-height: 1.45;
+}
+
+.stk__hmeta {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+.stk__hlast {
+  margin-top: 16px;
+}
+
+/* A phone: each size a small card of labelled fields, two to a line. */
+@media (max-width: 46rem) {
+  .stk thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .stk,
+  .stk tbody,
+  .stk__product,
+  .stk__product th {
+    display: block;
+  }
+
+  .stk__product th {
+    padding-inline: 0;
+  }
+
+  .stk__row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule-paper);
+  }
+
+  .stk__row td {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .stk__row td[data-label]::before {
+    content: attr(data-label);
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+  }
+
+  /* The size and its Track switch share the first line. */
+  .stk__size {
+    grid-row: 1;
+    grid-column: 1;
+    min-width: 0;
+  }
+
+  .stk__track {
+    grid-row: 1;
+    grid-column: 2;
+    justify-self: end;
+    align-self: start;
+  }
+
+  .stk__size::before,
+  .stk__track::before {
+    display: none;
+  }
+
+  .stk__always {
+    grid-column: 1 / -1;
+  }
+
+  .stk__num .mantine-NumberInput-input,
+  .stk .plist__code,
+  .stk__problem,
+  .stk__hidden {
+    font-size: 16px;
+  }
+
+  .stk__more {
+    width: auto;
+    align-self: end;
+    justify-self: end;
+  }
+
+  .stk__row[data-changed] td:first-child {
+    box-shadow: none;
+  }
+
+  .stk__row[data-changed] {
+    box-shadow: inset 3px 0 0 var(--gold);
+    padding-left: 12px;
+  }
+}
+
+/* ---- Campaigns ----------------------------------------------------------- */
+
+/* A campaign's phase: the stock dot's grammar. Filled while live, an outline
+   waiting, dotted when paused, faint as a draft or once it's over. */
+.cphase {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cphase::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--blue);
+  border-radius: 999px;
+}
+
+.cphase--live::before {
+  background: var(--blue);
+  box-shadow: 0 0 0 4px rgb(1 38 186 / 0.12);
+}
+
+.cphase--paused::before {
+  border-style: dotted;
+}
+
+.cphase--draft,
+.cphase--ended {
+  color: var(--ink-faint);
+}
+
+.cphase--draft::before {
+  border-style: dashed;
+  border-color: var(--ink-faint);
+}
+
+.cphase--ended::before {
+  border-color: var(--ink-faint);
+  background: var(--ink-faint);
+}
+
+/* The list's one call to action, drawn as the console's primary button. */
+.camps__new {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 20px 0 16px;
+  border-radius: 999px;
+  background: var(--blue);
+  color: var(--paper);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.15s var(--ease-out);
+}
+
+.camps__new:hover {
+  background: #011f9c;
+}
+
+.camps__new:focus-visible,
+.camps__row:focus-visible,
+.camps__start:focus-visible,
+.camp__season:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.camp__adopt {
+  margin: 0 0 28px;
+}
+
+/* First run: the four kinds of deal as ways in, each a ruled line, not a card. */
+.camps__first {
+  display: grid;
+  gap: 12px;
+  max-width: 44rem;
+  padding: 24px 0;
+}
+
+.camps__starts {
+  display: grid;
+  margin: 12px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--rule-paper);
+  list-style: none;
+}
+
+.camps__starts li {
+  border-bottom: 1px solid var(--rule-paper);
+}
+
+.camps__start {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 16px;
+  min-height: 72px;
+  padding: 14px 4px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.camps__start .hint {
+  grid-column: 1;
+}
+
+.camps__start svg {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  transition: translate 0.2s var(--ease-out);
+}
+
+.camps__start:hover svg {
+  translate: 3px 0;
+}
+
+.camps__startName {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+/* The groups and their rows. */
+.camps__group {
+  display: grid;
+  gap: 12px;
+  margin-top: 36px;
+}
+
+.camps__n {
+  margin-left: 6px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.camps__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--rule-card);
+  border-radius: 18px;
+  list-style: none;
+  overflow: hidden;
+}
+
+.camps__list li + li {
+  border-top: 1px solid var(--rule-paper);
+}
+
+.camps__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px 24px;
+  padding: 16px 20px;
+  color: var(--ink);
+  text-decoration: none;
+  transition: background-color 0.15s var(--ease-out);
+}
+
+.camps__row:hover {
+  background: rgb(1 38 186 / 0.035);
+}
+
+@media (min-width: 62rem) {
+  .camps__row {
+    grid-template-columns: minmax(0, 1fr) minmax(14rem, 18rem) minmax(10rem, 14rem);
+    align-items: center;
+  }
+}
+
+.camps__main,
+.camps__when,
+.camps__facts {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.camps__name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.camps__name .special {
+  vertical-align: 0.1em;
+}
+
+.camps__deals {
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+.camps__when {
+  color: var(--ink-soft);
+}
+
+.camps__stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.camps__stock svg {
+  flex: none;
+  color: var(--mantine-color-red-8);
+}
+
+.camps__used {
+  color: var(--ink-soft);
+}
+
+/* ---- The timeline: the coming weeks, each campaign a bar -------------------- */
+
+.tline {
+  display: none;
+  margin-bottom: 12px;
+  padding: 16px 20px 20px;
+  border: 1px solid var(--rule-card);
+  border-radius: 18px;
+  background: var(--paper);
+}
+
+/* A phone gets the list alone, which says everything the strip draws. */
+@media (min-width: 46rem) {
+  .tline {
+    display: block;
+  }
+}
+
+.tline__scale {
+  position: relative;
+  height: 22px;
+  margin-bottom: 6px;
+}
+
+.tline__week {
+  position: absolute;
+  top: 0;
+  translate: -50% 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.tline__field {
+  position: relative;
+  padding-top: 30px;
+  background-image: repeating-linear-gradient(to right, var(--rule-paper) 0 1px, transparent 1px calc(100% / 11));
+}
+
+/* A gifting day: an amber hairline the height of the strip, its name in ink beside the line's top. */
+.tline__season,
+.tline__today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px solid var(--gold);
+  pointer-events: none;
+}
+
+.tline__today {
+  border-left: 2px solid var(--blue);
+}
+
+.tline__seasonName,
+.tline__todayName {
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tline__todayName {
+  color: var(--blue);
+}
+
+.tline__rows {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 4px;
+  list-style: none;
+}
+
+.tline__rows li {
+  position: relative;
+  height: 34px;
+}
+
+.tline__bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  min-width: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--blue);
+  border-radius: 10px;
+  background: rgb(1 38 186 / 0.08);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  overflow: hidden;
+  transition: background-color 0.15s var(--ease-out);
+}
+
+.tline__bar span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tline__bar:hover {
+  background: rgb(1 38 186 / 0.14);
+}
+
+.tline__bar--live {
+  background: var(--blue);
+  color: var(--paper);
+}
+
+.tline__bar--live:hover {
+  background: #011f9c;
+}
+
+.tline__bar--paused {
+  border-style: dashed;
+  background: repeating-linear-gradient(-45deg, rgb(1 38 186 / 0.08) 0 6px, transparent 6px 12px);
+}
+
+.tline__bar--draft {
+  border-style: dashed;
+  border-color: var(--ink-faint);
+  background: var(--paper);
+  color: var(--ink-soft);
+}
+
+.tline__bar--ended {
+  border-color: var(--rule-hair);
+  background: rgb(1 38 186 / 0.04);
+  color: var(--ink-faint);
+}
+
+/* No end: the bar runs off the strip's right edge, fading as it goes. */
+.tline__bar--open {
+  border-right: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+}
+
+.tline__none {
+  padding: 8px 0 4px;
+  color: var(--ink-soft);
+}
+
+/* ---- The campaign editor --------------------------------------------------- */
+
+@media (min-width: 75rem) {
+  .camp .editor__body {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+
+  .camp .preview {
+    max-width: 340px;
+  }
+}
+
+.camp__moves {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.camp .editor__meta {
+  align-items: center;
+}
+
+/* Results: four figures in a ruled row, the console's ledger, not a dashboard. */
+.camp__results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 24px;
+  max-width: 44rem;
+  margin: 24px 0 0;
+  padding: 16px 0;
+  border-block: 1px solid var(--rule-paper);
+}
+
+@media (min-width: 48rem) {
+  .camp__results {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.camp__results dt {
+  color: var(--ink-soft);
+}
+
+.camp__results dd {
+  margin: 2px 0 0;
+  font-size: 1.375rem;
+  font-weight: 500;
+}
+
+.camp__resultsNote {
+  grid-column: 1 / -1;
+}
+
+.camp__panel {
+  padding-top: 0;
+}
+
+.camp__add {
+  justify-self: start;
+}
+
+.camp__kinds .mantine-Menu-item {
+  padding-block: 10px;
+}
+
+.camp__kinds .mantine-Menu-itemLabel {
+  display: grid;
+  gap: 2px;
+}
+
+.camp__kind {
+  font-weight: 600;
+}
+
+.camp__kindHint {
+  max-width: 30ch;
+  color: var(--ink-soft);
+  font-size: 1rem;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.camp__seasons {
+  display: grid;
+  gap: 8px;
+}
+
+.camp__season {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 0.15s var(--ease-out),
+    background-color 0.15s var(--ease-out);
+}
+
+.camp__season .mono {
+  color: var(--ink-soft);
+}
+
+.camp__season:hover {
+  border-color: var(--blue);
+}
+
+.camp__season[aria-pressed="true"] {
+  border-color: var(--blue);
+  background: rgb(1 38 186 / 0.08);
+}
+
+.camp__cap {
+  width: 14rem;
+  max-width: 100%;
+}
+
+.camp__log li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+
+/* One deal: its sentence, then what it covers. A tinted ground, the editor's records panel. */
+.rule {
+  display: grid;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid var(--rule-card);
+  border-radius: 18px;
+  background: rgb(1 38 186 / 0.025);
+  scroll-margin-top: 24px;
+}
+
+.rule__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rule__title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.rule__kind {
+  margin-left: 8px;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* The sentence: the page's words, the blanks as controls, wrapping as prose does. */
+.sentence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 1.1875rem;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+.sentence__off {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sentence__num {
+  width: 6.5rem;
+}
+
+.sentence__num--count {
+  width: 4.5rem;
+}
+
+.sentence__num--money {
+  width: 8.5rem;
+}
+
+.sentence__select {
+  width: 12.5rem;
+}
+
+.rule__sides {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 62rem) {
+  .rule__sides {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.rule__extra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 20px;
+  align-items: flex-start;
+}
+
+.rule__limit {
+  width: 14rem;
+}
+
+.rule__label {
+  flex: 1 1 18rem;
+  max-width: 28rem;
+}
+
+.rule__problems {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 12px 16px 12px 2rem;
+  border-radius: 12px;
+  background: rgb(255 183 42 / 0.18);
+  line-height: 1.45;
+}
+
+/* What a side of a deal covers. */
+.tpick {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--rule-card);
+  border-radius: 14px;
+  background: var(--paper);
+}
+
+.tpick__legend {
+  padding: 0 6px;
+  margin-left: -6px;
+  font-weight: 600;
+}
+
+.tpick .mantine-SegmentedControl-root {
+  justify-self: start;
+  max-width: 100%;
+}
+
+/* The chosen products are listed below with their sizes, so the field shows only the search. */
+.tpick__hiddenPill {
+  display: none;
+}
+
+.tpick__items {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tpick__item {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.tpick__thumb {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: rgb(1 38 186 / 0.05);
+}
+
+.tpick__thumb img {
+  object-fit: cover;
+}
+
+.tpick__what {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tpick__name {
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.tpick__code,
+.tpick__count {
+  margin-left: 4px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.tpick__sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* A low size's chip carries an amber edge; a sold-out one, struck in red, still choosable. */
+.tpick__size--low .mantine-Chip-label {
+  border-color: var(--gold);
+}
+
+.tpick__size--out .mantine-Chip-label {
+  border-color: var(--mantine-color-red-8);
+  color: var(--mantine-color-red-8);
+}
+
+.tpick__stock {
+  font-size: 1rem;
+}
+
+.tpick__sum {
+  display: grid;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule-paper);
+  color: var(--ink-soft);
+}
+
+.tpick__sum p {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.45;
+}
+
+.tpick__sum svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--mantine-color-red-8);
+}
+
+.tpick__sum--warn p {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.tpick__which summary {
+  min-height: 32px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.tpick__which ul {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tpick__which li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+/* ---- Beside the editor: what it does -------------------------------------- */
+
+.insights {
+  gap: 28px;
+}
+
+.insights__part {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.insights__part + .insights__part {
+  padding-top: 24px;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.insights__label {
+  font-weight: 600;
+}
+
+/* A sample cart, as the drawer's slip reads: lines, then each saving. */
+.insights__cart ul {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--rule-card);
+  border-radius: 14px;
+  list-style: none;
+}
+
+.insights__cart li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  line-height: 1.4;
+}
+
+.insights__saving {
+  font-weight: 600;
+}
+
+.insights__saving span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.insights__clear {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.insights__clear svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--blue);
+}
+
+.insights__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insights__list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+
+.insights__phase,
+.insights__side {
+  color: var(--ink-soft);
+}
+
+.insights__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.insights__table th,
+.insights__table td {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rule-paper);
+  text-align: left;
+  font-weight: 400;
+  vertical-align: top;
+}
+
+.insights__table thead th {
+  color: var(--ink-soft);
+}
+
+.insights__table td {
+  padding-left: 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.insights__table tr[data-bad] td:last-child {
+  font-weight: 600;
+  color: var(--mantine-color-red-8);
+}
+
+.insights__warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgb(255 183 42 / 0.2);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.insights__warn svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* A low size a live campaign is selling: the shop's special amber, as on the shop. */
+.hidden__deal {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- Analytics ------------------------------------------------------------ */
+
+/*
+ * The owner's month. Takings is the page's one blue ground, the shop's
+ * leather brought in to hold the money; everything after it is ruled white
+ * sections, like the ledgers. Amber is this month's line on the pace chart
+ * and nothing else. One series a chart, in blue, every value written out.
+ */
+
+.an {
+  --an-gap: clamp(28px, 4vw, 48px);
+  /* Last month's line on the blue ground, and its dot and key on white: white at 55% over the blue. */
+  --an-before: #8d9de0;
+}
+
+/* Takings ---------------------------------------------------------------- */
+
+.takings {
+  margin: 20px 0 0;
+  padding: clamp(22px, 3.2vw, 44px);
+  border-radius: 22px;
+  background: var(--blue);
+  color: var(--on-leather);
+}
+
+.takings ::selection {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.takings__top {
+  display: grid;
+  gap: 32px clamp(32px, 4vw, 56px);
+}
+
+/* Grid columns may shrink below a table's natural width; its wrapper scrolls instead. */
+.takings__top > *,
+.an__split > *,
+.an__pair > *,
+.an__grid > * {
+  min-width: 0;
+}
+
+@media (min-width: 66rem) {
+  .takings__top {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.25fr);
+    align-items: end;
+  }
+}
+
+.takings__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--on-leather-soft);
+}
+
+.takings__figure {
+  margin: 10px 0 14px;
+  font-size: clamp(3rem, 7.2vw, 5.5rem);
+  font-weight: 600;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+
+.takings__line {
+  max-width: 34ch;
+  font-size: clamp(1.1rem, 1.6vw, 1.3rem);
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.takings__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 32px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule-leather);
+}
+
+.takings__facts dt {
+  font-size: 0.9375rem;
+  color: var(--on-leather-soft);
+}
+
+.takings__facts dd {
+  margin-top: 2px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.takings__note {
+  max-width: 72ch;
+  margin-top: 18px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--on-leather-soft);
+}
+
+/* The pace chart ----------------------------------------------------------- */
+
+.pace__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9375rem;
+  color: var(--on-leather-soft);
+}
+
+.pace__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pace__key {
+  display: inline-block;
+  flex: none;
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.pace__key--now {
+  background: var(--gold);
+}
+
+.pace__key--before {
+  background: rgb(255 255 255 / 0.55);
+}
+
+/* A chart's box takes its width from the page, never from the chart drawn in it; the chart redraws to fit. */
+.pace__plot,
+.daily {
+  position: relative;
+  border-radius: 8px;
+  contain: inline-size;
+}
+
+.pace svg,
+.daily svg {
+  display: block;
+  overflow: visible;
+}
+
+.chart-grid {
+  stroke: var(--chart-rule);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.chart-tick {
+  fill: var(--chart-ink);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pace {
+  --chart-rule: rgb(255 255 255 / 0.16);
+  --chart-ink: var(--on-leather-soft);
+}
+
+.daily {
+  --chart-rule: var(--rule-paper);
+  --chart-ink: var(--ink-soft);
+}
+
+.pace__plot:focus-visible {
+  outline: 2px solid var(--on-leather);
+  outline-offset: 6px;
+}
+
+.pace__line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pace__line--now {
+  stroke: var(--gold);
+}
+
+.pace__line--before {
+  stroke: var(--an-before);
+}
+
+.pace__dot {
+  fill: var(--gold);
+  stroke: var(--blue);
+  stroke-width: 2;
+}
+
+.pace__dot--before {
+  fill: var(--an-before);
+}
+
+.pace__cross {
+  stroke: rgb(255 255 255 / 0.45);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.pace__hit {
+  fill: transparent;
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+
+/* One tooltip for both charts: the value strong, the series after it. */
+.pace__tip {
+  position: absolute;
+  top: 0;
+  z-index: 2;
+  min-width: 11rem;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: 0 14px 30px -14px rgb(0 10 60 / 0.55);
+  color: var(--ink);
+  translate: -50% 0;
+  pointer-events: none;
+}
+
+.pace__tip--light {
+  border: 1px solid var(--rule-hair);
+  box-shadow: 0 14px 30px -18px rgb(1 38 186 / 0.45);
+}
+
+.pace__tipDay {
+  margin-bottom: 4px;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.pace__tipRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pace__tipRow strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.pace__tip .pace__key--before {
+  background: var(--an-before);
+}
+
+/* The ledger: from the catalogue's prices to what the shop kept ------------ */
+
+.ledgerfall {
+  width: 100%;
+  margin-top: clamp(28px, 3.4vw, 40px);
+  border-collapse: collapse;
+}
+
+.ledgerfall__row > * {
+  padding: 11px 0;
+  border-top: 1px solid var(--rule-leather);
+  vertical-align: middle;
+}
+
+.ledgerfall__label {
+  width: 34%;
+  padding-right: 20px;
+  font-weight: 500;
+  color: var(--on-leather-soft);
+  text-align: left;
+}
+
+.ledgerfall__row--total .ledgerfall__label,
+.ledgerfall__row--total .ledgerfall__amount {
+  font-weight: 600;
+  color: var(--on-leather);
+}
+
+.ledgerfall__row--total > * {
+  border-top-color: rgb(255 255 255 / 0.4);
+}
+
+.ledgerfall__note {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--on-leather-soft);
+}
+
+.ledgerfall__bar {
+  position: relative;
+  width: 46%;
+}
+
+.ledgerfall__fill {
+  position: absolute;
+  top: 50%;
+  height: 10px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.55);
+  translate: 0 -50%;
+}
+
+.ledgerfall__row--less .ledgerfall__fill {
+  background: rgb(255 255 255 / 0.26);
+}
+
+.ledgerfall__row--total .ledgerfall__fill {
+  background: var(--on-leather);
+}
+
+.ledgerfall__amount {
+  padding-left: 20px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Sections ----------------------------------------------------------------- */
+
+.an__sec {
+  padding: var(--an-gap) 0;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.takings + .an__sec {
+  margin-top: var(--an-gap);
+}
+
+.an__title {
+  font-size: clamp(1.35rem, 2vw, 1.6rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.an__lede {
+  max-width: 64ch;
+  margin-top: 6px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.an__sub {
+  margin: 28px 0 8px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.an__empty {
+  padding: 16px 0 0;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.an__split,
+.an__pair {
+  display: grid;
+  column-gap: clamp(32px, 4vw, 56px);
+}
+
+@media (min-width: 62rem) {
+  .an__split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+
+  .an__pair {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.an__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  column-gap: clamp(32px, 4vw, 48px);
+}
+
+.an__tableWrap {
+  overflow-x: auto;
+}
+
+.an__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.an__table th {
+  padding: 9px 16px 9px 0;
+  border-bottom: 1px solid var(--rule-hair);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.an__table td {
+  padding: 11px 16px 11px 0;
+  border-bottom: 1px solid var(--rule-paper);
+  vertical-align: baseline;
+}
+
+.an__table td:last-child,
+.an__table th:last-child {
+  padding-right: 0;
+}
+
+.an__num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.an__product {
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.an__product:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.25em;
+}
+
+.an__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 18px 28px;
+  margin-top: 20px;
+}
+
+.an__fact dt {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+.an__fact dd {
+  margin-top: 2px;
+  font-size: clamp(1.4rem, 2.2vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.an__of {
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+
+.an__facts--rows {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.an__facts--rows .an__fact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule-paper);
+}
+
+.an__facts--rows .an__fact dt {
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.an__facts--rows .an__fact dd {
+  font-size: 1.125rem;
+}
+
+.an__aside {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 20px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.an__aside svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.an__setup {
+  max-width: 44rem;
+  margin-top: 16px;
+  padding: 20px 22px;
+  border: 1px solid var(--rule-card);
+  border-radius: 18px;
+}
+
+.an__setupTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.an__setupSteps {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding-left: 1.3rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.an__setupSteps strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Bar lists ---------------------------------------------------------------- */
+
+.bars {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bars__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 16px;
+  padding: 9px 0;
+}
+
+.bars__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bars__label.mono {
+  font-size: 0.9375rem;
+}
+
+.bars__value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bars__detail {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.bars__track {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: 3px;
+  background: rgb(1 38 186 / 0.06);
+}
+
+.bars__fill {
+  display: block;
+  height: 100%;
+  border-radius: 0 3px 3px 0;
+  background: var(--blue);
+}
+
+/* The funnel --------------------------------------------------------------- */
+
+.funnel {
+  display: grid;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.funnel__step {
+  display: grid;
+  grid-template-areas:
+    "label count"
+    "track track"
+    "on on";
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule-paper);
+}
+
+@media (min-width: 62rem) {
+  .funnel__step {
+    grid-template-areas: "label track count on";
+    grid-template-columns: 13rem minmax(0, 1fr) 5rem 12rem;
+    align-items: center;
+  }
+}
+
+.funnel__label {
+  grid-area: label;
+  font-weight: 500;
+}
+
+.funnel__count {
+  grid-area: count;
+  font-size: 1.125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.funnel__on {
+  grid-area: on;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.funnel__track {
+  grid-area: track;
+  height: 20px;
+}
+
+.funnel__fill {
+  display: block;
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  background: var(--blue);
+}
+
+.misses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.misses__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+}
+
+.misses__n {
+  color: var(--ink-soft);
+}
+
+/* Visitors each day -------------------------------------------------------- */
+
+.daily:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 6px;
+}
+
+.daily__bar {
+  fill: var(--blue);
+  transition: opacity 0.15s var(--ease-out);
+}
+
+.daily__col--on .daily__bar {
+  opacity: 0.72;
+}
+
+.daily__hit {
+  fill: transparent;
+}
+
+/* Phones: nothing under 16px. */
+@media (max-width: 47.99rem) {
+  .takings__facts dt,
+  .takings__note,
+  .ledgerfall__note,
+  .pace__legend,
+  .pace__tipDay,
+  .pace__tipRow,
+  .an__fact dt,
+  .an__table th,
+  .bars__label.mono,
+  .funnel__on {
+    font-size: 1rem;
+  }
+
+  .chart-tick {
+    font-size: 1rem;
+  }
+
+  .ledgerfall__label {
+    width: auto;
+  }
+
+  .ledgerfall__bar {
+    width: 28%;
+  }
+}
+
+/* Money a campaign could give away unmeant: amber, asked about, never an alarm that blocks. */
+.camp__warn {
+  background: rgb(255 183 42 / 0.2);
+}
+
+.camp__warn .checklist__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.confirm__list {
+  display: grid;
+  gap: 4px;
+  max-width: 30rem;
+  margin: 8px 0 0;
+  padding-left: 1.1rem;
+  line-height: 1.45;
+}
+
+/* ---- Customers ----------------------------------------------------------- */
+
+/*
+ * Customers: the list is the orders list's table, a person to a row; one
+ * customer is the order page's frame, their orders and what they buy in the
+ * work column and how to reach them in the glance card beside it. Facts are
+ * hairline-ruled rows, never cards.
+ */
+
+.clist__email {
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.clist__phone {
+  font-size: 0.9375rem;
+  white-space: nowrap;
+}
+
+.clist__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* The order page's chips, a size down to sit under a name. */
+.clist__tag {
+  min-height: 24px;
+  padding: 0 10px;
+  font-size: 0.875rem;
+}
+
+.clist__num {
+  width: 1%;
+  text-align: right !important;
+}
+
+.customer__main {
+  display: grid;
+  gap: 20px;
+}
+
+/* One customer: on one column the glance card (how to reach them) comes first. */
+@media (max-width: 74.99rem) {
+  .customer .glance {
+    order: -1;
+  }
+}
+
+.csec {
+  padding-bottom: 8px;
+}
+
+.csec + .csec {
+  padding-top: 28px;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.csec__title {
+  margin-bottom: 10px;
+  font-size: clamp(1.2rem, 1.8vw, 1.4rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.csec__sub {
+  margin: 4px 0 2px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.csec__lede,
+.csec__empty,
+.csec__more {
+  max-width: 62ch;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.csec__more {
+  margin-top: 8px;
+}
+
+.cpair {
+  display: grid;
+  gap: 20px clamp(32px, 4vw, 48px);
+}
+
+@media (min-width: 62rem) {
+  .cpair {
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  }
+}
+
+.crows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crows__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--rule-paper);
+  line-height: 1.45;
+}
+
+.crows__value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.crows__soft {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.cconsent {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.cconsent--on {
+  color: var(--ink);
+}
+
+.calso {
+  margin: 4px 0 0;
+}
+
+.calso dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.calso__label {
+  display: block;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+.calso__soft {
+  color: var(--ink-soft);
+}
+
+/* The 16px floor: on a phone nothing new here reads smaller. */
+@media (max-width: 46rem) {
+  .clist__email,
+  .clist__tag,
+  .calso__label {
+    font-size: 1rem;
+  }
 }

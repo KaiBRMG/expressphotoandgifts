@@ -5,20 +5,13 @@ import { rands, signedRands } from "@/lib/catalog/listing";
 import { payfastSandbox } from "@/lib/checkout/payfast";
 import { payfastStatus } from "@/lib/checkout/payfastApi";
 import { fromShopTime } from "@/lib/shopTime";
-import { Alert, ArrowLeft, ArrowRight, Check } from "@/app/site/icons";
+import { Alert, Check } from "@/app/site/icons";
 import { at, short, whenInline } from "../../when";
+import { MonthNav, monthName } from "../MonthNav";
 import { PayfastStatusNotice } from "../PayfastStatusNotice";
 import { CheckNow } from "./CheckNow";
 
 export const metadata: Metadata = { title: "Payments" };
-
-const monthName = (month: string) => new Date(`${month}-01T12:00:00Z`).toLocaleDateString("en-ZA", { month: "long", year: "numeric", timeZone: "UTC" });
-
-const shift = (month: string, by: number) => {
-  const [y, m] = month.split("-").map(Number);
-  const d = new Date(Date.UTC(y, m - 1 + by, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-};
 
 /** PayFast's funding codes in the shop's words; anything else as PayFast writes it. */
 const FUNDING: Record<string, string> = { CC: "card", DC: "debit card", EFT: "EFT", WALLET: "wallet" };
@@ -86,24 +79,9 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
 
       <PayfastStatusNotice status={status} />
 
-      <nav className="pay__months" aria-label="Month">
-        <Link className="pay__step" href={`/admin/payments?month=${shift(month, -1)}`} aria-label={`Previous month, ${monthName(shift(month, -1))}`}>
-          <ArrowLeft size={20} />
-        </Link>
-        <h2 className="pay__month">
-          {monthName(month)}
-          {payfastSandbox() ? <span className="pay__sandbox">Sandbox</span> : null}
-        </h2>
-        {month < current ? (
-          <Link className="pay__step" href={`/admin/payments?month=${shift(month, 1)}`} aria-label={`Next month, ${monthName(shift(month, 1))}`}>
-            <ArrowRight size={20} />
-          </Link>
-        ) : (
-          <span className="pay__step pay__step--off" aria-hidden="true">
-            <ArrowRight size={20} />
-          </span>
-        )}
-      </nav>
+      <MonthNav base="/admin/payments" month={month} current={current}>
+        {payfastSandbox() ? <span className="pay__sandbox">Sandbox</span> : null}
+      </MonthNav>
 
       {!ledger ? (
         <div className="pay__verdict pay__verdict--bad" role="alert">

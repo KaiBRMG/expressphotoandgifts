@@ -15,8 +15,6 @@
  * rounding; all prices are in ZAR as listed in the shop, VAT inclusive.
  */
 
-import type { BoxId } from "@/lib/checkout/boxes";
-
 export type Currency = "ZAR";
 
 export type ProductStatus =
@@ -51,6 +49,25 @@ export type ProductVariant = {
   optionValues: Record<string, string>;
   /** Price in cents, or null when the shop has not confirmed one — such a variant cannot be bought. */
   price: number | null;
+  /**
+   * Its own measures where they differ from the product's (a bigger size of
+   * frame): each one set here wins over the product's. Absent when it is the
+   * same as the product.
+   */
+  shipping?: Measurements;
+};
+
+/** The courier's four measures of a packed item. */
+export type Measure = "length" | "width" | "height" | "weight";
+
+/**
+ * How big and heavy one is, packed as it goes into the shop's box (in its own
+ * gift box or wrapping): centimetres and kilograms, for the courier's price at
+ * checkout (`lib/checkout/packing.ts`). A measure is null until known.
+ */
+export type Measurements = Record<Measure, number | null> & {
+  /** The measures worked out from its description and photos rather than measured; the editor marks them until staff confirm them. */
+  estimated: Measure[];
 };
 
 export type MediaRole =
@@ -101,11 +118,11 @@ export type Product = {
    */
   personalisation: Personalisation | null;
   /**
-   * The smallest of the shop's boxes it ships in (`lib/checkout/boxes.ts`),
-   * for the courier's price at checkout. Null until staff choose one: it is
-   * then quoted in the standard box.
+   * Its size and weight, packed, for the courier's price at checkout: the cart
+   * is packed into the shop's boxes from these. Null until known: it is then
+   * quoted in the standard box. Variants may override them (`shipping` there).
    */
-  box: BoxId | null;
+  shipping: Measurements | null;
   /**
    * "facet:value" labels from the vocabulary in `tags.ts`: what it is
    * ("type:mugs"), what it is for ("occasion:birthday", "for:kids"), how it is
@@ -115,12 +132,6 @@ export type Product = {
    * ("shape:round").
    */
   tags: string[];
-  /**
-   * Shown under Specials. Set by the shop (the admin section, when it exists),
-   * never by the importer, which merges and so leaves it as the shop set it.
-   * The discount or bundle behind a special is a later pass.
-   */
-  special: boolean;
   /**
    * Hand-picked for its "Goes with this" row, by slug, in the order shown:
    * staff choose them in the admin, and the importer never writes them.

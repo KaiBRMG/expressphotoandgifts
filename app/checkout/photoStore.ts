@@ -14,6 +14,7 @@ import {
 } from "@/lib/catalog/checkout";
 import { photoCount } from "@/lib/catalog/listing";
 import { DAY_MS, KEEP_DAYS } from "@/lib/checkout/order";
+import type { Reorder } from "@/lib/account/orders";
 import { bake, readPhoto, sourceFor, upload } from "./images";
 
 /**
@@ -22,8 +23,10 @@ import { bake, readPhoto, sourceFor, upload } from "./images";
  *
  * What survives a reload is saved in localStorage: the order's reference and
  * its key, the photos that finished uploading (by their Cloudinary ID) and
- * every placement. A photo still uploading when the page goes is lost, and
- * says so by being absent; its file never left the browser. An order not
+ * every placement. A photo still uploading when the page goes is lost, as
+ * its file never left the browser; the next visit names it, so the customer
+ * knows to add it again. Another tab's changes are taken up as they are
+ * saved, so two tabs on one order never undo each other. An order not
  * paid within `KEEP_DAYS` of starting begins again, a few days before the
  * shop's daily sweep (`lib/checkout/uploads.ts`) deletes its photos.
  *
@@ -88,8 +91,12 @@ export type PhotoState = {
   bakes: Record<string, Bake>;
   /** The photo picked up from the tray, waiting to be placed. */
   armed: string | null;
-  /** The last thing said to a screen reader, with a counter so a repeat is said again. */
-  said: { text: string; n: number };
+  /**
+   * The last thing said to a screen reader, with a counter so a repeat is
+   * said again; `shown` when it is also news to everyone else (what was
+   * added, refused or lost), so the tray shows it for a moment.
+   */
+  said: { text: string; n: number; shown?: boolean };
 };
 
 const KEY = "epg:photos:v2";
@@ -139,7 +146,17 @@ function load(): PhotoState {
     const raw = JSON.parse(window.localStorage.getItem(KEY) ?? "null");
     const fresh = typeof raw?.startedAt === "number" && Date.now() - raw.startedAt < KEEP_DAYS * DAY_MS;
     if (fresh && typeof raw.ref === "string" && typeof raw.key === "string" && Array.isArray(raw.photos) && typeof raw.lines === "object") {
-      return { ...SERVER, ref: raw.ref, key: raw.key, startedAt: raw.startedAt, photos: raw.photos, lines: raw.lines, bakes: raw.bakes ?? {} };
+      const unsent: string[] = Array.isArray(raw.unsent) ? raw.unsent.filter((n: unknown) => typeof n === "string") : [];
+      return {
+        ...SERVER,
+        ref: raw.ref,
+        key: raw.key,
+        startedAt: raw.startedAt,
+        photos: raw.photos,
+        lines: raw.lines,
+        bakes: raw.bakes ?? {},
+        said: unsent.length > 0 ? { text: lostText(unsent), n: 1, shown: true } : SERVER.said,
+      };
     }
   } catch {
     // Unreadable: start a fresh order.
@@ -157,7 +174,9 @@ function save() {
     const lines = mapPlacements(s.lines, (p) => (p && kept.has(p.photo) ? p : null));
     // Only finished renders: one cut short by the page going is simply made again.
     const bakes = Object.fromEntries(Object.entries(s.bakes).filter(([, b]) => b.status === "done"));
-    window.localStorage.setItem(KEY, JSON.stringify({ ref: s.ref, key: s.key, startedAt: s.startedAt, photos, lines, bakes }));
+    // The photos that would be lost if the page went now, named on the next visit.
+    const unsent = s.photos.filter((p) => p.status !== "done").map((p) => p.name);
+    window.localStorage.setItem(KEY, JSON.stringify({ ref: s.ref, key: s.key, startedAt: s.startedAt, photos, lines, bakes, unsent }));
   } catch {
     // Private mode or a full disk: the step still works for this visit.
   }
@@ -185,11 +204,44 @@ function set(next: Partial<PhotoState>) {
 const patchPhoto = (id: string, patch: Partial<Photo>) =>
   set({ photos: current().photos.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
 
-const say = (text: string) => set({ said: { text, n: current().said.n + 1 } });
+const say = (text: string, shown = false) => set({ said: { text, n: current().said.n + 1, shown } });
+
+/** The photos a reload cut short, by name. */
+function lostText(names: string[]) {
+  const which = names.length === 1 ? names[0] : `${names.length} photos`;
+  return `${which} didn’t finish uploading before the page closed. Add ${names.length === 1 ? "it" : "them"} again.`;
+}
+
+/**
+ * Another tab saved the order: take up its photos and places. Photos still
+ * uploading here stay in the tray and finish, though the places follow the
+ * other tab's; a different order there means this one was paid or started
+ * over, so this tab follows it and lets its own uploads go.
+ */
+function onStorage(e: StorageEvent) {
+  if (e.key !== KEY || !state) return;
+  const theirs = load();
+  if (theirs.ref !== state.ref) {
+    dropUploads();
+    state = { ...theirs, said: state.said };
+  } else {
+    const known = new Set(theirs.photos.map((p) => p.id));
+    const mine = state.photos.filter((p) => p.status !== "done" && !known.has(p.id));
+    // Their saved copy has no local previews; keep this tab's where it has one.
+    const previews = new Map(state.photos.map((p) => [p.id, p.preview]));
+    const photos = [...theirs.photos.map((p) => ({ ...p, preview: previews.get(p.id) })), ...mine];
+    state = { ...state, photos, lines: theirs.lines, bakes: { ...state.bakes, ...theirs.bakes }, armed: photos.some((p) => p.id === state!.armed) ? state.armed : null };
+  }
+  listeners.forEach((fn) => fn());
+}
 
 function subscribe(fn: () => void) {
+  if (listeners.size === 0) window.addEventListener("storage", onStorage);
   listeners.add(fn);
-  return () => listeners.delete(fn);
+  return () => {
+    listeners.delete(fn);
+    if (listeners.size === 0) window.removeEventListener("storage", onStorage);
+  };
 }
 
 export function usePhotos(): PhotoState {
@@ -224,7 +276,7 @@ function pump() {
       })
       .catch((e: Error) => {
         if (photoById(id)) patchPhoto(id, { status: "error", error: e.message });
-        say(`${photo.name} did not upload. ${e.message}`);
+        say(`${photo.name} didn’t upload. ${e.message}`, true);
       })
       .finally(() => {
         running--;
@@ -257,6 +309,13 @@ export type Target = At & { need: SlotNeed; kind: "gift" | "print"; quantity: nu
 function placeIn(l: LineState, t: Target, photo: Photo): LineState {
   const edit = photo.px ? freshEdit(photo.px, t.need, t.kind) : DEFAULT_EDIT;
   return withSlot(l, t, () => ({ photo: photo.id, edit }));
+}
+
+/** One set per unit, so each unit keeps the photos it has when two lines become one. */
+function perUnit(l: LineState, quantity: number, slots: number): LineState {
+  const shaped = shapeLine(l, quantity, slots);
+  if (shaped.each) return shaped;
+  return { ...shaped, sets: Array.from({ length: quantity }, () => [...shaped.sets[0]]), words: Array.from({ length: quantity }, () => shaped.words[0]) };
 }
 
 /** Places photos one per target, in order, as one write. */
@@ -297,7 +356,7 @@ async function runBakes() {
       setBake(job.key, { status: "done", publicId: done.publicId, version: done.version });
     } catch (e) {
       setBake(job.key, { status: "error", error: (e as Error).message });
-      say(`An edit to ${photo?.name ?? "a photo"} did not reach the shop.`);
+      say(`An edit to ${photo?.name ?? "a photo"} didn’t reach the shop.`, true);
     }
   }
   baking = false;
@@ -318,21 +377,31 @@ export const photos = {
   add(list: FileList | File[]): string[] {
     const known = new Set(current().photos.map((p) => p.key));
     const added: Photo[] = [];
+    const refused: string[] = [];
+    let twice = 0;
     for (const file of Array.from(list)) {
-      if (!file.type.startsWith("image/") && !/\.(heic|heif)$/i.test(file.name)) continue;
+      if (!file.type.startsWith("image/") && !/\.(heic|heif)$/i.test(file.name)) {
+        refused.push(file.name);
+        continue;
+      }
       const key = `${file.name}|${file.size}|${file.lastModified}`;
-      if (known.has(key)) continue;
+      if (known.has(key)) {
+        twice++;
+        continue;
+      }
       known.add(key);
       added.push({ id: newId(), name: file.name, key, px: null, status: "reading", progress: 0 });
       files.set(added[added.length - 1].id, file);
     }
-    const skipped = Array.from(list).length - added.length;
-    if (added.length === 0) {
-      if (skipped > 0) say("Those photos are already added.");
-      return [];
-    }
+    const notes = [
+      added.length > 0 && `${photoCount(added.length)} added. Uploading now.`,
+      twice > 0 && (added.length > 0 ? `${twice} already in your photos.` : twice === 1 ? "That photo is already in your photos." : "Those photos are already in your photos."),
+      refused.length > 0 &&
+        `${refused.length === 1 ? `${refused[0]} isn’t a photo` : `${refused.length} files aren’t photos`}, so ${refused.length === 1 ? "it wasn’t" : "they weren’t"} added. Choose a JPG, PNG or HEIC.`,
+    ].filter(Boolean);
+    if (notes.length > 0) say(notes.join(" "), true);
+    if (added.length === 0) return [];
     set({ photos: [...current().photos, ...added] });
-    say(`${photoCount(added.length)} added${skipped > 0 ? `, ${skipped} already there` : ""}. Uploading now.`);
 
     for (const p of added) {
       const file = files.get(p.id) as File;
@@ -409,7 +478,7 @@ export const photos = {
       Object.entries(current().lines).map(([sku, l]) => [sku, { ...l, each: false, sets: [] }]),
     );
     set({ photos: [], lines, bakes: {}, armed: null });
-    say("All photos removed. Your order is back to empty places.");
+    say("All photos removed. Your order is back to empty places.", true);
   },
 
   /**
@@ -490,6 +559,51 @@ export const photos = {
     lines[to] = { ...lines[from], sets: lines[from].sets.map((s) => s.map((p) => (p ? { ...p, edit: { ...p.edit, zoom: 0, x: 0.5, y: 0.5 } } : p))) };
     delete lines[from];
     set({ lines });
+  },
+
+  /**
+   * An old order's photos and places, from the account's Reorder: each photo
+   * joins the tray as already sent (its file stays with the old order, which
+   * the server lets this account use again), and each line's places fill as
+   * they were, fitted fresh. A line the cart already held (`had` units) keeps
+   * its own places, and the reordered units follow as sets of their own.
+   */
+  reuse({ photos: found, placed, needs, lines: added }: Pick<Reorder, "photos" | "placed" | "needs" | "lines">, had: Record<string, number>) {
+    const s = current();
+    const byKey = new Map(s.photos.map((p) => [p.key, p]));
+    const fresh: Photo[] = [];
+    const byPublicId = new Map<string, Photo>();
+    for (const f of found) {
+      const key = `reuse|${f.publicId}`;
+      let photo = byKey.get(key);
+      if (!photo) {
+        photo = { id: newId(), name: f.name, key, px: f.px, status: "done", progress: 1, publicId: f.publicId, version: f.version };
+        fresh.push(photo);
+      }
+      byPublicId.set(f.publicId, photo);
+    }
+
+    const lines = { ...s.lines };
+    for (const [sku, r] of Object.entries(placed)) {
+      const need = needs[sku]?.photo;
+      if (!need) continue;
+      const slots = need.slots.length;
+      const fill = (set: (string | null)[]) =>
+        set.map((id, j): Placed | null => {
+          const p = id ? byPublicId.get(id) : undefined;
+          return p?.px && need.slots[j] ? { photo: p.id, edit: freshEdit(p.px, need.slots[j], need.kind) } : null;
+        });
+      const reused: LineState = { each: r.each, sets: r.sets.map(fill), words: r.words };
+      const before = had[sku] ?? 0;
+      if (before === 0 || !lines[sku]) {
+        lines[sku] = reused;
+        continue;
+      }
+      const mine = perUnit(lines[sku], before, slots);
+      const theirs = perUnit(reused, added.find((l) => l.sku === sku)?.quantity ?? 1, slots);
+      lines[sku] = { ...lines[sku], each: true, sets: [...mine.sets, ...theirs.sets], words: [...mine.words, ...theirs.words] };
+    }
+    set({ photos: [...s.photos, ...fresh], lines });
   },
 
   /** Replaces a line's state whole: one print per photo. */

@@ -13,11 +13,14 @@ import {
   getProducts,
   getVocabulary,
 } from "@/lib/catalog/queries";
-import { productHref, shelfHref } from "@/lib/catalog/listing";
+import { dealOn, productHref, shelfHref } from "@/lib/catalog/listing";
 import type { PurchaseItem } from "@/lib/catalog/purchase";
 import { goesWith } from "@/lib/catalog/related";
 import { tagValues, termLabel } from "@/lib/catalog/tags";
+import { productSoldOut, type Availability } from "@/lib/catalog/stock";
 import type { Product } from "@/lib/catalog/types";
+import { getSoldOut } from "@/lib/stock";
+import { getLiveDeals } from "@/lib/campaigns";
 import { SHOP } from "@/app/site/data";
 import { ProductImage } from "@/app/site/ProductImage";
 import { Shelf } from "../../ProductCard";
@@ -25,7 +28,8 @@ import { getListings } from "../../shelves";
 import { Gallery } from "../Gallery";
 import { Purchase, PurchaseFallback } from "../Purchase";
 
-export const revalidate = 3600;
+/** Five minutes: a campaign starts and ends on its own time, so the prices it sets can't wait an hour. */
+export const revalidate = 300;
 
 /** Every live product is known from the catalogue, so each page is rendered ahead of time. */
 export async function generateStaticParams() {
@@ -80,12 +84,19 @@ export default async function ProductPage({
   }
   if (!product.priceRange) notFound();
 
-  const [categories, listings, products, vocabulary] = await Promise.all([
+  const [categories, listings, products, vocabulary, soldOut, deals] = await Promise.all([
     getCategories(),
     getListings(),
     getProducts(),
     getVocabulary(),
+    getSoldOut(),
+    getLiveDeals(),
   ]);
+  // Only this product's sold-out variants go to the page; the counts behind a limit are asked for in the browser.
+  const out: Availability = Object.fromEntries(
+    product.variants.filter((v) => v.sku in soldOut).map((v) => [v.sku, 0]),
+  );
+  const deal = dealOn(product, out, deals);
   const category = categories.find((c) => c.id === product.categoryId) ?? null;
   const [type] = tagValues(product.tags, "type");
   const shelf = listings.filter((l) => l.categoryId === product.categoryId);
@@ -118,7 +129,7 @@ export default async function ProductPage({
 
   return (
     <>
-      <JsonLd product={product} categoryName={category?.name ?? null} />
+      <JsonLd product={product} categoryName={category?.name ?? null} soldOut={productSoldOut(product, out)} range={deal.range} />
 
       <article className="shell pdp">
         <nav aria-label="Breadcrumb" className="crumbs">
@@ -144,10 +155,12 @@ export default async function ProductPage({
 
         <div className="pdp__grid">
           <div className="pdp__media">
-            <Gallery photos={photos} special={product.special} />
+            <Gallery photos={photos} special={deal.headline} />
           </div>
 
-          <div className="pdp__buy">
+          {/* The dock steps aside while this column passes under it, so the
+              WhatsApp mark never sits on the total or Add to cart. */}
+          <div className="pdp__buy" data-dock-clear>
             <h1 className="pdp__title">{product.name}</h1>
             {/* The variant lives in the URL, which a static render does not
                 have; until it is read the column shows the first variant. */}
@@ -158,6 +171,8 @@ export default async function ProductPage({
                   description={product.description}
                   slug={product.slug}
                   photo={photos[0]?.code ?? null}
+                  soldOut={out}
+                  deal={deal}
                 />
               }
             >
@@ -166,6 +181,8 @@ export default async function ProductPage({
                 description={product.description}
                 slug={product.slug}
                 photo={photos[0]?.code ?? null}
+                soldOut={out}
+                deal={deal}
               />
             </Suspense>
           </div>
@@ -274,13 +291,19 @@ function Details({
 function JsonLd({
   product,
   categoryName,
+  soldOut,
+  range: paid,
 }: {
   product: Product;
   categoryName: string | null;
+  soldOut: boolean;
+  /** Its range after any live price deal: search quotes what shoppers pay. */
+  range: { min: number; max: number } | null;
 }) {
+  const availability = `https://schema.org/${soldOut ? "OutOfStock" : "InStock"}`;
   const base = "https://expressphotoandgifts.com";
   const url = `${base}/shop/product/${product.slug}`;
-  const range = product.priceRange;
+  const range = paid ?? product.priceRange;
   const price = (cents: number) => (cents / 100).toFixed(2);
   const image = imageUrl(product);
 
@@ -301,6 +324,7 @@ function JsonLd({
                 "@type": "Offer",
                 price: price(range.min),
                 priceCurrency: product.currency,
+                availability,
                 url,
               }
             : {
@@ -310,6 +334,7 @@ function JsonLd({
                 offerCount: product.variants.filter((v) => v.price !== null)
                   .length,
                 priceCurrency: product.currency,
+                availability,
                 url,
               },
       }),

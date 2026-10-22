@@ -3,20 +3,13 @@ import Link from "next/link";
 import { courierMonth, type CourierRow } from "@/lib/admin/courier";
 import { parseMonth, thisMonth } from "@/lib/admin/payments";
 import { rands, signedRands } from "@/lib/catalog/listing";
-import { courierReady } from "@/lib/checkout/courier";
+import { courierReady, courierSandbox } from "@/lib/checkout/courier";
 import { statusText } from "@/lib/checkout/order";
-import { Alert, ArrowLeft, ArrowRight, Check, External } from "@/app/site/icons";
+import { Alert, Check, External } from "@/app/site/icons";
 import { short } from "../../when";
+import { MonthNav, monthName } from "../MonthNav";
 
 export const metadata: Metadata = { title: "Courier" };
-
-const monthName = (month: string) => new Date(`${month}-01T12:00:00Z`).toLocaleDateString("en-ZA", { month: "long", year: "numeric", timeZone: "UTC" });
-
-const shift = (month: string, by: number) => {
-  const [y, m] = month.split("-").map(Number);
-  const d = new Date(Date.UTC(y, m - 1 + by, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-};
 
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
@@ -45,21 +38,9 @@ export default async function CourierPage({ searchParams }: PageProps<"/admin/co
         </a>
       </header>
 
-      <nav className="pay__months" aria-label="Month">
-        <Link className="pay__step" href={`/admin/courier?month=${shift(month, -1)}`} aria-label={`Previous month, ${monthName(shift(month, -1))}`}>
-          <ArrowLeft size={20} />
-        </Link>
-        <h2 className="pay__month">{monthName(month)}</h2>
-        {month < current ? (
-          <Link className="pay__step" href={`/admin/courier?month=${shift(month, 1)}`} aria-label={`Next month, ${monthName(shift(month, 1))}`}>
-            <ArrowRight size={20} />
-          </Link>
-        ) : (
-          <span className="pay__step pay__step--off" aria-hidden="true">
-            <ArrowRight size={20} />
-          </span>
-        )}
-      </nav>
+      <MonthNav base="/admin/courier" month={month} current={current}>
+        {courierSandbox() ? <span className="pay__sandbox">Sandbox</span> : null}
+      </MonthNav>
 
       {!ledger ? (
         <div className="pay__verdict pay__verdict--bad" role="alert">

@@ -3,14 +3,19 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { cartSubtotal, cartUnits, liveLines, unitsLabel, type CartLine } from "@/lib/catalog/cart";
+import { cartSavings, type DealPriced } from "@/lib/catalog/campaigns";
+import { cartUnits, liveLines, overStock, unitsLabel, type CartLine } from "@/lib/catalog/cart";
+import { orderWhat } from "@/lib/catalog/purchase";
+import { maxFor, type Availability } from "@/lib/catalog/stock";
 import { framePrint, type FrameNeeds, type Needs } from "@/lib/catalog/checkout";
 import { cmLabel } from "@/lib/catalog/sizes";
-import { itemCount, productHref, rands } from "@/lib/catalog/listing";
-import { cart, useCart } from "./cartStore";
-import { ArrowRight, Cart as CartIcon, Close, Plus, Upload, YourPhoto } from "./icons";
+import { itemCount, productHref, rands, signedRands } from "@/lib/catalog/listing";
+import { cart, useCart, useDealPrice, usePricedCart } from "./cartStore";
+import { ArrowRight, Cart as CartIcon, Close, Plus, Tag, Upload, YourPhoto } from "./icons";
 import { ProductImage } from "./ProductImage";
 import { QuantityStepper } from "./QuantityStepper";
+import { StockLimit } from "./StockLimit";
+import { whatsapp } from "./data";
 
 /**
  * The dock's pill. With something in the cart it is the cart, with the count
@@ -20,8 +25,8 @@ import { QuantityStepper } from "./QuantityStepper";
  * focus has somewhere to return to; it leaves when the drawer closes.
  */
 export function DockAction({ shopAction }: { shopAction: boolean }) {
-  const { lines, open, prices } = useCart();
-  const units = cartUnits(liveLines(lines, prices));
+  const { lines, open, prices, available } = useCart();
+  const units = cartUnits(liveLines(lines, prices, available));
 
   if (units > 0 || open) {
     return (
@@ -53,7 +58,37 @@ export function DockAction({ shopAction }: { shopAction: boolean }) {
   ) : null;
 }
 
-let needsLoad: Promise<Needs | null> | null = null;
+/**
+ * The header's cart mark. It opens the same drawer as the dock's pill, at every
+ * count, so an empty cart says so rather than the mark going nowhere; with
+ * something in it the mark carries the count of units on a gold disc.
+ */
+export function HeaderCart() {
+  const { lines, open, prices, available } = useCart();
+  const units = cartUnits(liveLines(lines, prices, available));
+
+  return (
+    <button
+      type="button"
+      className="header__icon header__cart"
+      data-narrow="keep"
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      aria-controls="cart-drawer"
+      aria-label={`Cart, ${itemCount(units)}`}
+      onClick={cart.open}
+    >
+      <CartIcon size={21} />
+      {units > 0 ? (
+        <span key={units} className="header__count" aria-hidden="true">
+          {unitsLabel(units)}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
+let needsLoad:Promise<Needs | null> | null = null;
 
 /** What each variant needs at checkout, fetched once a visit from the static `/api/needs`. */
 function useNeeds(open: boolean): Needs | null {
@@ -83,7 +118,8 @@ function useNeeds(open: boolean): Needs | null {
  * otherwise straight to the customer's details.
  */
 export function CartDrawer() {
-  const { lines, open, prices, was } = useCart();
+  const { lines, open, was, available } = useCart();
+  const { live, priced, unit } = usePricedCart();
   const ref = useRef<HTMLDialogElement>(null);
   const needs = useNeeds(open);
   const skus = new Set(lines.map((l) => l.sku));
@@ -100,9 +136,10 @@ export function CartDrawer() {
   }, [open]);
 
   const hasLines = lines.length > 0;
-  const live = liveLines(lines, prices);
   const units = cartUnits(live);
   const photos = live.some((l) => l.takes);
+  // A line asking for more than there is waits on the customer's choice before checkout.
+  const waiting = live.filter((l) => overStock(l, available) !== null);
 
   return (
     <dialog
@@ -134,7 +171,9 @@ export function CartDrawer() {
                   key={line.sku}
                   line={line}
                   unavailable={!live.includes(line)}
+                  available={available}
                   was={was[line.sku]}
+                  now={unit(line)}
                   frame={needs?.[line.sku]?.frame}
                   inCart={skus}
                 />
@@ -144,20 +183,26 @@ export function CartDrawer() {
             <footer className="cart__foot">
               {live.length > 0 ? (
                 <>
+                  <Deals priced={priced} onGo={cart.close} />
                   <p className="slip__total" aria-live="polite">
                     <span>
                       Subtotal <span className="cart__excl">before delivery</span>
                     </span>
-                    <strong>{rands(cartSubtotal(live))}</strong>
+                    <strong>{rands(priced.total)}</strong>
                   </p>
-                  {photos ? (
+                  {waiting.length > 0 ? (
+                    <p className="cart__note cart__wait" role="status">
+                      {waiting.length === 1 ? "Choose what to do about the item marked above" : `Choose what to do about the ${waiting.length} items marked above`},
+                      then check out.
+                    </p>
+                  ) : photos ? (
                     <>
                       <Link className="btn btn--gold on-gold cart__order" href="/checkout" onClick={cart.close}>
                         <Upload size={19} />
                         Add your photos
                       </Link>
                       <p className="cart__note">
-                        Place each photo on what it goes on and check it prints sharply. Then your
+                        Place each photo on what it goes on, in the shape it&rsquo;ll print. Then your
                         details, collection or delivery, and payment.
                       </p>
                     </>
@@ -191,16 +236,58 @@ export function CartDrawer() {
   );
 }
 
+/**
+ * What the campaigns do to the cart beyond its prices: each saving the item
+ * deals and spend thresholds make, and what adding something more would
+ * bring. Nothing at all when no deal reaches the cart.
+ */
+function Deals({ priced, onGo }: { priced: DealPriced; onGo: () => void }) {
+  const savings = cartSavings(priced);
+  if (savings.length === 0 && priced.nudges.length === 0) return null;
+  return (
+    <div className="deals">
+      {savings.length > 0 ? (
+        <ul className="deals__saved" aria-label="Your savings">
+          {savings.map((s) => (
+            <li key={`${s.campaign}/${s.rule}`}>
+              <span>
+                <Tag size={18} />
+                {s.label}
+              </span>
+              <span className="deals__off">{signedRands(-s.amount)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {priced.nudges.map((n) => (
+        <p key={`${n.campaign}/${n.rule}`} className="deals__nudge">
+          <strong>{n.label}</strong> {n.text}{" "}
+          {n.href ? (
+            <Link className="inline-link" href={n.href} onClick={onGo}>
+              Find it
+            </Link>
+          ) : null}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 function Line({
   line,
   unavailable,
+  available,
   was,
+  now,
   frame,
   inCart,
 }: {
   line: CartLine;
   unavailable: boolean;
+  available: Availability | null;
   was?: number;
+  /** Each unit's price after the price deals; absent when the line isn't priced (unavailable). */
+  now?: number;
   /** For a frame: the size it holds and the print that fills it. */
   frame?: FrameNeeds;
   inCart: ReadonlySet<string>;
@@ -208,6 +295,10 @@ function Line({
   const { sku, slug, name, variant, price, quantity, photo, takes } = line;
   const href = productHref(slug);
   const label = variant ? `${name}, ${variant}` : name;
+  const max = maxFor(available, sku);
+  const soldOut = max === 0;
+  const over = overStock(line, available);
+  const what = orderWhat(name, variant);
 
   return (
     <li className="cart__line" data-unavailable={unavailable || undefined}>
@@ -229,7 +320,14 @@ function Line({
           </p>
         ) : null}
         {frame && !unavailable ? <FrameNote frame={frame} quantity={line.quantity} inCart={inCart} /> : null}
-        {unavailable ? (
+        {soldOut ? (
+          <p className="cart__flag">
+            Sold out, so it&rsquo;s left out of your order.{" "}
+            <a className="inline-link" href={whatsapp(`Hi! The ${what} (code ${sku}) is sold out on the site. When will you have more?`)} target="_blank" rel="noopener">
+              Ask when it&rsquo;s back
+            </a>
+          </p>
+        ) : unavailable ? (
           <p className="cart__flag">No longer available, so it&rsquo;s left out of your order.</p>
         ) : was !== undefined ? (
           <p className="cart__flag">
@@ -237,14 +335,39 @@ function Line({
           </p>
         ) : null}
 
+        {over !== null ? (
+          <StockLimit
+            room={over}
+            max={over}
+            wanted={quantity}
+            what={what}
+            sku={sku}
+            takeLabel={`Order ${over}`}
+            onTake={() => cart.setQuantity(sku, over)}
+          />
+        ) : null}
+
         <div className="cart__row">
           {unavailable ? null : (
-            <QuantityStepper value={quantity} onChange={(n) => cart.setQuantity(sku, n)} label={label} />
+            <QuantityStepper value={quantity} onChange={(n) => cart.setQuantity(sku, n)} label={label} max={max ?? undefined} />
           )}
           <button type="button" className="inline-link cart__remove" onClick={() => cart.remove(sku)}>
             Remove<span className="visually-hidden"> {label}</span>
           </button>
-          {unavailable ? null : <p className="cart__price">{rands(price * quantity)}</p>}
+          {unavailable ? null : (
+            <p className="cart__price">
+              {now !== undefined && now < price ? (
+                <>
+                  <s className="cart__was">
+                    <span className="visually-hidden">Was </span>
+                    {rands(price * quantity)}
+                  </s>{" "}
+                  <span className="visually-hidden">now </span>
+                </>
+              ) : null}
+              {rands((now ?? price) * quantity)}
+            </p>
+          )}
         </div>
       </div>
     </li>
@@ -255,6 +378,7 @@ function Line({
 function FrameNote({ frame, quantity, inCart }: { frame: FrameNeeds; quantity: number; inCart: ReadonlySet<string> }) {
   const { print } = frame;
   const size = cmLabel(frame.size);
+  const dealPrice = useDealPrice();
   if (framePrint(frame, inCart) === "in-cart") {
     return <p className="cart__takes">With a {size} print, in your cart</p>;
   }
@@ -269,7 +393,7 @@ function FrameNote({ frame, quantity, inCart }: { frame: FrameNeeds; quantity: n
         >
           <Plus size={18} />
           Add a {size} print of your photo
-          <span>{rands(print.price)}</span>
+          <span>{rands(dealPrice(print.sku, print.price))}</span>
         </button>
       ) : null}
     </div>

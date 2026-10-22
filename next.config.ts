@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  /** The receipt PDF reads its fonts and the logo from disk, which a function doesn't carry unless asked. */
+  outputFileTracingIncludes: { "/admin/orders/[ref]/receipt": ["./lib/admin/fonts/*.ttf", "./public/logo/new.png"] },
   /**
    * The shelves the catalogue had before it was regrouped into five, kept
    * alive for links already shared and indexed. Any query (?sort=, ?price=)

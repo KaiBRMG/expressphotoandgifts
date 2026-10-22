@@ -4,8 +4,12 @@ import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, sendPasswordReset, signIn, signOut } from "@/lib/admin/auth";
 import { uploadTicket, type UploadTicket } from "@/lib/admin/cloudinary";
+import * as campaigns from "@/lib/admin/campaigns";
 import * as orders from "@/lib/admin/orders";
 import * as payments from "@/lib/admin/payments";
+import * as stock from "@/lib/admin/stock";
+import type { StockEdit } from "@/lib/catalog/stock";
+import { returnStock } from "@/lib/stock";
 import type { Boxes } from "@/lib/checkout/boxes";
 import { saveOrderRecipients, saveShippingBoxes, SETTINGS_TAG } from "@/lib/settings";
 import type { OrderActionResult } from "@/lib/checkout/order";
@@ -17,6 +21,7 @@ import type { FieldError, SaveResult, VisibilityChange, VisibilityResult } from 
 import type { AddableFacet, AddedTerm } from "@/lib/catalog/tags";
 import { normaliseCode, STATUSES, type ProductDraft } from "@/lib/catalog/edit";
 import { CATALOG_TAG } from "@/lib/catalog/queries";
+import { CAMPAIGNS_TAG } from "@/lib/campaigns";
 
 /**
  * Every write the admin makes. Each action checks the session itself: a server
@@ -71,15 +76,14 @@ export async function duplicateProductAction(slug: string, code: string): Promis
   return store.duplicateProduct(slug, code);
 }
 
-/** The list's bulk actions, and their undo: status or Special for many products at once. */
+/** The list's bulk actions, and their undo: status for many products at once. */
 export async function setVisibilityAction(changes: VisibilityChange[]): Promise<VisibilityResult | { error: string }> {
   await requireAdmin();
   if (!Array.isArray(changes) || changes.length > 200) return { error: "Choose up to 200 products at a time." };
   const valid = changes.every(
     (c) =>
       typeof c?.slug === "string" &&
-      (c.status === undefined || STATUSES.includes(c.status)) &&
-      (c.special === undefined || typeof c.special === "boolean"),
+      (c.status === undefined || STATUSES.includes(c.status)),
   );
   if (!valid) return { error: "That change can’t be made. Reload the list and try again." };
   const result = await store.setVisibility(changes);
@@ -104,6 +108,46 @@ export async function addTermAction(facet: AddableFacet, label: string, category
   return result;
 }
 
+/* ---- Campaigns: every change clears the shop's copy, so prices move on the next visit. ---- */
+
+/** Saves a campaign's draft: a new one when `id` is null. */
+export async function saveCampaignAction(id: string | null, expected: string, draft: unknown) {
+  const admin = await requireAdmin();
+  const result = await campaigns.saveCampaign(typeof id === "string" ? id : null, String(expected ?? ""), draft, admin.email);
+  if ("ok" in result) updateTag(CAMPAIGNS_TAG);
+  return result;
+}
+
+export async function moveCampaignAction(id: string, expected: string, move: campaigns.StatusMove) {
+  const admin = await requireAdmin();
+  const result = await campaigns.moveCampaign(String(id), String(expected), move, admin.email);
+  if ("ok" in result) updateTag(CAMPAIGNS_TAG);
+  return result;
+}
+
+export async function deleteCampaignAction(id: string, expected: string) {
+  await requireAdmin();
+  const result = await campaigns.deleteCampaign(String(id), String(expected));
+  if ("error" in result) return result;
+  redirect("/admin/campaigns");
+}
+
+export async function duplicateCampaignAction(id: string): Promise<{ error: string }> {
+  const admin = await requireAdmin();
+  const result = await campaigns.duplicateCampaign(String(id), admin.email);
+  if ("error" in result) return result;
+  redirect(`/admin/campaigns/${result.campaign.id}`);
+}
+
+/** Turns what was put on Specials by hand into one draft campaign, and opens it. */
+export async function adoptHandSpecialsAction(): Promise<{ error: string }> {
+  const admin = await requireAdmin();
+  const result = await campaigns.adoptHandSpecials(admin.email);
+  if ("error" in result) return result;
+  updateTag(CATALOG_TAG);
+  redirect(`/admin/campaigns/${result.campaign.id}`);
+}
+
 /* ---- Orders: only the shop's own side of an order changes here. ---- */
 
 export async function setOrderStageAction(ref: string, stage: string) {
@@ -115,6 +159,25 @@ export async function setOrderStageAction(ref: string, stage: string) {
 export async function recordRefundAction(ref: string, amount: number, note: string) {
   const admin = await requireAdmin();
   return orders.recordRefund(String(ref), amount, note, admin.email);
+}
+
+/* ---- Stock: saving clears the shop's caches itself (`lib/stock.ts`). ---- */
+
+/** Puts what a paid order took back in stock, once: however it was refunded or cancelled. */
+export async function returnStockAction(ref: string): Promise<OrderActionResult> {
+  const admin = await requireAdmin();
+  const back = await returnStock(String(ref), admin.email);
+  return "error" in back ? back : { ok: true };
+}
+
+export async function saveStockAction(edits: StockEdit[]) {
+  const admin = await requireAdmin();
+  return stock.saveStock(edits, admin.email);
+}
+
+export async function stockHistoryAction(sku: string) {
+  await requireAdmin();
+  return stock.stockHistory(sku);
 }
 
 export async function resolveOrderIssuesAction(ref: string, note: string) {

@@ -3,15 +3,18 @@
 import { headers } from "next/headers";
 
 import { createAccount, currentCustomer, detailsFrom } from "@/lib/account/auth";
-import { cartSubtotal } from "@/lib/catalog/cart";
+import { priceDeals } from "@/lib/catalog/campaigns";
+import { getLiveDeals } from "@/lib/campaigns";
+import { rands } from "@/lib/catalog/listing";
 import { clampQuantity } from "@/lib/catalog/purchase";
+import type { Availability } from "@/lib/catalog/stock";
 import { getProducts } from "@/lib/catalog/queries";
-import { boxForOrder } from "@/lib/checkout/boxes";
-import { quote } from "@/lib/checkout/courier";
+import { packCart, quote } from "@/lib/checkout/courier";
 import { addressErrors, cleanAddress, hasErrors, readAddress } from "@/lib/checkout/details";
 import { readOrderInput, type Checkout, type Quote } from "@/lib/checkout/order";
 import { priceOrder, startAttempt } from "@/lib/checkout/orders";
 import { payfastReady, startPayment } from "@/lib/checkout/payfast";
+import { POLICIES_VERSION } from "@/lib/legal";
 import { callerIp, rateLimit } from "@/lib/rateLimit";
 
 /**
@@ -37,28 +40,38 @@ const payAllowed = rateLimit(30, 10 * 60 * 1000);
  */
 const quoteAllowed = rateLimit(40, 10 * 60 * 1000);
 
-/** Courier services to an address, for the cart as it stands: its worth, for the cover, and its box. */
+/** Courier services to an address, for the cart as it stands: its worth after the live deals, for the cover, and the parcels it packs into. */
 export async function quoteDelivery(rawAddress: unknown, lines: { sku: string; quantity: number }[]): Promise<Quote> {
   const address = readAddress(rawAddress);
   if (!address || hasErrors(addressErrors(address)) || !Array.isArray(lines)) return { ok: false, reason: "no-service" };
   if (!quoteAllowed(callerIp(await headers()) ?? "unknown")) return { ok: false, reason: "unavailable" };
-  const bySku = new Map((await getProducts()).flatMap((p) => p.variants.map((v) => [v.sku, { p, v }] as const)));
+  const [products, deals] = await Promise.all([getProducts(), getLiveDeals()]);
+  const bySku = new Map(products.flatMap((p) => p.variants.map((v) => [v.sku, { p, v }] as const)));
   const known = lines.slice(0, 100).flatMap((l) => {
     const found = bySku.get(String(l?.sku));
     return found && found.v.price !== null ? [{ ...found, quantity: clampQuantity(Number(l.quantity)) }] : [];
   });
-  const value = cartSubtotal(known.map((k) => ({ price: k.v.price!, quantity: k.quantity })));
-  return quote(cleanAddress(address), value, boxForOrder(known.map((k) => k.p.box)));
+  const value = priceDeals(known.map((k) => ({ sku: k.v.sku, price: k.v.price!, quantity: k.quantity })), deals).total;
+  const parcels = await packCart(known.map((k) => ({ p: k.p, sku: k.v.sku, quantity: k.quantity })));
+  return quote(cleanAddress(address), value, parcels);
 }
 
 export type PlaceResult =
   | { ok: true; ref: string; token: string; checkout: Checkout }
-  | { ok: false; error: string; field?: string; paid?: true };
+  /**
+   * `skip`: campaigns this customer has had already (once each), for the cart
+   * to leave out. `total`: the server's own total when it differs from the one
+   * shown, which the customer then sees and can pay: so a difference between
+   * the browser's pricing and the server's can never leave them unable to.
+   */
+  | { ok: false; error: string; field?: string; paid?: true; limits?: Availability; skip?: string[]; total?: number };
 
 /**
  * Prices and saves the order as pending, then starts the payment. When the
  * total differs from the one shown, nothing is saved: the customer sees the
- * new total first.
+ * new total first. Nothing is saved either without the customer's tick
+ * agreeing to the policies as they stand (`POLICIES_VERSION`), which the
+ * order and its payment attempt keep, with the time.
  *
  * A `password` means the customer ticked "Save my details": their account is
  * made (and they are signed in) before the order is saved, so the order
@@ -72,11 +85,29 @@ export async function placeOrder(raw: unknown, onsite: boolean, password?: unkno
   if (!payAllowed(callerIp(await headers()) ?? "unknown")) return { ok: false, error: "That’s a lot of tries at once. Wait a few minutes, then pay again." };
   const input = readOrderInput(raw);
   if (!input) return { ok: false, error: "Something went wrong reading your order. Reload the page and try again." };
+  // The tick is the customer's agreement to the policies as they stand; a page opened before they changed must show the new ones first.
+  if (input.accepted !== POLICIES_VERSION) {
+    return input.accepted
+      ? { ok: false, error: "Our terms have been updated since this page opened. Reload it to see them, then tick and pay.", field: "terms" }
+      : { ok: false, error: "Tick the box to agree to our terms, then pay.", field: "terms" };
+  }
 
-  const [priced, customer] = await Promise.all([priceOrder(input), currentCustomer()]);
+  // The account matters to pricing only for a reorder's old photos; priceOrder waits on it only then.
+  const signedIn = currentCustomer();
+  const [priced, customer] = await Promise.all([priceOrder(input, signedIn.then((c) => c?.uid ?? null)), signedIn]);
   if (!priced.ok) return priced;
   if (priced.order.total !== input.shownTotal) {
-    return { ok: false, error: "The total has changed since you started. Check the new total, then pay.", field: "total" };
+    const { skipped } = priced;
+    const once = skipped.length
+      ? `${new Intl.ListFormat("en-ZA").format(skipped.map((c) => c.name))} ${skipped.length === 1 ? "is" : "are"} once per customer, and ${priced.order.contact.email} has had ${skipped.length === 1 ? "it" : "them"} already. `
+      : "";
+    return {
+      ok: false,
+      error: `${once}We’ve checked the prices again: your total is now ${rands(priced.order.total)}. Check it, then pay.`,
+      field: "total",
+      skip: skipped.map((c) => c.id),
+      total: priced.order.total,
+    };
   }
 
   let uid = customer?.uid ?? null;
@@ -89,7 +120,7 @@ export async function placeOrder(raw: unknown, onsite: boolean, password?: unkno
     uid = made.uid;
   }
 
-  const started = await startAttempt(priced.order, uid, input.key);
+  const started = await startAttempt(priced.order, uid, input.key, POLICIES_VERSION);
   if (!started.ok && started.reason === "paid") return { ok: false, error: "This order has already been paid.", paid: true };
   if (!started.ok && started.reason === "too-many") return { ok: false, error: "This order has been tried too many times. Call the shop and we’ll sort it out." };
   if (!started.ok) return { ok: false, error: "This order number belongs to another order. Call the shop and we’ll sort it out." };

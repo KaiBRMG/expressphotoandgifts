@@ -2,9 +2,12 @@
 
 import { useSyncExternalStore } from "react";
 
-import { addLine, reprice, type CartLine, type PriceList } from "@/lib/catalog/cart";
+import { inWindow, priceDeals, stageOne, type DealPriced, type LiveCampaign } from "@/lib/catalog/campaigns";
+import { addLine, liveLines, reprice, type CartLine, type PriceList } from "@/lib/catalog/cart";
 import type { LineDraft } from "@/lib/catalog/checkout";
 import { clampQuantity } from "@/lib/catalog/purchase";
+import type { Availability } from "@/lib/catalog/stock";
+import { track } from "./track";
 
 /**
  * The cart, kept in this browser until checkout exists. Only the lines are
@@ -24,15 +27,24 @@ type CartState = {
   prices: PriceList | null;
   /** Old prices of the lines the check changed since the drawer opened. */
   was: Record<string, number>;
+  /** How many of each tracked SKU can be ordered now, from the last check; null before one. */
+  available: Availability | null;
+  /** The campaigns live or starting soon, from the last check; null before one. */
+  deals: LiveCampaign[] | null;
+  /** Once-per-customer campaigns checkout found this customer has had: left out of the price. */
+  skip: string[];
 };
 
 const KEY = "epg:cart:v1";
-const EMPTY: CartState = { lines: [], open: false, prices: null, was: {} };
-/** The price list is rebuilt hourly (`/api/prices`), so a check holds that long. */
-const PRICES_FRESH_MS = 60 * 60 * 1000;
+const EMPTY: CartState = { lines: [], open: false, prices: null, was: {}, available: null, deals: null, skip: [] };
+/** Campaigns (`/api/deals`) are rebuilt every five minutes, and come with the prices, so a check holds that long. */
+const PRICES_FRESH_MS = 5 * 60 * 1000;
+/** Stock moves with every sale, so it is asked again after a minute. */
+const STOCK_FRESH_MS = 60 * 1000;
 
 let state: CartState | null = null;
 let pricedAt = 0;
+let stockedAt = 0;
 const listeners = new Set<() => void>();
 
 function isLine(x: unknown): x is CartLine {
@@ -96,10 +108,57 @@ export function useCart(): CartState {
   return useSyncExternalStore(subscribe, current, () => EMPTY);
 }
 
+/** The deals that apply this minute, in the order they stack (the server sends them in it). */
+export const dealsNow = (deals: LiveCampaign[] | null, skip: readonly string[]) =>
+  (deals ?? []).filter((c) => inWindow(c, Date.now()) && !skip.includes(c.id));
+
+/**
+ * The lines the shop can sell, priced with the campaigns live now: each
+ * line's price after the price deals, the savings of the rest, and what more
+ * would bring. The same engine as the server's, so the total shown is the
+ * total charged.
+ */
+export type PricedCart = {
+  live: CartLine[];
+  priced: DealPriced;
+  /** A line's price per unit after the price deals. */
+  unit: (line: Pick<CartLine, "sku" | "price">) => number;
+};
+
+/** One slot: the cart priced for the state it was priced from, so every part of the page shares one pricing. */
+let pricedFor: { from: CartState; result: PricedCart } | null = null;
+
+function priceState(s: CartState): PricedCart {
+  if (pricedFor?.from === s) return pricedFor.result;
+  const live = liveLines(s.lines, s.prices, s.available);
+  const priced = priceDeals(live, dealsNow(s.deals, s.skip));
+  const units = new Map(priced.lines.map((l) => [l.sku, l.price]));
+  const result = { live, priced, unit: (l: Pick<CartLine, "sku" | "price">) => units.get(l.sku) ?? l.price };
+  pricedFor = { from: s, result };
+  return result;
+}
+
+export const usePricedCart = (): PricedCart => priceState(useCart());
+
+/** One of the shop's static lists, or null when it can't be had (offline). */
+async function fetchJson<T>(url: string, fresh: boolean): Promise<T | null> {
+  try {
+    const res = await fetch(url, fresh ? { cache: "reload" } : undefined);
+    return res.ok ? ((await res.json()) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+const sameCounts = (a: Availability, b: Availability | null) =>
+  b !== null && Object.keys(a).length === Object.keys(b).length && Object.entries(a).every(([k, v]) => b[k] === v);
+
 export const cart = {
   /** Adds a line and opens the drawer on it; `quiet` adds it where the customer already is (the photo step). */
   add(line: CartLine, { quiet = false } = {}) {
     set({ lines: addLine(current().lines, line), ...(quiet ? {} : { open: true, was: {} }) });
+    // A quiet add is checkout's offer of a matching print, not the customer choosing a product.
+    if (!quiet) track({ step: "cart", slug: line.slug });
   },
   /** Puts another variant in a line's place, keeping its quantity: a mug's one photo for two. */
   swap(sku: string, line: LineDraft) {
@@ -134,16 +193,43 @@ export const cart = {
    * stored prices stand until the next open.
    */
   async checkPrices(force = false) {
+    void cart.checkStock(force);
     if (current().lines.length === 0 || (!force && Date.now() - pricedAt < PRICES_FRESH_MS)) return;
-    try {
-      const res = await fetch("/api/prices", force ? { cache: "reload" } : undefined);
-      if (!res.ok) return;
-      const prices: PriceList = await res.json();
-      pricedAt = Date.now();
-      const { lines, was } = reprice(current().lines, prices);
-      set({ lines, prices, was: { ...current().was, ...was } });
-    } catch {
-      // Offline: try again on the next open.
-    }
+    const [prices, deals] = await Promise.all([fetchJson<PriceList>("/api/prices", force), fetchJson<LiveCampaign[]>("/api/deals", force)]);
+    // Offline: the stored prices stand until the next open.
+    if (!prices) return;
+    pricedAt = Date.now();
+    const { lines, was } = reprice(current().lines, prices);
+    set({ lines, prices, was: { ...current().was, ...was }, ...(deals ? { deals } : {}) });
+  },
+  /** Campaigns checkout found this customer has had already, once each: the cart prices without them. */
+  skip(ids: string[]) {
+    if (ids.length) set({ skip: [...new Set([...current().skip, ...ids])] });
+  },
+  /**
+   * Re-checks how many of each tracked SKU can be ordered: on every open after
+   * a minute, or now when `force`d. `any` asks with an empty cart too: the
+   * product page's limit.
+   */
+  async checkStock(force = false, any = false) {
+    if ((!any && current().lines.length === 0) || (!force && Date.now() - stockedAt < STOCK_FRESH_MS)) return;
+    stockedAt = Date.now();
+    const available = await fetchJson<Availability>("/api/stock", force);
+    // Unchanged, nothing redraws.
+    if (available && !sameCounts(available, current().available)) set({ available });
+  },
+  /** The limits the server found when they pressed Pay, the newest there are: shown at once, in the open cart. */
+  limit(limits: Availability) {
+    stockedAt = Date.now();
+    set({ available: { ...(current().available ?? {}), ...limits }, open: true, was: {} });
   },
 };
+
+/** Each line's price per unit after the price deals: what checkout's lines show. */
+export const useUnitPrice = () => usePricedCart().unit;
+
+/** What a size not yet in the cart costs after the price deals live now: for an offer to add it. */
+export function useDealPrice(): (sku: string, base: number) => number {
+  const { deals, skip } = useCart();
+  return (sku, base) => stageOne(sku, base, dealsNow(deals, skip)).price;
+}

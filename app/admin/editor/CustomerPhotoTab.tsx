@@ -6,8 +6,9 @@ import { choiceKey, LIMITS, unmatchedPhotoCount, type ProductDraft } from "@/lib
 import { parseArea } from "@/lib/catalog/sizes";
 import { hasFacet, PHOTO_SHAPES, tag, tagValues, withFacet, type Facet, type PhotoShape } from "@/lib/catalog/tags";
 import type { PersonalisationKind } from "@/lib/catalog/types";
-import { BOX_IDS, boxSize, DEFAULT_BOX, isBox, type Boxes } from "@/lib/checkout/boxes";
+import type { Boxes } from "@/lib/checkout/boxes";
 import type { ErrorOn, Update } from "./ProductEditor";
+import { ShippingSize } from "./ShippingSize";
 import { Where } from "./Where";
 
 type Size = { w: number | ""; h: number | "" };
@@ -27,7 +28,8 @@ const SHAPES: Record<PhotoShape, { label: string; path: React.ReactNode }> = {
 /**
  * What the customer sends to have it made: whether they send a photo at all,
  * how many, the size each is printed at, and the outline it is cropped to.
- * The checkout's upload step is drawn from exactly these answers.
+ * The checkout's upload step is drawn from exactly these answers. Then its
+ * size and weight, packed, which price its delivery.
  */
 export function CustomerPhotoTab({ draft, update, errorOn, boxes }: { draft: ProductDraft; update: Update; errorOn: ErrorOn; boxes: Boxes }) {
   const p = draft.personalisation;
@@ -227,37 +229,7 @@ export function CustomerPhotoTab({ draft, update, errorOn, boxes }: { draft: Pro
         </>
       ) : null}
 
-      <section className="group" aria-labelledby="box-title">
-        <Radio.Group
-          value={draft.box ?? ""}
-          onChange={(v) => update({ box: isBox(v) ? v : null })}
-          label={
-            <span id="box-title" className="group__title">
-              Box it ships in
-            </span>
-          }
-          description={
-            <Where>
-              checkout&rsquo;s courier price is for the largest box anything in the cart needs. Choose the smallest box this fits in, packed. Not chosen, it&rsquo;s priced in the {boxes[DEFAULT_BOX].label.toLowerCase()} box. You confirm the real box when you book the courier. The boxes&rsquo; names, sizes and weights are set in Settings.
-            </Where>
-          }
-        >
-          <div className="cards">
-            <Radio.Card value="" className="cards__card">
-              <span className="cards__label">Not chosen</span>
-              <span className="cards__hint">Priced in the {boxes[DEFAULT_BOX].label.toLowerCase()} box.</span>
-            </Radio.Card>
-            {BOX_IDS.map((id) => (
-              <Radio.Card key={id} value={id} className="cards__card">
-                <span className="cards__label">{boxes[id].label}</span>
-                <span className="cards__hint">
-                  {boxSize(boxes[id])}, about {boxes[id].weight} kg packed
-                </span>
-              </Radio.Card>
-            ))}
-          </div>
-        </Radio.Group>
-      </section>
+      <ShippingSize draft={draft} update={update} errorOn={errorOn} boxes={boxes} />
     </div>
   );
 }

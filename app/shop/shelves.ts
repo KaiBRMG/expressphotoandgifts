@@ -8,6 +8,8 @@ import type { ChartSize } from "@/lib/catalog/purchase";
 import { parseCm } from "@/lib/catalog/sizes";
 import type { Product } from "@/lib/catalog/types";
 import { CATEGORIES as HOME_TILES } from "@/app/site/data";
+import { getSoldOut } from "@/lib/stock";
+import { getLiveDeals } from "@/lib/campaigns";
 
 /**
  * A place under /shop: everything, a category, or the specials. `listings` is
@@ -33,8 +35,8 @@ const SPECIALS_SLUG = "specials";
  * carries its category's name, which search matches on.
  */
 export const getListings = cache(async () => {
-  const [products, categories] = await Promise.all([getProducts(), getCategories()]);
-  return leadOrder(toListings(products, new Map(categories.map((c) => [c.id, c.name]))));
+  const [products, categories, soldOut, deals] = await Promise.all([getProducts(), getCategories(), getSoldOut(), getLiveDeals()]);
+  return leadOrder(toListings(products, new Map(categories.map((c) => [c.id, c.name])), soldOut, deals));
 });
 
 /**
@@ -100,7 +102,7 @@ export async function getShelf(slug: string): Promise<Shelf | null> {
 
 /**
  * The rail: All, then every category in the shop's order that has something
- * live, then Specials when the shop has flagged anything. Shelves with nothing
+ * live, then Specials while a live campaign reaches something in stock. Shelves with nothing
  * to show are left off, so the rail never leads to an empty page.
  */
 export async function getRail(): Promise<RailItem[]> {

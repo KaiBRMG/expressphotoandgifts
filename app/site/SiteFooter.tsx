@@ -1,3 +1,6 @@
+import Link from "next/link";
+
+import { POLICY_LINKS } from "@/lib/legal";
 import { ArrowRight, Clock, Facebook, Instagram, Mail, Phone, Pin, WhatsApp } from "./icons";
 import { CHAT_HREF, HOURS, SHOP } from "./data";
 import { Newsletter } from "./Newsletter";
@@ -126,6 +129,18 @@ export function SiteFooter() {
           </div>
         </div>
       </div>
+
+      {/* The shop's three policies, small print above the colophon: the
+          colophon's own row is sized to the dock and has no room for them. */}
+      <nav className="shell footer__policies" aria-label="Shop policies">
+        <ul>
+          {POLICY_LINKS.map((p) => (
+            <li key={p.href}>
+              <Link href={p.href}>{p.label}</Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
       <div className="shell footer__end">
         <p className="footer__colophon">

@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
-import { cartSubtotal, cartUnits, liveLines } from "@/lib/catalog/cart";
+import { cartSavings } from "@/lib/catalog/campaigns";
+import { cartUnits } from "@/lib/catalog/cart";
 import type { Needs } from "@/lib/catalog/checkout";
-import { rands } from "@/lib/catalog/listing";
+import { rands, signedRands } from "@/lib/catalog/listing";
 import {
   addressErrors,
   contactErrors,
@@ -24,9 +25,11 @@ import {
 } from "@/lib/checkout/details";
 import { MIN_PAYMENT, type DeliveryOption, type OrderInput, type Quote } from "@/lib/checkout/order";
 import type { SavedDetails } from "@/lib/account/auth";
-import { cart, useCart } from "@/app/site/cartStore";
+import { POLICIES_VERSION, policyTitle, type PolicyPath } from "@/lib/legal";
+import { cart, usePricedCart } from "@/app/site/cartStore";
 import { HOURS, SHOP } from "@/app/site/data";
 import { Alert, ArrowRight, Parcel, Pin } from "@/app/site/icons";
+import { track } from "@/app/site/track";
 import { signInForCheckout, signOutAction } from "@/app/account/actions";
 import { clearDraft, DRAFT_KEY, useDockHeight } from "../draft";
 import { CheckoutHead } from "../Head";
@@ -77,6 +80,8 @@ type Props = {
   onsite: boolean;
   /** Payments go to PayFast's sandbox: said beside the Pay button, so nobody mistakes a test for a sale. */
   sandbox: boolean;
+  /** Delivery is priced and booked in TCG's sandbox: said above the delivery options. */
+  courierSandbox: boolean;
   cancelled: boolean;
 };
 
@@ -84,9 +89,10 @@ export function DetailsStep(props: Props) {
   return useHydrated() ? <Details {...props} /> : <CheckoutHead step="details" title="Your details" />;
 }
 
-function Details({ needs, account: initialAccount, courier, payments, onsite, sandbox, cancelled }: Props) {
+function Details({ needs, account: initialAccount, courier, payments, onsite, sandbox, courierSandbox, cancelled }: Props) {
   const router = useRouter();
-  const { lines, prices } = useCart();
+  // The lines the shop can sell, priced with the live campaigns as the server will price them.
+  const { live, priced, unit } = usePricedCart();
   const store = usePhotos();
 
   // The draft on this device fills the form first, then the account's saved details.
@@ -101,6 +107,8 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
   const [recipient, setRecipient] = useState<Recipient>(() => merge(EMPTY_RECIPIENT, draft.recipient));
   const [service, setService] = useState<string | null>(null);
   const [insure, setInsure] = useState(false);
+  // Agreeing to the terms, asked afresh on every visit: never remembered on the device.
+  const [agreed, setAgreed] = useState(false);
   const [quoted, setQuoted] = useState<QuoteState | null>(null);
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [tried, setTried] = useState(false);
@@ -110,6 +118,8 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
   const [paidAlready, setPaidAlready] = useState(false);
   // "Save my details": an account made as they pay. The password is never kept on this device.
   const [saveAccount, setSaveAccount] = useState(false);
+  // The slip's breakdown, docked on a phone: closed until asked for.
+  const [breakdown, setBreakdown] = useState(false);
   const [password, setPassword] = useState("");
   // The server's word on the account, for the email and password it was given; it lapses when either changes.
   const slipRef = useRef<HTMLElement>(null);
@@ -128,12 +138,16 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
     cart.checkPrices();
   }, []);
 
-  const live = useMemo(() => liveLines(lines, prices), [lines, prices]);
+  const reached = live.length > 0;
+  useEffect(() => {
+    if (reached) track({ step: "details" });
+  }, [reached]);
+
   const rows = useMemo(() => rowsFor(live, needs, store.lines), [live, needs, store.lines]);
   const prog = useMemo(() => progress(rows, store.photos, store.bakes), [rows, store.photos, store.bakes]);
   const photoIssues = problems(prog);
   const takesPhotos = rows.some((r) => r.needs?.photo);
-  const subtotal = cartSubtotal(live);
+  const savings = cartSavings(priced);
 
   const cErrors = contactErrors(contact);
   const aErrors = addressErrors(address);
@@ -161,7 +175,12 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
   // The full value insured only where it costs more than the free cover, and only when the customer ticks it.
   const insured = insure && chosen?.full ? chosen.full : null;
   const delivery = method === "collect" ? 0 : chosen ? (insured ?? chosen).price : null;
-  const total = delivery === null ? null : subtotal + delivery;
+  const shown = delivery === null ? null : priced.total + delivery;
+  // The server's total for exactly this order, once it has said it differs: what is shown and paid, until the order changes.
+  const [checked, setChecked] = useState<{ key: string; total: number } | null>(null);
+  const orderKey = JSON.stringify([quoteKey, method, chosen?.code ?? null, insured !== null]);
+  const confirmed = checked?.key === orderKey && shown !== null && checked.total !== shown ? checked.total : null;
+  const total = confirmed ?? shown;
 
   /** What stands between the customer and paying, that the form's own errors don't cover. */
   const blockers: { text: string; href?: string }[] = [];
@@ -173,6 +192,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
   }
   if (total !== null && total < MIN_PAYMENT) blockers.push({ text: `Orders paid online start at ${rands(MIN_PAYMENT)}`, href: "/shop" });
   if (!payments) blockers.push({ text: "Online payment isn’t switched on yet" });
+  if (!agreed) blockers.push({ text: "Tick to agree to our terms", href: "#co-agree" });
 
   const show = (field: string) => tried || touched.has(field);
   const touch = (field: string) => setTouched((t) => (t.has(field) ? t : new Set(t).add(field)));
@@ -214,6 +234,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
           : { method: "collect" },
       lines: orderLines(rows, store.photos, store.bakes),
       shownTotal: total,
+      accepted: agreed ? POLICIES_VERSION : "",
     };
     const placed = await placeOrder(input, onsite && window.location.protocol === "https:", makingAccount ? password : undefined).catch(() => null);
     if (!placed) {
@@ -226,11 +247,16 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
       setError(placed.error);
       if (placed.paid) setPaidAlready(true);
       if (placed.field === "total") {
+        cart.skip(placed.skip ?? []);
+        if (placed.total !== undefined) setChecked({ key: orderKey, total: placed.total });
         cart.checkPrices(true);
         setQuoted(null);
       }
       if (placed.field === "delivery") setQuoted(null);
+      // Stock ran short since the cart was filled: the cart opens on the lines, with the choice of what to do.
+      if (placed.field === "stock" && placed.limits) cart.limit(placed.limits);
       if (placed.field === "recipient") document.getElementById("recipientName")?.focus();
+      if (placed.field === "terms") document.getElementById("co-agree")?.focus();
       if (placed.field === "password") {
         setRefused({ error: placed.error, email: contact.email, password });
         document.getElementById("password")?.focus();
@@ -273,6 +299,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
         step="details"
         title="Your details"
         skipPhotos={!takesPhotos}
+        orderRef={store.ref}
         lede="Who it’s for and how it reaches you. Then you pay securely with PayFast."
         aside={
           <p className="ckhead__ref">
@@ -398,7 +425,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
                   <span className="way__price">Free</span>
                 </span>
                 <span className="way__body">
-                  {SHOP.street}, {SHOP.town}. Bring your order number, {store.ref}.
+                  {SHOP.street}, {SHOP.town}. We email you when it&rsquo;s ready; bring your order number, {store.ref}.
                 </span>
                 <span className="way__hours">
                   {HOURS.map((h) => (
@@ -426,7 +453,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
                 </span>
                 <span className="way__body">
                   {courier
-                    ? "Anywhere in South Africa, to you or straight to them. The price comes from the courier once the address is in."
+                    ? "Anywhere in South Africa, to you or straight to them. The price comes from the courier once the address is in, and we email you the tracking number once it’s on its way."
                     : "Courier delivery isn’t open online yet. For now, collect from the shop."}
                 </span>
               </label>
@@ -457,7 +484,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
                         onBlur={() => touch("recipientName")}
                       />
                     </Field>
-                    <Field id="recipientPhone" label="Their mobile" hint="the courier SMSes them" error={rErr("recipientPhone")}>
+                    <Field id="recipientPhone" label="Their mobile" hint="the courier SMSes them, so they’ll know a parcel is coming" error={rErr("recipientPhone")}>
                       <input
                         {...inputProps("recipientPhone", rErr("recipientPhone"))}
                         type="tel"
@@ -552,6 +579,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
                   onChoose={setService}
                   onRetry={() => setQuoted(null)}
                   onCollect={() => setMethod("collect")}
+                  sandbox={courierSandbox}
                 />
                 {chosen?.full ? (
                   <label className="check">
@@ -569,10 +597,21 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
               Check your order
             </h2>
             <Review rows={rows} photos={store.photos} />
+            {/* The agreement, at the end of the review it covers. Its links open
+                beside checkout, so reading them never loses the form. */}
+            <label className="check coagree">
+              <input id="co-agree" type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
+              <span>
+                I agree to the <Policy path="/terms" /> and <Policy path="/refunds-cancellations" />, including that I have the right to print the photos
+                I&rsquo;ve added. The <Policy path="/privacy" /> says how my details are used.
+              </span>
+            </label>
           </section>
         </div>
 
-        <aside ref={slipRef} className="coslip" aria-label="Your order">
+        <aside ref={slipRef} className="coslip" aria-label="Your order" data-open={breakdown || undefined}>
+          {/* Beside the form it is all shown; docked on a phone it opens from the total. */}
+          <div id="coslip-breakdown" className="coslip__breakdown">
           <div className="coslip__lines">
             <p className="coslip__title">
               Your order <span className="coslip__n">{cartUnits(live)}</span>
@@ -583,7 +622,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
                   <span>
                     {l.quantity} × {l.name}
                   </span>
-                  <span>{rands(l.price * l.quantity)}</span>
+                  <span>{rands(unit(l) * l.quantity)}</span>
                 </li>
               ))}
             </ul>
@@ -591,17 +630,40 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
           <dl className="coslip__sums">
             <div>
               <dt>Subtotal</dt>
-              <dd>{rands(subtotal)}</dd>
+              <dd>{rands(priced.subtotal)}</dd>
             </div>
+            {savings.map((s) => (
+              <div key={`${s.campaign}/${s.rule}`}>
+                <dt>{s.label}</dt>
+                <dd>{signedRands(-s.amount)}</dd>
+              </div>
+            ))}
             <div>
               <dt>{method === "collect" ? "Collect from the shop" : chosen ? `Delivery, ${chosen.name}${insured ? ", insured" : ""}` : "Delivery"}</dt>
               <dd>{delivery === null ? "—" : delivery === 0 ? "Free" : rands(delivery)}</dd>
             </div>
           </dl>
+          </div>
           <p className="slip__total coslip__total">
-            <span>Total</span>
+            <span>
+              Total
+              <button
+                type="button"
+                className="inline-link coslip__more"
+                aria-expanded={breakdown}
+                aria-controls="coslip-breakdown"
+                onClick={() => setBreakdown((o) => !o)}
+              >
+                {breakdown ? "Hide breakdown" : "See breakdown"}
+              </button>
+            </span>
             <strong aria-live="polite">{total === null ? "—" : rands(total)}</strong>
           </p>
+          {confirmed !== null && shown !== null ? (
+            <p className="coslip__note" role="status">
+              Checked with the shop: the total is {rands(confirmed)}, not the {rands(shown)} worked out here. That’s what you’ll pay.
+            </p>
+          ) : null}
 
           {error ? (
             <p className="coslip__error" role="alert">
@@ -633,16 +695,23 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
             {busy ? "Processing payment" : total === null ? "Pay" : `Pay ${rands(total)}`}
             {busy ? <span className="services__spin" aria-hidden="true" /> : <ArrowRight size={19} />}
           </button>
-          <p id="coslip-note" className="coslip__note">
-            Secure payment by PayFast. The shop starts on your order once it&rsquo;s paid.
+          <p id="coslip-note" className="coslip__note coslip__secure">
+            Secure payment by PayFast.<span className="coslip__noteMore"> The shop starts on your order once it&rsquo;s paid.</span>
           </p>
-          {sandbox ? <p className="coslip__note">Sandbox mode enabled</p> : null}
+          {sandbox ? <p className="coslip__note coslip__sandbox">Payment sandbox mode enabled</p> : null}
         </aside>
       </form>
 
     </>
   );
 }
+
+/** A policy named in the agreement, opened beside checkout so reading it never loses the form. */
+const Policy = ({ path }: { path: PolicyPath }) => (
+  <Link className="inline-link" href={path} target="_blank">
+    {policyTitle(path)}
+  </Link>
+);
 
 /** The courier's services for the address, as radio rows, or why there are none. */
 function Services({
@@ -652,6 +721,7 @@ function Services({
   onChoose,
   onRetry,
   onCollect,
+  sandbox,
 }: {
   addressDone: boolean;
   state: QuoteState | null;
@@ -659,6 +729,7 @@ function Services({
   onChoose: (code: string) => void;
   onRetry: () => void;
   onCollect: () => void;
+  sandbox: boolean;
 }) {
   if (!addressDone) return <p className="services__wait">Fill in the address and the courier&rsquo;s prices appear here.</p>;
   if (!state || state.status === "loading") {
@@ -698,6 +769,7 @@ function Services({
     <fieldset className="services">
       <legend className="pills__legend">Delivery option</legend>
       <p className="services__note">Times count from when the courier collects it from the shop, once your order is made.</p>
+      {sandbox ? <p className="services__note">Courier sandbox mode enabled</p> : null}
       {state.quote.options.map((o) => (
         <label key={o.code} className="service" data-on={chosen?.code === o.code || undefined}>
           <input type="radio" name="service" value={o.code} checked={chosen?.code === o.code} onChange={() => onChoose(o.code)} />
@@ -812,7 +884,8 @@ function AccountBar({
         <button type="button" className="btn btn--blue" onClick={go} aria-disabled={busy || undefined}>
           {busy ? "Signing in…" : "Sign in"}
         </button>
-        <Link className="inline-link" href="/account">
+        {/* Beside checkout, so resetting a password never loses the form. */}
+        <Link className="inline-link" href="/account" target="_blank">
           Forgot your password?
         </Link>
         <button type="button" className="inline-link" onClick={() => setOpen(false)}>

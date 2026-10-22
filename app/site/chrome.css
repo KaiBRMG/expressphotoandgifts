@@ -110,15 +110,17 @@ button.inline-link {
   color: var(--gold);
 }
 
-/* A crumb is a 44px target; the negative margin keeps the line as tall as
-   its text, so the trail does not push the title down. */
+/* A crumb is a 44px target both ways; the negative margins keep the line as
+   tall and as tight as its text, so the trail does not push the title down. */
 .shelfhead__crumbs a,
 .shelfhead__crumbs button {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  margin-block: -12px;
-  padding: 0;
+  min-width: 44px;
+  justify-content: center;
+  margin: -12px -8px;
+  padding: 0 8px;
   border: 0;
   background: none;
   color: inherit;
@@ -300,6 +302,39 @@ button.inline-link {
   background: rgb(255 255 255 / 0.12);
 }
 
+/* The cart is a button, not a link: it opens the drawer, as the dock's pill does. */
+.header__cart {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* The count rides the mark's top right corner on gold, the bar's one accent,
+   and pops on each change the way the dock's disc does. */
+.header__count {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding-inline: 0.3rem;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--blue);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  animation: count-bump 0.55s var(--ease-out);
+}
+
 /*
  * At the narrow end the wordmark and three targets are wider than the screen.
  * At 320px the gutter takes 40px, three 44px marks take 132px, and the logo at
@@ -363,7 +398,8 @@ button.inline-link {
   border-radius: 999px;
   background: var(--print);
   color: var(--ink);
-  box-shadow: 0 10px 28px -14px rgb(0 0 0 / 0.45);
+  /* White on the blue bar: the change of ground is its lift. No shadow,
+     since black is out of this world and a blue one would vanish here. */
   animation: search-grow 0.45s var(--ease-out);
 }
 
@@ -427,7 +463,7 @@ button.inline-link {
   border-radius: var(--radius);
   background: var(--print);
   color: var(--ink);
-  box-shadow: 0 28px 60px -26px rgb(0 0 0 / 0.45);
+  box-shadow: 0 28px 60px -26px rgb(1 38 186 / 0.5);
   animation: search-drop 0.35s var(--ease-out);
 }
 
@@ -519,7 +555,7 @@ button.inline-link {
   width: 56px;
   height: 56px;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: rgb(1 38 186 / 0.05);
 }
 
@@ -964,6 +1000,42 @@ button.inline-link {
   color: var(--gold);
 }
 
+/* The policies: small print on the footer's ground, in Archivo at the
+   16px floor (they are names, not measures), each a full 44px target. */
+.footer__policies ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.5rem;
+  margin: clamp(1.8rem, 3vw, 2.4rem) 0 0;
+  padding: clamp(1.4rem, 2.4vw, 2rem) 0 0;
+  list-style: none;
+  border-top: 1px solid var(--rule-leather);
+}
+
+.footer__policies a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 1rem;
+  color: var(--on-leather-soft);
+  text-decoration: none;
+  transition: color 0.25s var(--ease-out);
+}
+
+.footer__policies a:hover {
+  color: var(--print);
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+@media (min-width: 46rem) {
+  .footer__policies ul {
+    padding-top: clamp(1.2rem, 2vw, 1.6rem);
+  }
+}
+
 /*
  * The last row is sized to the dock. When the page bottoms out the docked pair
  * sits at the foot of the viewport, which is now this row: wide, the colophon
@@ -1019,6 +1091,29 @@ button.inline-link {
   z-index: 70;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   pointer-events: none;
+  transition:
+    opacity 0.3s var(--ease-out),
+    transform 0.45s var(--ease-out),
+    visibility 0s;
+}
+
+/* Stepped aside while a buy column passes under it: down and out, then hidden
+   from the pointer and the tab order (`inert`) until the column has gone by. */
+.dock--away {
+  opacity: 0;
+  transform: translateY(calc(100% + 1rem));
+  visibility: hidden;
+  transition:
+    opacity 0.2s var(--ease-out),
+    transform 0.35s var(--ease-out),
+    visibility 0s 0.35s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock,
+  .dock--away {
+    transform: none;
+  }
 }
 
 .dock__inner {
@@ -1448,6 +1543,86 @@ html:has(.cart[open]) {
   line-height: 1.4;
 }
 
+/* Asked for more than the shop has: the most there is, and the two ways on.
+   A tinted slip, not an alarm: nothing is wrong, there is a choice to make. */
+.limit {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.7rem;
+  padding: 0.85rem 1rem 1rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 14px;
+  background: rgb(1 38 186 / 0.05);
+}
+
+.limit__say {
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.limit__say strong {
+  display: block;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.limit__ways {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.limit__take,
+.limit__ask {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.2s var(--ease-out),
+    border-color 0.2s var(--ease-out);
+}
+
+.limit__take {
+  border: 1px solid var(--blue);
+  background: var(--blue);
+  color: var(--print);
+}
+
+.limit__take:hover {
+  background: rgb(1 38 186 / 0.88);
+}
+
+.limit__ask {
+  border: 1px solid var(--rule-hair);
+  background: var(--print);
+  color: var(--ink);
+}
+
+.limit__ask:hover {
+  border-color: var(--blue);
+}
+
+.limit__take:focus-visible,
+.limit__ask:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.cart__wait {
+  font-weight: 600;
+  color: var(--ink);
+}
+
 .cart__row {
   display: flex;
   align-items: center;
@@ -1474,6 +1649,65 @@ html:has(.cart[open]) {
   font-size: 1rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+/* A price deal: the catalogue's price struck through, beside what it costs now. */
+.cart__was {
+  font-weight: 400;
+  color: var(--ink-soft);
+  text-decoration-thickness: 1.5px;
+}
+
+/* The campaigns at work on the cart: each saving as a ruled line, and what more would bring. */
+.deals {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.deals__saved {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deals__saved li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.deals__saved li > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.deals__saved svg {
+  flex: none;
+  color: var(--blue);
+}
+
+.deals__off {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* What one more would bring: amber, because it is the deal talking, never an alarm. */
+.deals__nudge {
+  padding: 0.7rem 0.9rem;
+  border-radius: 14px;
+  background: rgb(255 183 42 / 0.2);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.deals__nudge strong {
+  font-weight: 600;
 }
 
 .cart__line[data-unavailable] .cart__thumb {

@@ -294,8 +294,8 @@ function combinations(options: ProductOption[]): Record<string, string>[] {
 
 // ─── Build ────────────────────────────────────────────────────────────────────
 
-/** `special` and `related` are the shop's to set, so the importer never writes them. */
-type Draft = Omit<Product, "createdAt" | "updatedAt" | "special" | "related" | "box">;
+/** `special`, `related` and `shipping` are the shop's to set, so the importer never writes them. */
+type Draft = Omit<Product, "createdAt" | "updatedAt" | "special" | "related" | "shipping">;
 type Asset = { width: number; height: number };
 /** A coded catalogue row plus the uncoded extra-size rows below it. */
 type Group = { row: Row; role: MediaRole; sizes: { measurements: string; price: string }[] };

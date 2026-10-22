@@ -1,10 +1,12 @@
 import { HOURS, SHOP } from "@/app/site/data";
 import { escapeHtml as esc } from "@/lib/email";
+import { POLICY_LINKS } from "@/lib/legal";
 
 /**
  * The shop's email design, shared by every email: a blue header carrying the
  * logo (`public/logo/email.png`: the logo flattened on the brand blue, small, so it can't show white text on a white ground in a client that drops transparency), one white sheet of content, and a
- * footer with the shop's address, hours and phone. Email clients ignore most
+ * footer with the shop's address, hours, phone and the links to its three
+ * policies (which ECTA asks a customer to be able to keep). Email clients ignore most
  * CSS, so it is tables and inline styles, in the brand's blue and amber with
  * a system sans (web fonts don't load in most inboxes). Text is never under
  * 16px, the same rule as the site.
@@ -42,7 +44,8 @@ export function shell({ base, preheader, body, internal }: ShellInput): string {
     ? `<p style="margin:0;font:400 16px/1.5 ${FONT};color:${C.soft}">An automatic message from the shop’s website.</p>`
     : `<p style="margin:0 0 12px;font:600 16px/1.4 ${FONT};color:${C.ink}">${esc(SHOP.name)}</p>
        <p style="margin:0 0 12px;font:400 16px/1.55 ${FONT};color:${C.soft}"><a href="${esc(SHOP.mapsUrl)}" style="color:${C.soft};text-decoration:underline">${esc(SHOP.street)}, ${esc(SHOP.town)}, ${esc(SHOP.postcode)}</a><br>${hours}</p>
-       <p style="margin:0;font:400 16px/1.55 ${FONT};color:${C.soft}"><a href="tel:+${SHOP.phoneE164}" style="color:${C.blue};text-decoration:underline">${esc(SHOP.phoneDisplay)}</a> &nbsp;·&nbsp; <a href="mailto:${esc(SHOP.email)}" style="color:${C.blue};text-decoration:underline">${esc(SHOP.email)}</a></p>`;
+       <p style="margin:0;font:400 16px/1.55 ${FONT};color:${C.soft}"><a href="tel:+${SHOP.phoneE164}" style="color:${C.blue};text-decoration:underline">${esc(SHOP.phoneDisplay)}</a> &nbsp;·&nbsp; <a href="mailto:${esc(SHOP.email)}" style="color:${C.blue};text-decoration:underline">${esc(SHOP.email)}</a></p>
+       <p style="margin:12px 0 0;font:400 16px/1.55 ${FONT};color:${C.soft}">${POLICY_LINKS.map((p) => `<a href="${esc(base)}${p.href}" style="color:${C.soft};text-decoration:underline">${esc(p.label)}</a>`).join(" &nbsp;·&nbsp; ")}</p>`;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><title>${esc(SHOP.name)}</title></head>
 <body style="margin:0;padding:0;background:${C.ground};-webkit-text-size-adjust:100%">

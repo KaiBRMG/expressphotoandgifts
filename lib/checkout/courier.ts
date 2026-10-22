@@ -2,7 +2,10 @@ import "server-only";
 
 import { SHOP } from "@/app/site/data";
 import { shippingBoxes } from "@/lib/settings";
-import { parcelFor, type BoxId, type SizedParcel } from "./boxes";
+import type { SizedParcel } from "./boxes";
+import { sizeOf } from "@/lib/catalog/measures";
+import type { Product } from "@/lib/catalog/types";
+import { pack } from "./packing";
 import { nationalPhone, type Address, type Contact, type Recipient } from "./details";
 import type { DeliveryOption, Quote, TrackingEvent } from "./order";
 
@@ -25,6 +28,9 @@ const HOST = "https://api.portal.thecourierguy.co.za";
 export const courierReady = () => Boolean(process.env.TCG_API_KEY?.trim());
 
 const base = () => (process.env.TCG_API_URL?.trim() || HOST).replace(/\/+$/, "");
+
+/** Whether bookings go to TCG's sandbox (TCG_API_URL on api.shiplogic.com), where no parcel is collected. */
+export const courierSandbox = () => /^https?:\/\/api\.shiplogic\.com(\/|$)/.test(base());
 
 /**
  * The value declared for nothing: TCG charged no insurance up to R1,000 and
@@ -138,16 +144,22 @@ async function rates(address: Address, parcels: SizedParcel[], cover: number): P
   return { ok: true, rates: found };
 }
 
+/** The parcels a cart's lines pack into, in the boxes as Settings has them now. */
+export const packCart = async (lines: { p: Product; sku: string; quantity: number }[]): Promise<SizedParcel[]> =>
+  pack(
+    lines.map((l) => ({ size: sizeOf(l.p, l.sku), quantity: l.quantity })),
+    await shippingBoxes(),
+  );
+
 /**
- * Every service the courier offers to this address for this box, cheapest
- * first, in cents. Each is priced with the order's value declared up to the
+ * Every service the courier offers to this address for these parcels,
+ * cheapest first, in cents. Each is priced with the order's value declared up to the
  * free cover, and where the order is worth more, priced again with its full
  * value (up to TCG's maximum) declared: `full`, which the customer may choose.
  * When the full value costs nothing more, it is simply the cover.
  */
-export async function quote(address: Address, value: number, box: BoxId): Promise<Quote> {
+export async function quote(address: Address, value: number, parcels: SizedParcel[]): Promise<Quote> {
   if (!courierReady()) return { ok: false, reason: "not-set-up" };
-  const parcels = [parcelFor(await shippingBoxes(), box)];
   const free = wholeRands(Math.min(value, FREE_COVER)) * 100;
   const all = fullCover(value);
 

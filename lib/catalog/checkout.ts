@@ -1,7 +1,6 @@
 /**
  * The photo step of checkout: what each line of the cart needs from the
- * customer's photos, where each photo is cut to fit, and whether it will
- * print sharply. Shared by the server (which works out the needs from the
+ * customer's photos and where each photo is cut to fit. Shared by the server (which works out the needs from the
  * catalogue) and the browser (which does the rest), so it holds no secrets.
  */
 import { toLine, type CartLine } from "./cart";
@@ -252,21 +251,10 @@ export function editKey(photoId: string, px: Pixels, slot: SlotNeed, edit: Edit)
   return `${photoId}|${edit.rotate}|${edit.grey ? 1 : 0}|${r(b.x)},${r(b.y)},${r(b.w)},${r(b.h)}`;
 }
 
-/**
- * Below 200 dots per inch at the printed size a photo starts to look soft;
- * the shop's proposed threshold, to confirm. Below it the step says so
- * gently and never stops the order: the customer decides.
- */
-const DPI_SHARP = 200;
-
-export type Quality = "sharp" | "soft" | "unknown";
-
+/** How a photo sits in its place: its crop, how much is trimmed away, and whether white borders show. */
 export function fit(px: Pixels, slot: SlotNeed, edit: Edit) {
   const box = cropBox(px, slot, edit);
-  const area = placedArea(slot, edit);
-  const dpi = area ? box.w / (area.w / 2.54) : null;
-  const quality: Quality = dpi === null ? "unknown" : dpi >= DPI_SHARP ? "sharp" : "soft";
-  return { box, dpi, quality, trimmed: box.trimmed, bordered: box.bordered };
+  return { box, trimmed: box.trimmed, bordered: box.bordered };
 }
 
 /** More than this much of a photo cut away at the first placement is worth saying. */
@@ -276,12 +264,6 @@ export const areaLabel = (slot: SlotNeed, edit?: Pick<Edit, "turned">) => {
   const a = edit ? placedArea(slot, edit) : slot.print;
   return a ? cmLabel(a) : null;
 };
-
-/** What the slot's verdict says, in the shop's words. */
-export function qualityLine(quality: Quality, size: string | null): string | null {
-  const at = size ? ` at ${size}` : "";
-  return quality === "soft" ? `May look slightly soft${at}.` : null;
-}
 
 /* ---- A frame's print ---------------------------------------------------- */
 

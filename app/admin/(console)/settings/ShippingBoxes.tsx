@@ -11,10 +11,10 @@ const MEASURES = [
   { key: "length", label: "Length", suffix: " cm", scale: 1, min: 1, max: MAX_BOX_CM },
   { key: "width", label: "Width", suffix: " cm", scale: 1, min: 1, max: MAX_BOX_CM },
   { key: "height", label: "Height", suffix: " cm", scale: 1, min: 1, max: MAX_BOX_CM },
-  { key: "weight", label: "Weight packed", suffix: " kg", scale: 2, min: 0.1, max: MAX_PARCEL_KG },
+  { key: "weight", label: "Weight empty", suffix: " kg", scale: 2, min: 0.01, max: MAX_PARCEL_KG },
 ] as const satisfies readonly { key: keyof Box; label: string; suffix: string; scale: number; min: number; max: number }[];
 
-/** The three boxes the shop ships in: each one's name, size and usual packed weight. */
+/** The three boxes the shop ships in: each one's name, outside size and own weight, empty with its padding. */
 export function ShippingBoxes({ initial }: { initial: Boxes }) {
   const [boxes, setBoxes] = useState(initial);
   const [saved, setSaved] = useState(initial);
@@ -45,7 +45,7 @@ export function ShippingBoxes({ initial }: { initial: Boxes }) {
       }}
     >
       <p className="hint">
-        Each product names the smallest of these it ships in (its Checkout tab). Checkout prices the courier for the largest box anything in the cart needs, at its size and packed weight, and the booking form starts from it. Measure each box packed: The Courier Guy re-measures parcels and bills the account for any difference, and charges the greater of the real weight and the size&rsquo;s volumetric weight.
+        Checkout packs the cart into these from each product&rsquo;s size and weight (its Checkout tab): into the smallest box that holds it all with room for padding, or into more than one. The courier is priced for each box at its size, and its weight empty plus what&rsquo;s in it; the booking form starts from those parcels. Measure each box on the outside, and weigh it empty with the padding you put in it: The Courier Guy re-measures parcels and bills the account for any difference, and charges the greater of the real weight and the size&rsquo;s volumetric weight.
       </p>
       {BOX_IDS.map((id) => (
         <fieldset key={id} className="boxes__group">

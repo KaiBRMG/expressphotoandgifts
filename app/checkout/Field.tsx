@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
 
 import { PASSWORD_MIN } from "@/lib/checkout/details";
-import { Alert } from "@/app/site/icons";
+import { Alert, Check } from "@/app/site/icons";
 
 /**
  * One labelled field with its error under it. The error is a glyph and words,
@@ -87,5 +87,19 @@ export function NewPasswordField({
         onBlur={onBlur}
       />
     </Field>
+  );
+}
+
+/**
+ * A message after an action: what went wrong or what was done, as a glyph
+ * on an amber disc and words, told to a screen reader as it appears.
+ * `className` sets it in a panel (`.anote`).
+ */
+export function Note({ error = false, className, children }: { error?: boolean; className?: string; children: ReactNode }) {
+  return (
+    <p className={`${error ? "field__error" : "receipt__saved"}${className ? ` ${className}` : ""}`} role={error ? "alert" : "status"}>
+      {error ? <Alert size={18} /> : <Check size={20} />}
+      {children}
+    </p>
   );
 }

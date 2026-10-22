@@ -10,7 +10,8 @@ import { ShelfRail } from "../ShelfRail";
 import { getShelf, shelfSlugs, type Shelf } from "../shelves";
 import { getVocabulary } from "@/lib/catalog/queries";
 
-export const revalidate = 3600;
+/** Five minutes: a campaign starts and ends on its own time, so the prices it sets can't wait an hour. */
+export const revalidate = 300;
 
 /** Every shelf is known from the catalogue, so each is rendered ahead of time. */
 export async function generateStaticParams() {

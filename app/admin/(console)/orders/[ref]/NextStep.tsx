@@ -1,21 +1,28 @@
+import { Suspense } from "react";
 import { cartUnits } from "@/lib/catalog/cart";
-import { itemCount, photoCount } from "@/lib/catalog/listing";
-import { hasLeftShop, needsLookUp, orderPhotos, statusText, type Order, type OrderStage } from "@/lib/checkout/order";
+import { itemCount, photoCount, rands } from "@/lib/catalog/listing";
+import { missedPayments } from "@/lib/admin/payments";
+import { quotedParcels, type Boxes } from "@/lib/checkout/boxes";
+import type { Direction } from "@/lib/checkout/courier";
+import { hasLeftShop, needsLookUp, orderPhotos, statusText, SWEEP_AFTER_DAYS, type Order, type OrderStage } from "@/lib/checkout/order";
 import { dayText, estimateText } from "@/lib/checkout/tracking";
-import { ArrowDown, External } from "@/app/site/icons";
+import { Alert, ArrowRight, Check, Clock, External, Printer } from "@/app/site/icons";
 import { at } from "../../../when";
-import { AdvanceStage } from "./OrderActions";
+import { WaybillForm, SettleShipment } from "./CourierActions";
+import { AcceptPayfastRecord, AdvanceStage, ResolveIssues } from "./OrderActions";
 
-type Act = { stage: OrderStage; label: string } | { href: string; label: string; external?: boolean };
+type Act = { stage: OrderStage; label: string } | { href: string; label: string; print?: boolean };
+
+/** What the panel holds under its head: the task itself, done in place. */
+type Task = { kind: "book" } | { kind: "settle"; which: Direction } | { kind: "issues" } | { kind: "payment" };
 
 /** `act`: staff have something to do. `wait`: someone else does. `alert`: something's wrong. `done`: nothing left. */
-type Next = { tone: "act" | "wait" | "alert" | "done"; title: string; detail: string; acts: Act[] };
+type Next = { tone: "act" | "wait" | "alert" | "done"; title: string; facts: string[]; acts: Act[]; task?: Task };
 
 /**
  * The one thing the order needs next, from its payment, issues, stage and
  * waybill, in the order the shop works: a problem first, then making it,
- * then handing it over. Every other control on the page stays where it is;
- * this only says which one is next, and offers it.
+ * then handing it over.
  */
 export function nextStep(o: Order): Next {
   const f = o.fulfilment;
@@ -23,123 +30,163 @@ export function nextStep(o: Order): Next {
   const s = f.method === "courier" ? o.shipment : undefined;
   const r = o.returnShipment;
 
-  if (o.status !== "paid") {
-    return {
-      tone: "wait",
-      title: "Waiting for payment",
-      detail: "Nothing to make until PayFast confirms it. If the customer says they paid, check the payment against PayFast below.",
-      acts: [{ href: "#pay-title", label: "See the payment" }],
-    };
-  }
+  // Flagged first, paid or not: an unpaid order's flag is often a payment whose notice was missed, accepted under its issues.
   if (o.flagged) {
-    return {
-      tone: "alert",
-      title: "Look at what’s flagged",
-      detail: (o.issues?.length ?? 1) === 1 ? "An issue on this order needs a look before anything else." : `${o.issues!.length} issues on this order need a look before anything else.`,
-      acts: [{ href: "#issues-title", label: "See the issues" }],
-    };
+    const n = o.issues?.length ?? 1;
+    return { tone: "alert", title: n === 1 ? "Resolve 1 issue" : `Resolve ${n} issues`, facts: ["Check PayFast before anything else"], acts: [], task: { kind: "issues" } };
   }
-  if (needsLookUp(s) || needsLookUp(r)) {
-    return {
-      tone: "alert",
-      title: "Look up the courier booking",
-      detail: "A booking didn’t finish and may have reached The Courier Guy. Look it up before booking again, so it isn’t sent and charged twice.",
-      acts: [{ href: "#ship-title", label: "Go to Courier" }],
-    };
+  if (o.status !== "paid") {
+    return { tone: "wait", title: "Waiting for payment", facts: ["Nothing to make yet", `Photos deleted ${SWEEP_AFTER_DAYS} days after the last change`], acts: [], task: { kind: "payment" } };
+  }
+  for (const [which, w] of [["out", s], ["return", r]] as const) {
+    if (needsLookUp(w)) return { tone: "alert", title: which === "out" ? "Look up the booking" : "Look up the return", facts: ["It may already be at TCG", "Booking again could charge twice"], acts: [], task: { kind: "settle", which } };
   }
   if (s?.state === "booking" || r?.state === "booking") {
-    return { tone: "wait", title: "Booking with The Courier Guy", detail: "Reload in a moment to see the waybill.", acts: [] };
+    return { tone: "wait", title: "Booking with The Courier Guy", facts: ["Reload in a moment"], acts: [] };
   }
 
   if (s?.state === "booked" && s.tracking) {
     const labels = `/admin/orders/${o.ref}/label?which=out&kind=`;
     if (!hasLeftShop(s.status)) {
-      const when = s.options?.collectionDate ? ` The courier collects from ${dayText(s.options.collectionDate)}.` : " The courier collects on its next round.";
       return {
         tone: "act",
-        title: "Label the parcel for collection",
-        detail: `Waybill ${s.tracking} is booked. Print the waybill and stickers and put them on the parcel.${when}`,
+        title: "Label the parcel",
+        facts: [`Waybill ${s.tracking}`, s.options?.collectionDate ? `Collected from ${dayText(s.options.collectionDate)}` : "Collected on TCG's next round"],
         acts: [
-          { href: `${labels}waybill`, label: "Print the waybill", external: true },
-          { href: `${labels}stickers`, label: "Parcel stickers", external: true },
+          { href: `${labels}waybill`, label: "Print waybill", print: true },
+          { href: `${labels}stickers`, label: "Print stickers", print: true },
         ],
       };
     }
     if (s.status !== "delivered") {
-      return {
-        tone: "done",
-        title: "With The Courier Guy",
-        detail: `${s.status ? statusText(s.status) : "On its way"}${s.estimate ? `, expected ${estimateText(s.estimate)}` : ""}. Nothing to do unless the courier reports a problem; it’s flagged here if so.`,
-        acts: [],
-      };
+      return { tone: "done", title: "With The Courier Guy", facts: [s.status ? statusText(s.status) : "On its way", ...(s.estimate ? [`Expected ${estimateText(s.estimate)}`] : [])], acts: [] };
     }
-    return { tone: "done", title: "Delivered", detail: s.checkedAt ? `The courier confirmed delivery; read ${at(s.checkedAt)}.` : "The courier confirmed delivery.", acts: [] };
+    return { tone: "done", title: "Delivered", facts: s.checkedAt ? [`Confirmed ${at(s.checkedAt)}`] : ["Confirmed by TCG"], acts: [] };
   }
 
   const photos = orderPhotos(o);
-  const what = `${itemCount(cartUnits(o.lines))}${photos ? `, ${photoCount(photos)} to print` : ""}`;
-  if (stage === "new") {
-    return { tone: "act", title: "Start making it", detail: `${what}. Moving it on tells the customer it’s being made.`, acts: [{ stage: "making", label: "Start making" }] };
-  }
+  const what = [itemCount(cartUnits(o.lines)), ...(photos ? [`${photoCount(photos)} to print`] : [])];
+  const collect = f.method === "collect";
+  if (stage === "new") return { tone: "act", title: "Start making", facts: [...what, "Tells the customer"], acts: [{ stage: "making", label: "Start making" }] };
   if (stage === "making") {
-    const collect = f.method === "collect";
+    return collect
+      ? { tone: "act", title: "Mark ready to collect", facts: ["Once it's made", "Emails the customer"], acts: [{ stage: "ready", label: "Ready to collect" }] }
+      : { tone: "act", title: "Pack it, then mark ready", facts: ["Booking the courier comes next"], acts: [{ stage: "ready", label: "Ready to send" }] };
+  }
+  if (collect && stage === "ready") {
     return {
-      tone: "act",
-      title: collect ? "Mark it ready to collect" : "Pack it, then mark it ready to send",
-      detail: collect ? "Once it’s made. The customer is emailed that it’s waiting at the counter." : "Once it’s made and packed. Booking the courier comes next.",
-      acts: [{ stage: "ready", label: collect ? "Ready to collect" : "Ready to send" }],
+      tone: "wait",
+      title: `Waiting for ${o.contact.firstName} to collect`,
+      facts: [o.emails?.ready?.ok ? `Ready email sent ${at(o.emails.ready.at)}` : "Ready email not sent"],
+      acts: [{ stage: "done", label: "Mark collected" }],
     };
   }
-  if (stage === "ready") {
-    if (f.method === "collect") {
-      const mailed = o.emails?.ready?.ok ? `emailed ${at(o.emails.ready.at)}` : "not emailed yet: send it under Emails";
-      return {
-        tone: "wait",
-        title: `Waiting for ${o.contact.firstName} to collect`,
-        detail: `Ready at the counter (${mailed}). Mark it collected when it’s handed over.`,
-        acts: [{ stage: "done", label: "Mark collected" }],
-      };
-    }
-    return {
-      tone: "act",
-      title: "Book The Courier Guy",
-      detail: "Choose the boxes and packed weights under Courier. Booking emails the customer the tracking number.",
-      acts: [{ href: "#ship-title", label: "Book the courier" }],
-    };
+  // Ready to send, or sent with no waybill standing (failed or cancelled): book one.
+  if (!collect && (!s || s.state === "failed" || s.state === "cancelled")) {
+    return { tone: "act", title: s?.state === "cancelled" ? "Book a new waybill" : "Book The Courier Guy", facts: s?.error ? [s.error] : ["Emails the customer the tracking number"], acts: [], task: { kind: "book" } };
   }
-  return { tone: "done", title: f.method === "collect" ? "Collected" : "Sent", detail: "Nothing left to do on this order.", acts: [] };
+  return { tone: "done", title: collect ? "Collected" : "Sent", facts: ["Nothing left to do"], acts: [] };
 }
 
-/** The next step, held at the top of the page as staff scroll. */
-export function NextStep({ order }: { order: Order }) {
-  const n = nextStep(order);
+const ICONS = { act: ArrowRight, wait: Clock, alert: Alert, done: Check };
+
+/** The next step, with its task in place under it. */
+export function NextStep({ order: o, boxes }: { order: Order; boxes: Boxes }) {
+  const n = nextStep(o);
+  const Icon = ICONS[n.tone];
+  const f = o.fulfilment;
   return (
-    <section className={`onext onext--${n.tone}`} aria-labelledby="next-title" aria-live="polite">
-      <div className="onext__text">
-        <h2 id="next-title" className="onext__title">
-          {n.title}
-        </h2>
-        <p className="onext__detail">{n.detail}</p>
+    <section className={`onext onext--${n.tone}${n.task ? " onext--task" : ""}`} aria-labelledby="next-title" aria-live="polite">
+      <div className="onext__head">
+        <span className="onext__icon" aria-hidden="true">
+          <Icon size={22} />
+        </span>
+        <div className="onext__text">
+          <h2 id="next-title" className="onext__title">
+            {n.title}
+          </h2>
+          <p className="onext__facts">
+            {n.facts.map((t) => (
+              <span key={t}>{t}</span>
+            ))}
+          </p>
+        </div>
+        {n.acts.length ? (
+          <div className="onext__acts">
+            {n.acts.map((a, i) =>
+              "stage" in a ? (
+                <AdvanceStage key={a.label} ref_={o.ref} stage={a.stage} label={a.label} />
+              ) : (
+                <a key={a.label} href={a.href} target="_blank" rel="noopener" className={`onext__btn${i > 0 ? " onext__btn--quiet" : ""}`}>
+                  {a.print ? <Printer size={18} /> : null}
+                  {a.label}
+                  {a.print ? null : <External size={16} />}
+                </a>
+              ),
+            )}
+          </div>
+        ) : null}
       </div>
-      {n.acts.length ? (
-        <div className="onext__acts">
-          {n.acts.map((a, i) =>
-            "stage" in a ? (
-              <AdvanceStage key={a.label} ref_={order.ref} stage={a.stage} label={a.label} />
-            ) : (
-              <a
-                key={a.label}
-                href={a.href}
-                className={`onext__btn${i > 0 ? " onext__btn--quiet" : ""}`}
-                {...(a.external ? { target: "_blank", rel: "noopener" } : {})}
-              >
-                {a.label}
-                {a.external ? <External size={16} /> : <ArrowDown size={16} />}
-              </a>
-            ),
-          )}
+
+      {n.task ? (
+        <div className="onext__task">
+          {n.task.kind === "book" && f.method === "courier" ? (
+            <WaybillForm ref_={o.ref} which="out" parcels={quotedParcels(boxes, f.service)} boxes={boxes} />
+          ) : n.task.kind === "settle" ? (
+            <SettleShipment ref_={o.ref} which={n.task.which} />
+          ) : n.task.kind === "issues" ? (
+            <>
+              <ul className="onext__issues">
+                {o.issues?.map((i) => (
+                  <li key={i.at + i.text}>
+                    <span className="onext__when">{at(i.at)}</span>
+                    {i.text}
+                  </li>
+                ))}
+              </ul>
+              {o.status !== "paid" ? (
+                <Suspense fallback={<p className="onext__pf onext__pf--wait">Looking in PayFast&rsquo;s record…</p>}>
+                  <PayfastLookup order={o} />
+                </Suspense>
+              ) : null}
+              <ResolveIssues ref_={o.ref} />
+            </>
+          ) : n.task.kind === "payment" ? (
+            <Suspense fallback={<p className="onext__pf onext__pf--wait">Looking in PayFast&rsquo;s record…</p>}>
+              <PayfastLookup order={o} />
+            </Suspense>
+          ) : null}
         </div>
       ) : null}
     </section>
+  );
+}
+
+/** An unpaid order, looked for in PayFast's record: a payment whose notice never arrived can be accepted here. */
+async function PayfastLookup({ order: o }: { order: Order }) {
+  const missed = await missedPayments(o);
+  if (!Array.isArray(missed)) {
+    return (
+      <p className="onext__pf onext__pf--bad">
+        <Alert size={18} /> PayFast&rsquo;s record couldn&rsquo;t be read: {missed.error}
+      </p>
+    );
+  }
+  if (!missed.length) return <p className="onext__pf">PayFast has no payment for this order.</p>;
+  if (missed.length > 1) {
+    return (
+      <p className="onext__pf onext__pf--bad">
+        <Alert size={18} /> PayFast shows {missed.length} payments, none notified. Refund the extras in PayFast first.
+      </p>
+    );
+  }
+  const m = missed[0];
+  return (
+    <div className="onext__pf onext__pf--found">
+      <p>
+        PayFast shows <strong>{rands(m.gross)}</strong> paid · <span className="mono">{m.pfPaymentId}</span> · notice never arrived
+      </p>
+      <AcceptPayfastRecord ref_={o.ref} />
+    </div>
   );
 }

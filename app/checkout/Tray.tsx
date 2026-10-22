@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState, type CSSProperties, type DragEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
 
-import { cartSubtotal, type CartLine } from "@/lib/catalog/cart";
+import { usePricedCart } from "@/app/site/cartStore";
 import { photoCount } from "@/lib/catalog/listing";
 import { rands } from "@/lib/catalog/listing";
 import { ArrowRight, Pencil, Trash, Upload } from "@/app/site/icons";
@@ -11,6 +11,9 @@ import { photoSrc } from "./images";
 import { useDockHeight } from "./draft";
 import { DRAG_TYPE, type Progress } from "./model";
 import { photos, type Photo, type PhotoState, type Target } from "./photoStore";
+
+/** How long the tray shows what just happened. */
+const SAID_MS = 8000;
 
 /** The file picker, as a gold pill: the step's one standing action until every photo is placed. */
 export function AddPhotos({ label = "Add photos", onAdded }: { label?: string; onAdded?: (ids: string[]) => void }) {
@@ -44,7 +47,6 @@ export function AddPhotos({ label = "Add photos", onAdded }: { label?: string; o
 export function Tray({
   store,
   prog,
-  live,
   issues,
   onEdit,
   onSend,
@@ -52,7 +54,6 @@ export function Tray({
 }: {
   store: PhotoState;
   prog: Progress;
-  live: CartLine[];
   /** What still stands in the way, from `problems`. */
   issues: { text: string; t: Target }[];
   /** Opens the editor on a photo; absent when nothing on the order takes one. */
@@ -62,9 +63,19 @@ export function Tray({
 }) {
   const trayRef = useRef<HTMLElement>(null);
   useDockHeight(trayRef);
+  // The subtotal with the live deals, as checkout will charge it.
+  const { priced } = usePricedCart();
   const [dropping, setDropping] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
+  // What was just added, refused or lost, shown for a moment; the page's live region says it aloud.
+  const [faded, setFaded] = useState(0);
+  const said = store.said;
+  useEffect(() => {
+    if (!said.shown) return;
+    const timer = setTimeout(() => setFaded(said.n), SAID_MS);
+    return () => clearTimeout(timer);
+  }, [said.n, said.shown]);
   const armed = store.armed ? store.photos.find((p) => p.id === store.armed) : undefined;
   const armedUses = armed ? (prog.uses.get(armed.id) ?? 0) : 0;
   const emptyTargets = prog.empty;
@@ -98,6 +109,12 @@ export function Tray({
         </h2>
         <AddPhotos />
       </div>
+
+      {said.shown && faded !== said.n ? (
+        <p key={said.n} className="tray__said" aria-hidden="true">
+          {said.text}
+        </p>
+      ) : null}
 
       {store.photos.length === 0 ? (
         <p className="tray__hint">
@@ -210,7 +227,7 @@ export function Tray({
           <span>
             Subtotal <span className="tray__excl">before delivery</span>
           </span>
-          <strong>{rands(cartSubtotal(live))}</strong>
+          <strong>{rands(priced.total)}</strong>
         </p>
         <button
           type="button"

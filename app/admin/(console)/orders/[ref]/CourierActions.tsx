@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button, Checkbox, NumberInput, Radio, Select, TextInput } from "@mantine/core";
-import { BOX_IDS, boxLabel, DEFAULT_BOX, MAX_PARCEL_KG, MAX_PARCELS, parcelFor, type BoxId, type Boxes, type Parcel } from "@/lib/checkout/boxes";
+import { BOX_IDS, boxLabel, DEFAULT_BOX, isBox, MAX_BOX_CM, MAX_PARCEL_KG, MAX_PARCELS, OWN, OWN_LABEL, parcelFor, type Boxes, type Parcel } from "@/lib/checkout/boxes";
 import type { BookingOptions, Direction, Extra, Priced } from "@/lib/checkout/courier";
 import { rands } from "@/lib/catalog/listing";
 import {
@@ -35,6 +35,12 @@ const day = (iso: string) => new Date(iso).toLocaleDateString("en-ZA", { timeZon
 /** "Mon 26 Oct" or "Mon 26 to Tue 27 Oct": when a service delivers. */
 const window_ = (d: { from: string; to: string }) => (day(d.from) === day(d.to) ? day(d.from) : `${day(d.from)} to ${day(d.to)}`);
 
+const SIDES = [
+  ["length", "Length"],
+  ["width", "Width"],
+  ["height", "Height"],
+] as const;
+
 type Preview = { key: string; status: "loading" } | { key: string; status: "done"; services: Priced[]; booked: string | null; paid: number | null } | { key: string; status: "error"; error: string };
 
 /**
@@ -56,8 +62,13 @@ export function WaybillForm({ ref_, which, parcels: first, boxes }: { ref_: stri
   const [preview, setPreview] = useState<Preview | null>(null);
   const [limits] = useState(() => ({ min: shopDay(), max: shopDay(30) }));
 
-  const set = (i: number, p: Partial<Parcel>) => setParcels(parcels.map((q, j) => (j === i ? { ...q, ...p } : q)));
-  const parcelsOk = parcels.every((p) => p.weight > 0 && p.weight <= MAX_PARCEL_KG);
+  const set = (i: number, p: Parcel) => setParcels(parcels.map((q, j) => (j === i ? p : q)));
+  // Another box keeps the weight entered; its own packaging starts at the size of the box it was in.
+  const setBox = (p: Parcel, v: string): Parcel =>
+    isBox(v) ? { box: v, weight: p.weight } : { ...(p.box === OWN ? p : boxes[p.box]), box: OWN, weight: p.weight };
+  const parcelsOk = parcels.every(
+    (p) => p.weight > 0 && p.weight <= MAX_PARCEL_KG && (p.box !== OWN || SIDES.every(([side]) => p[side] > 0 && p[side] <= MAX_BOX_CM)),
+  );
   const options: BookingOptions = { collectionDate: collectionDate || null, after, before, extras: chosen };
   const key = JSON.stringify([parcels, options]);
 
@@ -96,11 +107,7 @@ export function WaybillForm({ ref_, which, parcels: first, boxes }: { ref_: stri
         if (ready) run(() => bookShipmentAction(ref_, which, parcels, options, which === "return" ? (code ?? undefined) : undefined));
       }}
     >
-      <p className="hint">
-        {which === "out"
-          ? "Book it once it’s packed. Without a collection day, The Courier Guy collects on its next round (the same day if booked before its 15:00 cut-off)."
-          : "The Courier Guy collects the parcel from the delivery address and brings it back to the shop. The customer is contacted by TCG, as on delivery."}
-      </p>
+      {which === "return" ? <p className="hint">TCG collects from the delivery address and brings it back to the shop.</p> : null}
 
       <fieldset className="waybill__group">
         <legend className="osec__sub">Parcels</legend>
@@ -108,11 +115,27 @@ export function WaybillForm({ ref_, which, parcels: first, boxes }: { ref_: stri
           <div key={i} className="row">
             <Select
               label={parcels.length > 1 ? `Parcel ${i + 1}` : "Box"}
-              data={BOX_IDS.map((id) => ({ value: id, label: boxLabel(boxes[id]) }))}
+              data={[...BOX_IDS.map((id) => ({ value: id, label: boxLabel(boxes[id]) })), { value: OWN, label: `${OWN_LABEL}, its own size` }]}
               value={p.box}
               allowDeselect={false}
-              onChange={(v) => v && set(i, parcelFor(boxes, v as BoxId))}
+              onChange={(v) => v && set(i, setBox(p, v))}
             />
+            {p.box === OWN
+              ? SIDES.map(([side, label]) => (
+                  <NumberInput
+                    key={side}
+                    label={label}
+                    suffix=" cm"
+                    decimalScale={1}
+                    min={1}
+                    max={MAX_BOX_CM}
+                    value={p[side]}
+                    onChange={(v) => set(i, { ...p, [side]: Number(v) || 0 })}
+                    className="waybill__side"
+                    required
+                  />
+                ))
+              : null}
             <NumberInput
               label="Weight packed"
               suffix=" kg"
@@ -120,7 +143,7 @@ export function WaybillForm({ ref_, which, parcels: first, boxes }: { ref_: stri
               min={0.1}
               max={MAX_PARCEL_KG}
               value={p.weight}
-              onChange={(v) => set(i, { weight: Number(v) || 0 })}
+              onChange={(v) => set(i, { ...p, weight: Number(v) || 0 })}
               required
             />
             {parcels.length > 1 ? (
@@ -143,7 +166,7 @@ export function WaybillForm({ ref_, which, parcels: first, boxes }: { ref_: stri
           <TextInput
             type="date"
             label="Collect from"
-            description="Blank: the next round"
+            description="Blank: next round (same day before 15:00)"
             min={limits.min}
             max={limits.max}
             value={collectionDate}
@@ -311,9 +334,9 @@ export function BookReturn({ ref_, parcels, boxes }: { ref_: string; parcels: Pa
   return open ? (
     <WaybillForm ref_={ref_} which="return" parcels={parcels} boxes={boxes} />
   ) : (
-    <button type="button" className="admin-link osec__more" onClick={() => setOpen(true)}>
-      Book a return to the shop
-    </button>
+    <Button variant="default" size="sm" className="osec__more" onClick={() => setOpen(true)}>
+      Book a return
+    </Button>
   );
 }
 
@@ -369,7 +392,7 @@ export function ShipmentControls({ ref_, which, collected }: { ref_: string; whi
     <div className="oform">
       <div className="row">
         <Button variant="light" onClick={() => run(() => refreshShipmentAction(ref_, which))} loading={pending && !cancelling}>
-          Check status now
+          Refresh status
         </Button>
         {collected ? null : cancelling ? (
           <>
@@ -382,11 +405,11 @@ export function ShipmentControls({ ref_, which, collected }: { ref_: string; whi
           </>
         ) : (
           <Button variant="subtle" color="red" onClick={() => setCancelling(true)} disabled={pending}>
-            Cancel the waybill
+            Cancel waybill
           </Button>
         )}
       </div>
-      {cancelling ? <p className="hint">The Courier Guy reverses its charge only if it hasn&rsquo;t collected the parcel yet. You can book again after.</p> : null}
+      {cancelling ? <p className="hint">TCG refunds it only before collection.</p> : null}
       {error ? (
         <p className="admin-error" role="alert">
           {error}

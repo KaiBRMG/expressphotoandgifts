@@ -1,7 +1,8 @@
 import "server-only";
 
 import { HOURS, SHOP } from "@/app/site/data";
-import { photoCount, rands } from "@/lib/catalog/listing";
+import { cartSavings } from "@/lib/catalog/campaigns";
+import { photoCount, rands, signedRands } from "@/lib/catalog/listing";
 import { escapeHtml as esc, sendEmail, type Mail } from "@/lib/email";
 import { addressLine, deliveryLabel, deliveryPrice } from "./details";
 import { fileCount, lineWhat, receiptPath, refundedOf, type EmailSent, type Order, type OrderLine } from "./order";
@@ -31,6 +32,7 @@ function lineDetails(l: OrderLine): string[] {
     l.frame?.empty ? "Frame only, no print" : "",
     l.frame?.quote ? "Print to be quoted" : "",
     l.note ? `Note: “${l.note}”` : "",
+    l.base ? `${rands(l.price)} each, on special from ${rands(l.base)}` : "",
   ].filter(Boolean);
 }
 
@@ -68,6 +70,9 @@ function summary(o: Order) {
         )
         .join("")}
       <tr><td style="padding:14px 0 2px;${cell};color:${C.soft}">Subtotal</td><td style="padding:14px 0 2px;text-align:right;${cell}">${rands(o.subtotal)}</td></tr>
+      ${cartSavings(o)
+        .map((s) => `<tr><td style="padding:2px 0;${cell};color:${C.soft}">${esc(s.label)}</td><td style="padding:2px 0;text-align:right;${cell}">${signedRands(-s.amount)}</td></tr>`)
+        .join("")}
       <tr><td style="padding:2px 0;${cell};color:${C.soft}">${esc(delivery)}</td><td style="padding:2px 0;text-align:right;${cell}">${price}</td></tr>
       <tr><td style="padding:12px 0 0;border-top:2px solid ${C.blue};font:700 18px/1.3 Arial,Helvetica,sans-serif;color:${C.blue}">Paid</td><td style="padding:12px 0 0;border-top:2px solid ${C.blue};text-align:right;font:700 18px/1.3 Arial,Helvetica,sans-serif;color:${C.blue}">${rands(o.total)}</td></tr>
     </table>`;
@@ -75,6 +80,7 @@ function summary(o: Order) {
     ...o.lines.map((l) => [`${lineWhat(l)}  ${rands(l.price * l.quantity)}`, ...lineDetails(l).map((d) => `   ${d}`)].join("\n")),
     "",
     `Subtotal  ${rands(o.subtotal)}`,
+    ...cartSavings(o).map((s) => `${s.label}  ${signedRands(-s.amount)}`),
     `${delivery}  ${price}`,
     `Paid  ${rands(o.total)}`,
   ].join("\n");
@@ -290,6 +296,27 @@ export function welcomeEmail(email: string, firstName: string | null, uid: strin
       ].join(""),
     }),
     text: [hi, "", `Your account with ${SHOP.name} is ready. We keep your name, number and delivery address, so next time checkout fills itself in.`, "", `Start shopping: ${shop}`, `Your account: ${account}`, "", `Questions? Call ${SHOP.phoneDisplay} or reply to this email.`].join("\n"),
+  };
+}
+
+/** The account page's link to prove the email is the customer's, which brings in the orders placed with it before the account. */
+export function checkEmail(email: string, link: string, key: string): Mail {
+  return {
+    to: email,
+    replyTo: SHOP.email,
+    subject: "Find your earlier orders",
+    key,
+    html: shell({
+      base: site(),
+      preheader: "One tap shows us this email is yours, and your earlier orders join your account.",
+      body: [
+        heading("Is this your email?"),
+        para(`You asked to see orders placed with ${email} before you had an account with ${SHOP.name}. Tap below and we’ll add them to your account, with their receipts and tracking.`),
+        button(link, "Yes, add my orders"),
+        para("The link works for 24 hours. If you didn’t ask for this, you can ignore this email and nothing will change.", { soft: true }),
+      ].join(""),
+    }),
+    text: ["Is this your email?", "", `You asked to see orders placed with ${email} before you had an account with ${SHOP.name}. Open this link and we’ll add them to your account:`, link, "", "The link works for 24 hours. If you didn’t ask for this, ignore this email and nothing will change."].join("\n"),
   };
 }
 

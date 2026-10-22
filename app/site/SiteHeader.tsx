@@ -1,19 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { HeaderCart } from "./Cart";
 import { HeaderSearch } from "./HeaderSearch";
-import { Cart, Profile } from "./icons";
+import { Profile } from "./icons";
 import { SHOP } from "./data";
 
 /**
- * The basket's mark arrives with its own pass; until then it is drawn at its
- * real size in its real place and goes nowhere (the dock opens the cart).
- * "#" keeps it focusable and in the tab order rather than 404ing.
- */
-const DEAD_HREF = "#";
-
-/**
- * The icon controls after search, in the order they read left to right.
+ * The icon links after search, in the order they read left to right; the cart
+ * follows them as a button (`HeaderCart`), since it opens the drawer.
  *
  * At the very narrow end the wordmark and three 44px targets are wider than the
  * screen, and something has to give. The account is what goes: search and the
@@ -22,7 +17,6 @@ const DEAD_HREF = "#";
  */
 const HEADER_ICONS = [
   { label: "Account", Icon: Profile, narrow: false, href: "/account" },
-  { label: "Cart", Icon: Cart, narrow: true, href: DEAD_HREF },
 ];
 
 export type NavItem = { href: string; label: string };
@@ -97,6 +91,7 @@ export function SiteHeader({
                 <Icon size={21} />
               </a>
             ))}
+            <HeaderCart />
           </div>
         </div>
       </header>

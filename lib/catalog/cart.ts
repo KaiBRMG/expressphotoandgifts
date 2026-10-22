@@ -1,4 +1,5 @@
 import { clampQuantity, takesLine, variantLabel, type PurchaseItem } from "./purchase";
+import { maxFor, type Availability } from "./stock";
 import type { ProductVariant } from "./types";
 
 /**
@@ -48,10 +49,17 @@ export function toLine(
 
 /**
  * Lines the shop can still sell. Until a price list has been fetched, all of
- * them; after, a variant that is gone or has lost its price is left out.
+ * them; after, a variant that is gone or has lost its price is left out, and
+ * so is one that has sold out.
  */
-export const liveLines = (lines: CartLine[], prices: PriceList | null) =>
-  prices ? lines.filter((l) => prices[l.sku] != null) : lines;
+export const liveLines = (lines: CartLine[], prices: PriceList | null, available?: Availability | null) =>
+  lines.filter((l) => (!prices || prices[l.sku] != null) && maxFor(available, l.sku) !== 0);
+
+/** The most a line can have now, when it asks for more than that; null when it fits. */
+export function overStock(line: Pick<CartLine, "sku" | "quantity">, available: Availability | null | undefined): number | null {
+  const max = maxFor(available, line.sku);
+  return max !== null && max > 0 && line.quantity > max ? max : null;
+}
 
 /** Units, not lines: two mugs and a frame are 3. */
 export const cartUnits = (lines: Pick<CartLine, "quantity">[]) => lines.reduce((n, l) => n + l.quantity, 0);

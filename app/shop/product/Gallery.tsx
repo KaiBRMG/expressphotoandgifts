@@ -14,7 +14,8 @@ const SIZES = "(max-width: 62rem) calc(100vw - 2 * clamp(20px, 5vw, 56px)), 640p
  * with several photographs gets a row of small prints under it to choose by;
  * most have one, and then there is no row at all.
  */
-export function Gallery({ photos, special }: { photos: GalleryPhoto[]; special: boolean }) {
+/** `special`: the deal's words, while a live campaign reaches it. */
+export function Gallery({ photos, special }: { photos: GalleryPhoto[]; special: string | null }) {
   const [shown, setShown] = useState(0);
   const current = photos[shown];
 
@@ -36,7 +37,7 @@ export function Gallery({ photos, special }: { photos: GalleryPhoto[]; special: 
           /* The shop has not supplied this photograph yet. */
           <span className="gallery__none">Photo to come</span>
         )}
-        {special ? <span className="pcard__special">Special</span> : null}
+        {special ? <span className="pcard__special">{special}</span> : null}
       </div>
 
       {photos.length > 1 ? (

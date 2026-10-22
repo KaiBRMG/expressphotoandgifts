@@ -196,9 +196,8 @@ export async function createProduct(input: { name: string; code: string; categor
       specifications: [],
       careNotes: null,
       personalisation: null,
-      box: null,
+      shipping: null,
       tags: [],
-      special: false,
       related: [],
       currency: "ZAR",
       options: [],
@@ -253,7 +252,6 @@ export async function duplicateProduct(slug: string, input: string): Promise<{ s
       code,
       name,
       status: "draft",
-      special: false,
       currency: source.currency,
       variants,
       priceRange: priceRange(variants),
@@ -265,7 +263,7 @@ export async function duplicateProduct(slug: string, input: string): Promise<{ s
 }
 
 /** One product's status or Special badge, as the list changes them in bulk. */
-export type VisibilityChange = { slug: string; status?: ProductStatus; special?: boolean };
+export type VisibilityChange = { slug: string; status?: ProductStatus };
 
 export type VisibilityResult = {
   /** What each changed product was before, ready to hand back to undo it. */
@@ -292,10 +290,9 @@ export async function setVisibility(changes: VisibilityChange[]): Promise<Visibi
       if (!doc.exists) return result.skipped.push(`One product was removed or moved since the list loaded`);
       const p = productFromDoc(doc.data()!);
       // Only what actually changes, and what it was, for the undo.
-      const patch: Partial<Pick<Product, "status" | "special">> = {};
+      const patch: Partial<Pick<Product, "status">> = {};
       const before: VisibilityChange = { slug: p.slug };
       if (change.status !== undefined && change.status !== p.status) [patch.status, before.status] = [change.status, p.status];
-      if (change.special !== undefined && change.special !== p.special) [patch.special, before.special] = [change.special, p.special];
       if (Object.keys(patch).length === 0) return;
       if (patch.status === "active") {
         const [issue] = readinessIssues(toDraft(p), vocab!);

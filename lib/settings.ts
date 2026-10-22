@@ -18,7 +18,7 @@ import { MAX_RECIPIENTS } from "./settings-shared";
  * or none. Until the Settings page has saved once, it's ORDER_EMAIL_TO, or the
  * shop's own address.
  *
- * `boxes` are the name, size and packed weight of each box the shop ships in
+ * `boxes` are the name, outside size and empty weight of each box the shop ships in
  * (`lib/checkout/boxes.ts`); until saved, the placeholders there.
  */
 
@@ -54,7 +54,7 @@ export async function shippingBoxes(): Promise<Boxes> {
   return readBoxes((await saved()).boxes);
 }
 
-/** Checks and saves the boxes' names, sizes and packed weights. */
+/** Checks and saves the boxes' names, sizes and empty weights. */
 export async function saveShippingBoxes(raw: unknown, by: string): Promise<{ ok: true; boxes: Boxes } | { error: string }> {
   const checked = checkBoxes(raw);
   if (!("ok" in checked)) return checked;

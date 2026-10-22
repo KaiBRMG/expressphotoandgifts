@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Chip, Select, Switch } from "@mantine/core";
+import { Chip, Select } from "@mantine/core";
 import type { ProductDraft } from "@/lib/catalog/edit";
 import { findTerm, tagValues, withFacet, type AddedTerm, type Facet, type Vocabulary } from "@/lib/catalog/tags";
 import type { Category } from "@/lib/catalog/types";
@@ -23,7 +24,10 @@ export function ShelfTab({
   categories,
   vocabulary,
   onAdded,
+  slug,
 }: {
+  /** The saved product's address; null before it is saved. */
+  slug: string | null;
   draft: ProductDraft;
   update: Update;
   categories: Category[];
@@ -148,14 +152,16 @@ export function ShelfTab({
       </section>
 
       <section className="group">
-        <Switch
-          id="field-special"
-          size="md"
-          label="On the Specials shelf"
-          description={<Where>a gold Special badge on its photo, and a place on the Specials shelf.</Where>}
-          checked={draft.special}
-          onChange={(e) => update({ special: e.currentTarget.checked })}
-        />
+        <div className="group__head">
+          <h2 className="group__title">Specials</h2>
+          <p className="hint">
+            <Where>the Specials shelf, with the deal on its photo,</Where> while a live campaign covers it. Campaigns set the
+            price off, the dates and the limits.
+          </p>
+        </div>
+        <Link className="admin-link" href={slug ? `/admin/campaigns/new?product=${encodeURIComponent(slug)}` : "/admin/campaigns"} style={{ justifySelf: "start" }}>
+          Put it in a campaign
+        </Link>
       </section>
     </div>
   );
