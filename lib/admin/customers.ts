@@ -3,12 +3,13 @@ import "server-only";
 import type { UserRecord } from "firebase-admin/auth";
 import { cache } from "react";
 
+import { codes } from "@/lib/campaignCodes";
 import { customerKey } from "@/lib/campaigns";
 import { addressLine, contactName } from "@/lib/checkout/details";
 import { orders } from "@/lib/checkout/orders";
 import { refundedOf, type Order } from "@/lib/checkout/order";
 import { allConsent, savedDetails, type Consent, type ConsentChange, type SavedDetails } from "@/lib/account/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { isStaffEmail } from "@/lib/identity";
 import { allSubscribers } from "@/lib/subscribers";
 import { orderRow, type OrderRow } from "./orders";
@@ -177,6 +178,9 @@ export type CustomerOrder = OrderRow;
 
 export type Tally = { key: string; label: string; detail: string | null; count: number; amount: number };
 
+/** One email the shop sent them, as far as the shop keeps a record of it. */
+export type CustomerEmail = { at: string; /** What it was: "Order confirmation", "Refund", a campaign mailing's subject. */ what: string; /** The order it was about, or the campaign's name. */ about: string; ref: string | null; to: string; ok: boolean; error?: string };
+
 export type CustomerDetail = {
   row: CustomerRow;
   account: { since: string; lastSignIn: string | null; saved: SavedDetails | null } | null;
@@ -194,7 +198,45 @@ export type CustomerDetail = {
   addresses: Tally[];
   /** Gift recipients the courier delivered to. `count` is orders. */
   recipients: Tally[];
+  /** Emails sent to them, newest first. */
+  emails: CustomerEmail[];
 };
+
+/** The customer-facing order emails, as the customer would name them (the shop's own email never goes to them). */
+const ORDER_EMAILS = [
+  ["customer", "Order confirmation"],
+  ["ready", "Ready to collect"],
+  ["shipped", "On its way"],
+  ["refund", "Refund"],
+] as const;
+
+/**
+ * What the shop can show of the emails a customer was sent: each paid order's
+ * own emails (the latest send of each kind, as the order records it) and the
+ * campaign mailings that carried them a one-time code. A mailing without a
+ * code is recorded only as a count (`mailings`), never per recipient, so it
+ * can't be listed here.
+ */
+async function emailsTo(orders: Order[], emails: string[]): Promise<CustomerEmail[]> {
+  const sent: CustomerEmail[] = orders.flatMap((o) =>
+    ORDER_EMAILS.flatMap(([who, what]) => {
+      const e = o.emails?.[who];
+      return e ? [{ at: e.at, what, about: o.ref, ref: o.ref, to: o.contact.email, ok: e.ok, ...(e.error ? { error: e.error } : {}) }] : [];
+    }),
+  );
+
+  const issued = await codes().where("to", "in", emails.slice(0, 30).map(customerKey)).get();
+  const mailingIds = [...new Set(issued.docs.map((d) => d.data().mailing as string))];
+  const mailings = new Map((mailingIds.length ? await db().getAll(...mailingIds.map((id) => db().collection("mailings").doc(id))) : []).map((m) => [m.id, m.data()]));
+  for (const d of issued.docs) {
+    const { mailing, at, test } = d.data() as { mailing: string; at: string; test?: boolean };
+    const m = mailings.get(mailing);
+    // A code is made before its email goes, so a mailing that never recorded a send had no delivery to claim.
+    if (test || !m || !m.sent) continue;
+    sent.push({ at: m.at ?? at, what: m.subject, about: m.campaign?.name ?? "Campaign", ref: null, to: emails[0], ok: true });
+  }
+  return sent.sort((a, b) => b.at.localeCompare(a.at));
+}
 
 /** Adds to a tally by key, keeping the first label it was given (the newest order's). */
 function tallyInto(map: Map<string, Tally>, key: string, label: string, detail: string | null, count: number, amount: number) {
@@ -251,6 +293,7 @@ export const getCustomer = cache(async (key: string): Promise<CustomerDetail | n
     tallyInto(addresses, line.toLowerCase(), line, f.address.province, 1, 0);
     if (f.recipient?.name) tallyInto(recipients, `${f.recipient.name}/${f.recipient.phone}`.toLowerCase(), f.recipient.name, f.recipient.phone || null, 1, 0);
   }
+  const emailed = await emailsTo(all, emails);
   const most = (m: Map<string, Tally>, by: "count" | "amount") => [...m.values()].sort((a, b) => b[by] - a[by] || a.label.localeCompare(b.label));
   const c = g.consent;
 
@@ -275,5 +318,6 @@ export const getCustomer = cache(async (key: string): Promise<CustomerDetail | n
     campaigns: most(campaigns, "amount"),
     addresses: most(addresses, "count"),
     recipients: most(recipients, "count"),
+    emails: emailed,
   };
 });

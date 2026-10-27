@@ -28,7 +28,7 @@ import { chatHref } from "@/lib/contact";
  * Once the cart holds something the pill is the cart instead, at every width
  * and on every page, carrying the count of units and opening the drawer.
  *
- * It steps aside while a product's buy column passes under it (`DockFrame`).
+ * It gives way to a product page's floating Add to cart (`product.css`).
  */
 export async function OrderDock({ shopAction = true }: { shopAction?: boolean }) {
   const chat = chatHref(await shopContact());

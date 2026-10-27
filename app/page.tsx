@@ -141,12 +141,6 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Stops the wall travelling (WCAG 2.2.2). Hidden until Motion wires
-              it, and for good under reduced motion, where nothing travels. */}
-          <button type="button" className="cover__hold" hidden>
-            Pause motion
-          </button>
-
           {/* The catalogue's top edge, drawn here at the wall's lean so its
               blue reads as the widest band, the one the wall settles into. */}
           <div className="cover__edge" aria-hidden="true" />

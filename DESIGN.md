@@ -284,7 +284,7 @@ components:
 
 This is a printed shop, not an app. The argument is the shop's own work: the first thing a visitor meets is a full-bleed wall of real product photographs travelling past, with one plain sentence set on the widest of the wall's own blue bands, holding still while everything around it moves. From there the page reads the way the counter reads — one catalogue wheel turning with the scroll, eight category tiles that are each a door into the shop, then where to find the real door. One brand blue owns the loud surfaces whole — the header, the cover's bands, the catalogue and the footer — and white owns the rest: the wall's ground, the categories and the gifting promise, which carries its headline on one more leaning blue band. The page opens and closes on the same blue. Nothing is quiet for the sake of being quiet.
 
-The shop under `/shop` is the same counter set for scanning. The storefront opens on the homepage's leaning sign, then lays one customer photograph beside every object it can go on; the catalogue carries the header's blue into a title band and puts the products on white beside a rail of categories. Every product is a white door with its price; every filter is a pill.
+The shop under `/shop` is the same counter set for scanning. The storefront opens straight on its shelf strip (no hero; the h1 is visually hidden), then lays one customer photograph beside every object it can go on; the catalogue carries the header's blue into a title band and puts the products on white beside a rail of categories. Every product is a white door with its price; every filter is a pill.
 
 The density is deliberate and left-weighted: display type sits low-left at large clamped sizes with tight negative tracking, headings and actions hold one left edge from header to footer while the loud rows run full bleed past both, and long prose is capped at a 62ch measure so a wide shell never turns into a wide paragraph. Depth is low and warm — pill actions carry a coloured glow rather than a grey drop shadow, cards carry one soft blue-tinted lift, and everything else earns separation from its ground instead of from a shadow.
 
@@ -299,7 +299,7 @@ The system has one accent and uses it like a highlighter, not like a second bran
 - A white-ground photo wall whose headline is one of its own leaning blue bands, settling at its foot onto the catalogue's leaning edge.
 - Focus rings that change colour with their ground.
 - Motion animates from an already-visible default; with JS off the page is complete and merely still.
-- In the shop: one leaning sign, white product doors with prices, pills for every filter, mono for every count.
+- In the shop: white product doors with prices, pills for every filter, mono for every count.
 
 ## Colors
 
@@ -309,7 +309,7 @@ Blue primary, white secondary, amber accent — the client's rule. Every ink is 
 - **Brand Deep Blue** (`{colors.blue}`): the binding brand value, supplied by the shop. It owns the cover's headline band and leaning edge, the catalogue, the running band and the find-us panel *whole* — edge to edge, not as a panel inside a lighter page. On paper it is also the default focus ring, the caret, the scrollbar thumb, the catalogue subtitle, and what every category tile becomes under the pointer (and Specials at rest). Takes white text. In the shop it is the catalogue's title band, the Specials and size-chart sections, the board's one "see all" door, a budget door or a filter pill under the pointer, the current rail entry and the pressed photo toggle.
 
 ### Secondary
-- **Foil Amber** (`{colors.gold}`): the shop's highlighter. Primary actions, the highlighter-marked line, the slashes in the running band, section marks and block headings on dark grounds, the corporate-gifts chip, the footer phone number, `::marker` and `::selection`, and the underline under "Get directions". In the shop: the counted number in the storefront sign, the "Special" chip on a card, the breadcrumb slash, the go disc on a door, and the size chart's picked outline and radio dot. It pairs legibly with ink or with brand blue and never takes white text.
+- **Foil Amber** (`{colors.gold}`): the shop's highlighter. Primary actions, the highlighter-marked line, the slashes in the running band, section marks and block headings on dark grounds, the corporate-gifts chip, the footer phone number, `::marker` and `::selection`, and the underline under "Get directions". In the shop: the "Special" chip on a card, the breadcrumb slash, the go disc on a door, and the size chart's picked outline and radio dot. It pairs legibly with ink or with brand blue and never takes white text.
 
 ### Neutral
 - **Leatherette** (`{colors.leather}`): the blue ground of the header, the catalogue, the cover's word strips and the footer. Same value as brand blue, named for its role so a surface and an accent are not confused at call sites.
@@ -360,7 +360,7 @@ Blue primary, white secondary, amber accent — the client's rule. Every ink is 
 - **Colophon** (mono, 400, 14.5px): no longer used by the sign-up, whose thank-you line is Body Small in amber.
 - **Count** (mono, 400, 16px, tabular): the product count on a category pill and a rail entry, in faint ink (soft white when the pill is blue), and each size's measure in the size chart. The one mono role that meets the 16px Floor, and the model for any new one.
 
-The shop reuses the ramp rather than adding to it: the storefront sign's headline is the display role at `clamp(2rem, 8.4vw, 4.75rem)` / 0.98 so a two-line sign fits a phone; the catalogue's title is the headline role at line-height 1 and −0.035em; "Your photo" on the board is Statement; a budget door's band and the empty and no-match titles are Statement Loud; the prints note's title is Subtitle; the empty-state text is Lede at 52ch.
+The shop reuses the ramp rather than adding to it: the catalogue's title is the headline role at line-height 1 and −0.035em; "Your photo" on the board is Statement; a budget door's band and the empty and no-match titles are Statement Loud; the prints note's title is Subtitle; the empty-state text is Lede at 52ch.
 
 ### Named Rules
 
@@ -470,7 +470,7 @@ Every control in the shop that narrows or moves the catalogue is a pill: 44px ta
 ### The Order Dock
 Two controls floating at the foot of the viewport on the shell's right edge, at every width, with nothing drawn behind them: the gold **Shop now** pill and a round print-white **WhatsApp** mark (52px, 60px from 46rem) with a `rgb(1 38 186 / 0.22)` hairline, a blue glyph and the blue glow, which is the one control legible over white and over every blue ground in turn. The container ignores the pointer, so the page stays reachable across the dock's width. It is the page's only standing action, because the cover carries no buttons, and at the foot of the page it comes to rest beside the footer's copyright line, which is sized to leave room for it (`--dock-h`). The pill goes to the storefront (`/shop`) and the round mark opens a WhatsApp chat with the shop's number, each saying so in its own label. Inside the shop the dock is the WhatsApp mark alone.
 
-While a product's buy column passes through the band at the foot of the screen where the dock floats (anything marked `data-dock-clear`), the dock steps down and out and is inert, so the mark never sits on the total or Add to cart; it returns once the column has gone by. The header's cart icon stays meanwhile. On a phone (under 46rem) the dock also slides away while the page is scrolled down, more than 240px from the top and not near the foot, and comes back on any scroll up; the header, with Search and the Cart, stays put, so the page is read without a permanent overlay on its prices.
+On a product page Add to cart is itself a floating gold button (`.fab`, `Purchase.tsx`) in the dock's place at the foot of the screen, with the order's total on it (full width on a phone), and the dock is hidden while it is drawn (`body:has(.fab) .dock`), so there is one floating action. When the size is sold out, unpriced or asked for beyond stock, there is no button and the dock returns. The header's cart icon is always there. On a phone (under 46rem) the dock also slides away while the page is scrolled down, more than 240px from the top and not near the foot, and comes back on any scroll up; the header, with Search and the Cart, stays put, so the page is read without a permanent overlay on its prices.
 
 Once the cart holds something, the gold pill becomes **Cart** on every page and at every width. It takes Shop now's place outside the shop and fills the empty slot inside it. It carries the cart glyph and the count of units (not lines; "99+" past 99) on a blue disc in mono numerals, and the disc pops when the count changes. Tapping it opens the cart drawer. The header's cart icon is unchanged.
 

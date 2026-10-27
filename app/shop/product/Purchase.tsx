@@ -236,36 +236,47 @@ function PurchaseView({
         </p>
       </div>
 
-      <div className="buy__actions">
-        {soldOut ? (
-          <a
-            className="btn btn--blue"
-            href={wa(`Hi! The ${what} (code ${variant.sku}) is sold out on the site. When will you have more?`)}
-            target="_blank"
-            rel="noopener"
-          >
-            <WhatsApp size={19} />
-            Sold out: ask when it&rsquo;s back
-          </a>
-        ) : short ? null : price !== null ? (
-          <button
-            type="button"
-            className="btn btn--gold on-gold"
-            onClick={() => cart.add(toLine(item, variant, base!, quantity, slug, photo))}
-          >
-            <Cart size={19} />
-            Add to cart
-          </button>
-        ) : (
-          <a
-            className="btn btn--blue"
-            href={wa(`Hi! Could you tell me the price of the ${item.name}${which ? ` (${which})` : ""}? Product code: ${variant.sku}.`)}
-          >
-            <WhatsApp size={19} />
-            Ask the shop for a price
-          </a>
-        )}
-      </div>
+      {soldOut || (!short && price === null) ? (
+        <div className="buy__actions">
+          {soldOut ? (
+            <a
+              className="btn btn--blue"
+              href={wa(`Hi! The ${what} (code ${variant.sku}) is sold out on the site. When will you have more?`)}
+              target="_blank"
+              rel="noopener"
+            >
+              <WhatsApp size={19} />
+              Sold out: ask when it&rsquo;s back
+            </a>
+          ) : (
+            <a
+              className="btn btn--blue"
+              href={wa(`Hi! Could you tell me the price of the ${item.name}${which ? ` (${which})` : ""}? Product code: ${variant.sku}.`)}
+            >
+              <WhatsApp size={19} />
+              Ask the shop for a price
+            </a>
+          )}
+        </div>
+      ) : null}
+
+      {/* Add to cart floats at the foot of the screen, where the order dock sits elsewhere, so it is
+          in reach however far down the page the customer has read. The dock gives way to it. */}
+      {!soldOut && !short && price !== null ? (
+        <div className="fab">
+          <div className="fab__inner">
+            <button
+              type="button"
+              className="btn btn--gold on-gold fab__btn"
+              onClick={() => cart.add(toLine(item, variant, base!, quantity, slug, photo))}
+            >
+              <Cart size={19} />
+              Add to cart
+              <span className="fab__total">{rands(price * quantity)}</span>
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <Getting name={item.name} personal={item.personalisation !== null} />
     </div>

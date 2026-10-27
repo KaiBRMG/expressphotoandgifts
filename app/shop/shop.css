@@ -3,69 +3,17 @@
  *
  * The homepage's world, carried on: brand-blue grounds own their sections
  * whole, white is the reading ground, amber marks the action and the counted
- * number. The storefront opens on the homepage's leaning sign; the catalogue
+ * number. The storefront opens on its shelf strip; the catalogue
  * is the same materials set for scanning — doors on white, a rail beside them.
  *
  * Every text element here is 16px or more at every width (The 16px Floor).
  */
 
-/* ---- The sign ---------------------------------------------------------- */
-
-/* The homepage's device, as the storefront's headline: a brand-blue band
-   124% of the screen leaning -4deg, the lede on a slimmer band beneath. */
-.storefront__sign {
-  overflow-x: clip;
-  padding-block: clamp(46px, 6vw, 92px) 0;
-}
-
-.sign {
-  width: 124%;
-  margin-left: -12%;
-  transform: rotate(-4deg);
-  color: var(--print);
-  text-align: center;
-  filter: drop-shadow(0 18px 28px rgb(1 38 186 / 0.28));
-}
-
-.sign__title {
-  margin: 0;
-  padding: clamp(16px, 2.2vw, 28px) var(--gutter) clamp(14px, 1.8vw, 22px);
-  background: var(--leather);
-  font-size: clamp(2rem, 8.4vw, 4.75rem);
-  font-weight: 600;
-  line-height: 0.98;
-  letter-spacing: -0.035em;
-}
-
-.sign__line {
-  display: block;
-  white-space: nowrap;
-}
-
-.sign__gold {
-  color: var(--gold);
-}
-
-/* The overhang is 12% of the screen each side, about 9.7% of the band, so the
-   lede's gutter is measured from the screen's edge, not the band's. */
-.sign__lede {
-  margin: 0;
-  padding: clamp(12px, 1.4vw, 18px) var(--gutter) clamp(14px, 1.6vw, 20px);
-  padding-inline: max(calc(9.7% + var(--gutter)), calc((100% - 46ch) / 2));
-  background: var(--leather);
-  border-top: 1px solid var(--rule-leather);
-  font-size: clamp(1rem, 1.45vw, 1.2rem);
-  line-height: 1.55;
-  color: var(--on-leather-soft);
-  text-wrap: balance;
-}
-
 /* ---- Every shelf, one tap away ---------------------------------------- */
 
-/* Clear of the band's low left end, which sits tan(4deg) × 62vw under its
-   middle, before the strip's own space starts. */
+/* The strip opens the page, under the header. */
 .shelves {
-  margin-top: calc(4.4vw + clamp(1.6rem, 3.4vw, 2.6rem));
+  margin-top: clamp(1.6rem, 3.4vw, 2.6rem);
 }
 
 .shelves ul {
@@ -723,28 +671,7 @@
 
 /* ---- The size chart ---------------------------------------------------- */
 
-.sizes {
-  background: var(--leather);
-  color: var(--print);
-  padding-block: clamp(62px, 9vw, 130px);
-}
-
-.sizes__grid {
-  display: grid;
-  gap: clamp(2.4rem, 5vw, 4.75rem);
-  align-items: center;
-}
-
-/* On a phone: the words, the chart, then the frames it is about. From 62rem
-   the chart stands beside the words and the frames under them. */
-@media (min-width: 62rem) {
-  .sizes__grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-    grid-template-rows: auto auto;
-    row-gap: clamp(1.6rem, 3vw, 2.4rem);
-  }
-
-  .sizes__grid .chart {
+.chart {
     grid-column: 2;
     grid-row: 1 / span 2;
   }

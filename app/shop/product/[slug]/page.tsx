@@ -159,9 +159,7 @@ export default async function ProductPage({
             <Gallery photos={photos} special={deal.headline} />
           </div>
 
-          {/* The dock steps aside while this column passes under it, so the
-              WhatsApp mark never sits on the total or Add to cart. */}
-          <div className="pdp__buy" data-dock-clear>
+          <div className="pdp__buy">
             <h1 className="pdp__title">{product.name}</h1>
             {/* The variant lives in the URL, which a static render does not
                 have; until it is read the column shows the first variant. */}

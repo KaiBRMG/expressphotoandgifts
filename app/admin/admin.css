@@ -3150,8 +3150,10 @@
   border-radius: 999px;
   background: var(--paper);
   color: var(--ink);
+  font: inherit;
   font-weight: 500;
   text-decoration: none;
+  cursor: pointer;
   transition: background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
 }
 

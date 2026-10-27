@@ -47,35 +47,6 @@
   }
 }
 
-/* The wall's pause control: a white pill with the blue hairline, like the dock's
-   round mark, so it reads over the photographs and over the white between them. */
-.cover__hold {
-  position: absolute;
-  top: clamp(12px, 1.6vw, 20px);
-  left: var(--gutter);
-  z-index: 3;
-  min-height: 44px;
-  padding: 0.5rem 1.1rem;
-  border: 1px solid rgb(var(--blue-rgb) / 0.22);
-  border-radius: 999px;
-  background: var(--print);
-  color: var(--ink);
-  font: inherit;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.cover__hold[hidden] {
-  display: none;
-}
-
-@media (hover: hover) {
-  .cover__hold:hover {
-    border-color: rgb(var(--blue-rgb) / 0.5);
-  }
-}
-
 .cover__row {
   display: flex;
   width: max-content;

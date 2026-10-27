@@ -1130,8 +1130,8 @@ button.inline-link {
     visibility 0s;
 }
 
-/* Stepped aside while a buy column passes under it: down and out, then hidden
-   from the pointer and the tab order (`inert`) until the column has gone by. */
+/* Stepped aside while a phone reads down the page: down and out, then hidden
+   from the pointer and the tab order until any scroll back up. */
 .dock--away {
   opacity: 0;
   transform: translateY(calc(100% + 1rem));

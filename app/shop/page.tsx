@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { getProducts, getVocabulary } from "@/lib/catalog/queries";
-import { PRICE_BANDS, productCount, shelfHref, type Listing } from "@/lib/catalog/listing";
+import { PRICE_BANDS, productCount, shelfHref } from "@/lib/catalog/listing";
 import { campaignsFor, type LiveCampaign } from "@/lib/catalog/campaigns";
 import { comingUp } from "@/lib/catalog/seasons";
 import type { Product } from "@/lib/catalog/types";
@@ -15,9 +15,8 @@ import { CUSTOMER_PHOTOS, SHOP } from "@/app/site/data";
 import { shopContact } from "@/lib/settings";
 import { whatsappLink } from "@/lib/contact";
 import { ProductCard, Shelf } from "./ProductCard";
-import { SizeChart } from "./SizeChart";
 import { ShelfRail } from "./ShelfRail";
-import { getListings, sizeFamily } from "./shelves";
+import { getListings } from "./shelves";
 
 /** Five minutes: the catalogue is cached for an hour, but a campaign starts and ends on its own time. */
 export const revalidate = 300;
@@ -31,9 +30,6 @@ export const metadata: Metadata = {
 
 /** The sample customer portrait the homepage already uses as "your" picture. */
 const YOUR_PHOTO = CUSTOMER_PHOTOS[0];
-
-/** "A, B and C", the way the shop would say it. */
-const NAMES = new Intl.ListFormat("en-ZA", { type: "conjunction" });
 
 /** How many occasions show before "More occasions". */
 const OCCASIONS_SHOWN = 6;
@@ -80,33 +76,12 @@ export default async function ShopPage() {
     ...soon.map((v) => occasions.find((o) => o.value === v)!),
     ...occasions.filter((o) => busiest.has(o.value) && !soon.includes(o.value)),
   ];
-  const family = sizeFamily(products);
-  const familySlugs = new Set(family?.products.map((p) => p.slug));
-  const inFamily = (l: Listing) => familySlugs.has(l.slug);
-  const familyListings = listings.filter(inFamily);
-  // The size chart already shows its frames, so the shelf leads with the rest.
-  const otherFrames = frames.filter((l) => !inFamily(l));
 
   return (
     <>
-      {/* ---- The sign ------------------------------------------------- */}
-      {/* The homepage's own device: a leaning brand-blue band carrying the
-          one sentence, its lede on a slimmer band beneath. The count is read
-          off the catalogue, so it is never a promise the shelves don't keep. */}
-      <section className="storefront__sign">
-        <div className="sign on-dark">
-          <h1 className="sign__title">
-            <span className="sign__line">Your photo,</span>{" "}
-            <span className="sign__line">
-              on <span className="sign__gold">{yours.length} things</span>
-            </span>
-          </h1>
-          <p className="sign__lede">
-            Mugs, puzzles, keyrings, snow globes and more, each printed with the
-            picture you choose. Pick the thing; the photo is yours.
-          </p>
-        </div>
-      </section>
+      {/* The page opens on the shelves, with no hero. The heading stays for
+          screen readers and search; the count is read off the catalogue. */}
+      <h1 className="visually-hidden">Your photo, on {yours.length} things</h1>
 
       {/* ---- Every shelf, one tap away -------------------------------- */}
       <ShelfRail variant="shelves" />
@@ -250,33 +225,6 @@ export default async function ShopPage() {
         </ul>
       </section>
 
-      {/* ---- The size chart ------------------------------------------- */}
-      {family ? (
-        <section className="sizes on-dark" aria-labelledby="sizes-title">
-          <div className="shell sizes__grid">
-            <div className="sizes__copy">
-              <h2 id="sizes-title" className="h2">
-                {family.sizes.length} sizes, drawn to scale
-              </h2>
-              <p className="lede">
-                {NAMES.format(family.products.map((p) => p.name))} share one
-                ladder of sizes, from {family.sizes[0].label} to{" "}
-                {family.sizes[family.sizes.length - 1].label}. Pick a size to
-                see it against the others.
-              </p>
-            </div>
-            <SizeChart sizes={family.sizes} />
-            <ul className="sizes__frames">
-              {familyListings.map((l) => (
-                <li key={l.slug}>
-                  <ProductCard listing={l} sizes="(max-width: 46rem) 30vw, 160px" />
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      ) : null}
-
       {/* ---- Frames --------------------------------------------------- */}
       {frames.length > 0 ? (
         <section className="shelf shell" aria-labelledby="frames-title">
@@ -288,7 +236,7 @@ export default async function ShopPage() {
               See all {frames.length} frames
             </Link>
           </div>
-          <Shelf listings={otherFrames.slice(0, SHELF_SIZE)} />
+          <Shelf listings={frames.slice(0, SHELF_SIZE)} />
         </section>
       ) : null}
 

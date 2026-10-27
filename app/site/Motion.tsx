@@ -243,14 +243,10 @@ export function Motion() {
            the moment it is fully past, all five stop where they are and the
            layer-promotion hint comes off with them. Scrolling back resumes from
            that position rather than restarting, so the wall has no seam of its
-           own to give away. The visitor can also hold it still: movement that
-           starts by itself and runs for minutes needs a way to stop it. */
+           own to give away. */
         const cover = document.querySelector<HTMLElement>(".cover");
         if (cover) {
-          let onScreen = true;
-          let held = false;
-          const run = () => {
-            const going = onScreen && !held;
+          const run = (going: boolean) => {
             loops.forEach((loop) => (going ? loop.play() : loop.pause()));
             cover.classList.toggle("cover--live", going);
           };
@@ -259,31 +255,11 @@ export function Motion() {
             trigger: cover,
             start: "top bottom",
             end: "bottom top",
-            onToggle: (self) => {
-              onScreen = self.isActive;
-              run();
-            },
+            onToggle: (self) => run(self.isActive),
           });
 
           cover.classList.add("cover--live");
           cleanups.push(() => cover.classList.remove("cover--live"));
-
-          // Drawn `hidden` and revealed here, so it is never a button that does nothing.
-          const hold = cover.querySelector<HTMLButtonElement>(".cover__hold");
-          if (hold) {
-            const toggle = () => {
-              held = !held;
-              hold.textContent = held ? "Play motion" : "Pause motion";
-              run();
-            };
-            hold.hidden = false;
-            hold.addEventListener("click", toggle);
-            cleanups.push(() => {
-              hold.removeEventListener("click", toggle);
-              hold.hidden = true;
-              hold.textContent = "Pause motion";
-            });
-          }
         }
 
         /* 4. Section reveals ------------------------------------------ */

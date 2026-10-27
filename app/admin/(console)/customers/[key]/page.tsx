@@ -7,6 +7,7 @@ import { itemCount, rands } from "@/lib/catalog/listing";
 import { addressLine, nationalPhone } from "@/lib/checkout/details";
 import { stageLabel } from "@/lib/checkout/order";
 import { Alert, ArrowLeft, Mail, Phone, WhatsApp } from "@/app/site/icons";
+import { EmailHistory } from "./EmailHistory";
 import { BarList } from "../../analytics/BarList";
 import type { ConsentSource } from "@/lib/account/auth";
 import { at, when, whenDay as day } from "../../../when";
@@ -184,6 +185,7 @@ export default async function CustomerPage({ params }: PageProps<"/admin/custome
                 <Mail size={18} />
                 {row.email}
               </a>
+              <EmailHistory emails={c.emails} />
             </div>
             {Object.values(c.also).some((v) => v.length) ? (
               <dl className="calso">

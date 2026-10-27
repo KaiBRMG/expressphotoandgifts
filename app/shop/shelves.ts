@@ -4,9 +4,6 @@ import { cache } from "react";
 
 import { getCategories, getProducts } from "@/lib/catalog/queries";
 import { toListings, type Listing } from "@/lib/catalog/listing";
-import type { ChartSize } from "@/lib/catalog/purchase";
-import { parseCm } from "@/lib/catalog/sizes";
-import type { Product } from "@/lib/catalog/types";
 import { CATEGORIES as HOME_TILES } from "@/app/site/data";
 import { getSoldOut } from "@/lib/stock";
 import { getLiveDeals } from "@/lib/campaigns";
@@ -117,29 +114,4 @@ export async function getRail(): Promise<RailItem[]> {
       .filter((c) => c.count > 0),
     ...(specials > 0 ? [{ slug: SPECIALS_SLUG, name: "Specials", count: specials }] : []),
   ];
-}
-
-/**
- * The frames that share one size ladder, for the size chart. Found from the
- * data, not named: the largest group of frames whose Size options parse as
- * centimetres and whose sizes and prices are identical.
- */
-type SizeFamily = { products: Product[]; sizes: ChartSize[] };
-
-export function sizeFamily(products: Product[]): SizeFamily | null {
-  const ladders = new Map<string, SizeFamily>();
-  for (const p of products) {
-    if (p.categoryId !== "frames") continue;
-    const sizes = p.variants.flatMap((v): ChartSize[] => {
-      const cm = parseCm(v.optionValues["Size"] ?? "");
-      if (!cm || v.price === null) return [];
-      return [{ label: `${cm.w} × ${cm.h} cm`, ...cm, price: v.price }];
-    });
-    if (sizes.length < 4 || sizes.length !== p.variants.length) continue;
-    const key = sizes.map((s) => `${s.label}:${s.price}`).join("|");
-    const group = ladders.get(key) ?? { products: [], sizes };
-    group.products.push(p);
-    ladders.set(key, group);
-  }
-  return [...ladders.values()].sort((a, b) => b.products.length - a.products.length)[0] ?? null;
 }
