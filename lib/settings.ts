@@ -4,7 +4,7 @@ import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import { checkBoxes, readBoxes, type Boxes } from "@/lib/checkout/boxes";
 import { isEmail, LIMITS } from "@/lib/checkout/details";
-import { checkContact, DEFAULT_CONTACT, readContact, type ContactInput, type SaveContactResult, type ShopContact } from "@/lib/contact";
+import { checkContact, readContact, type ContactInput, type SaveContactResult, type ShopContact } from "@/lib/contact";
 import { db } from "@/lib/firebase";
 import { MAX_RECIPIENTS } from "./settings-shared";
 
@@ -39,7 +39,8 @@ const saved = unstable_cache(async (): Promise<Record<string, unknown>> => (awai
 
 const savedContact = unstable_cache(async (): Promise<unknown> => (await doc().get()).data()?.contact, ["settings-shop-contact"], { tags: [CONTACT_TAG] });
 
-const fallback = () => [process.env.ORDER_EMAIL_TO?.trim() || DEFAULT_CONTACT.email];
+/** Until the list is saved: `ORDER_EMAIL_TO`, else the public email the shop set in Settings (the starting one in `SHOP` only if it hasn't). */
+const fallback = async () => [process.env.ORDER_EMAIL_TO?.trim() || (await shopContact()).email];
 
 /** Where the shop's new-order email goes. Empty when the shop has turned it off. */
 export async function orderRecipients(): Promise<string[]> {

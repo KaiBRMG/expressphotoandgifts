@@ -81,6 +81,14 @@ export function Tray({
   const emptyTargets = prog.empty;
   const blocked = issues.length > 0;
 
+  // Docked on a phone, the tray sits over the page: after an upload, bring the first empty place
+  // into the clear space above it (the tray's own height has settled by then).
+  const firstEmpty = emptyTargets[0];
+  const showFirstEmpty = () => {
+    if (!firstEmpty || !window.matchMedia("(max-width: 61.99rem)").matches) return;
+    setTimeout(() => onShow(firstEmpty), 150);
+  };
+
   const onDragOver = (e: DragEvent) => {
     if (!e.dataTransfer.types.includes("Files")) return;
     e.preventDefault();
@@ -107,7 +115,7 @@ export function Tray({
           Your photos
           {store.photos.length > 0 ? <span className="tray__n">{store.photos.length}</span> : null}
         </h2>
-        <AddPhotos />
+        <AddPhotos onAdded={showFirstEmpty} />
       </div>
 
       {said.shown && faded !== said.n ? (
@@ -129,7 +137,7 @@ export function Tray({
         </ul>
       )}
 
-      {store.photos.length > 0 && !armed ? (
+      {store.photos.length > 1 && !armed ? (
         <p className="tray__reset">
           {resetting ? (
             <>

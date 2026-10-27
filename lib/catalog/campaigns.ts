@@ -390,7 +390,7 @@ export function dealLabel(r: LiveRule, side: "buy" | "get" = "buy"): string {
     case "bxgy":
       return `Buy ${r.buy}, get ${r.get} ${offWords(r.off)}`;
     case "pair":
-      return side === "get" ? `${cap(offWords(r.off))} with ${r.buyName}` : `${cap(r.getName)} ${offWords(r.off)} with this`;
+      return side === "get" ? `${cap(offWords(r.off))} with ${r.buyName}` : `With this: ${r.getName} ${offWords(r.off)}`;
     case "spend":
       return r.off.kind === "percent" ? `Spend ${rands(r.min)}, get ${r.off.value}% off` : `Spend ${rands(r.min)}, save ${rands(offValue(r.off))}`;
   }

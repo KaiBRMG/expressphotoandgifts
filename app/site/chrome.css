@@ -227,6 +227,10 @@ button.inline-link {
 
 .header__logo {
   flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  /* The wordmark is 15px tall; the link around it is a full 44px target. */
+  min-height: 44px;
   min-width: 0;
   max-width: 280px;
 }
@@ -912,6 +916,7 @@ button.inline-link {
 
 .newsletter__input {
   min-width: 0;
+  min-height: 44px;
   padding: 0.55rem 0;
   border: 0;
   background: none;

@@ -1138,6 +1138,16 @@
     font-size: 1.1rem;
   }
 
+  /* The docked tray already counts the places filled, so the band's count is left to a screen reader. */
+  .ckhead__count {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   .tray .addphotos {
     padding: 0.7rem 1.15rem;
   }
@@ -1157,8 +1167,27 @@
 
   .thumb {
     flex: none;
-    width: 80px;
+    width: 68px;
     scroll-snap-align: start;
+  }
+
+  /* What just happened floats over the page above the tray, so an upload never makes the tray grow. */
+  .tray__said {
+    position: absolute;
+    inset: auto var(--gutter) calc(100% + 10px);
+    background: var(--leather);
+    box-shadow: 0 10px 24px -12px rgb(1 38 186 / 0.9);
+  }
+
+  /* Starting over keeps a full-size target without a row of its own. */
+  .tray__reset {
+    margin-block: -0.4rem;
+  }
+
+  .tray__reset .inline-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
 
   .thumb__uses {
@@ -2389,8 +2418,9 @@ html:has(.editor[open]) {
   display: grid;
   justify-items: center;
   gap: 0.45rem;
-  width: max(64px, calc(var(--h) * var(--a)));
+  width: max(5.5rem, calc(var(--h) * var(--a)));
   max-width: 100%;
+  text-align: center;
 }
 
 .proof__face {
@@ -2552,8 +2582,10 @@ html:has(.editor[open]) {
     padding-bottom: calc(clamp(62px, 9vw, 130px) + var(--dock-h, 150px));
   }
 
+  /* The total keeps the room its words need; Pay takes what is left, so a longer
+     label (Processing payment) can never squeeze "See breakdown" onto the amount. */
   .coslip {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: 0.6rem 1rem;
   }
@@ -2585,6 +2617,11 @@ html:has(.editor[open]) {
     margin: -12px 0 -12px 0.6rem;
     color: var(--print);
     font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .coslip__payMore {
+    display: none;
   }
 
   .coslip__note {

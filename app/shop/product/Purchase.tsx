@@ -358,8 +358,7 @@ function PhotoNeeds({ takes, spec, words }: { takes: string; spec: PhotoSpec; wo
         </p>
         <p className="needs__how">
           You add {it} at checkout{words ? ", with your words," : ""} and see {it} in place before you pay.
-          {" "}{one ? "Your photo is" : "Each photo is"} printed whole unless you crop {it}, and checkout tells
-          you if {one ? "it" : "one"} may print soft at this size.
+          {" "}{one ? "Your photo is" : "Each photo is"} printed whole unless you crop {it}.
         </p>
       </div>
     </div>

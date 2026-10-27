@@ -713,7 +713,15 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
             aria-busy={busy || undefined}
             aria-describedby={blockers.length > 0 ? "coslip-problems coslip-note" : "coslip-note"}
           >
-            {busy ? "Processing payment" : total === null ? "Pay" : `Pay ${rands(total)}`}
+            {busy ? (
+              <>
+                Processing<span className="coslip__payMore"> payment</span>
+              </>
+            ) : total === null ? (
+              "Pay"
+            ) : (
+              `Pay ${rands(total)}`
+            )}
             {busy ? <span className="services__spin" aria-hidden="true" /> : <ArrowRight size={19} />}
           </button>
           <p id="coslip-note" className="coslip__note coslip__secure">

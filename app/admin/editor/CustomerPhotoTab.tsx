@@ -159,7 +159,7 @@ export function CustomerPhotoTab({ draft, update, errorOn, boxes }: { draft: Pro
               </h2>
               <p className="hint">
                 <Where>
-                  checkout draws each photo space at this size, and tells the customer when a photo may print soft.
+                  checkout draws each photo space at this size, and the product page tells the customer what it prints at.
                 </Where>{" "}
                 In centimetres, width first. Leave empty if it doesn’t apply.
               </p>
