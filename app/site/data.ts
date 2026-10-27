@@ -250,7 +250,7 @@ export const CATEGORIES: Category[] = [
 export const SHOP = {
   name: "Express Photo and Gifts",
   /** The public address, which canonical links, the sitemap, robots and structured data all give: not SITE_URL, which is unset or a preview host on some builds. */
-  url: "https://expressphotoandgifts.com",
+  url: "https://www.expressphotoandgifts.com",
   street: "135 Scott Street",
   town: "Scottburgh",
   region: "Ugu District Municipality, KwaZulu-Natal",
