@@ -127,15 +127,19 @@ export function OrderList({ orders }: { orders: OrderRow[] }) {
               ) : null}
             </div>
             {asking === o.ref ? (
-              <p className="aorder__ask" role="group" aria-label={`Delete the photos for ${o.ref}`}>
-                Delete the {photosWord(o.kept)} kept for {o.ref}? This can’t be undone, and Order again won’t be able to bring them back. The order and its receipt stay.{" "}
-                <button type="button" className="inline-link" aria-disabled={locked} onClick={() => forget(o.ref)}>
-                  {busy === o.ref ? "Deleting…" : "Yes, delete them"}
-                </button>{" "}
-                <button type="button" className="inline-link" onClick={() => setAsking(null)}>
-                  Keep them
-                </button>
-              </p>
+              <div className="aorder__ask" role="group" aria-label={`Delete the photos for ${o.ref}`}>
+                <p>
+                  Delete the {photosWord(o.kept)} kept for {o.ref}? This can’t be undone, and Order again won’t be able to bring them back. The order and its receipt stay.
+                </p>
+                <div className="aorder__askActs">
+                  <button type="button" className="pillbtn" onClick={() => setAsking(null)}>
+                    Keep them
+                  </button>
+                  <button type="button" className="pillbtn" aria-disabled={locked} onClick={() => forget(o.ref)}>
+                    {busy === o.ref ? "Deleting…" : "Yes, delete them"}
+                  </button>
+                </div>
+              </div>
             ) : null}
             {said?.ref === o.ref ? (
               <Note error={said.error} className="anote">

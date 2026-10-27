@@ -3416,10 +3416,23 @@ html:has(.editor[open]) {
 
 /* Asking before the photos go: plain words with the two answers in them. */
 .aorder__ask {
+  display: grid;
+  gap: 0.8rem;
   grid-area: said;
   margin-top: 0.75rem;
   font-size: 1rem;
   line-height: 1.5;
+}
+
+.aorder__ask p {
+  margin: 0;
+}
+
+/* Two real buttons, apart: the one that can't be undone is the second, never under a thumb by accident. */
+.aorder__askActs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
 }
 
 .aorders__more {

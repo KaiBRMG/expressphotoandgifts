@@ -12,11 +12,14 @@ export function PublicContact({ initial }: { initial: ContactInput }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<{ field?: keyof ContactInput; message: string } | null>(null);
   const [done, setDone] = useState(false);
+  // Saving rewrites what every page, email and WhatsApp button says, so the first press asks.
+  const [asked, setAsked] = useState(false);
   const changed = form.email !== saved.email || form.phone !== saved.phone;
   const set = (patch: Partial<ContactInput>) => {
     setForm({ ...form, ...patch });
     setError(null);
     setDone(false);
+    setAsked(false);
   };
 
   return (
@@ -24,6 +27,8 @@ export function PublicContact({ initial }: { initial: ContactInput }) {
       className="oform form-narrow"
       onSubmit={(e) => {
         e.preventDefault();
+        if (!asked) return setAsked(true);
+        setAsked(false);
         setError(null);
         setDone(false);
         start(async () => {
@@ -65,10 +70,22 @@ export function PublicContact({ initial }: { initial: ContactInput }) {
           {error.message}
         </p>
       ) : null}
+      {asked ? (
+        <p className="admin-error" role="alert">
+          {form.phone !== saved.phone
+            ? `Customers will see ${form.email !== saved.email ? "this email and number" : "this number"} everywhere the shop states it, and every WhatsApp button will open a chat with the new number. Change it now?`
+            : "Customers will see this email everywhere the shop states it, and replies to order emails will come to it. Change it now?"}
+        </p>
+      ) : null}
       <div className="row">
         <Button type="submit" loading={pending} disabled={!changed}>
-          Save
+          {asked ? "Yes, change it" : "Save"}
         </Button>
+        {asked ? (
+          <Button variant="subtle" onClick={() => setAsked(false)} disabled={pending}>
+            Not yet
+          </Button>
+        ) : null}
         {done ? <p className="osec__soft" role="status">Saved. The shop shows these from now on; emails already sent keep what they said.</p> : null}
       </div>
     </form>

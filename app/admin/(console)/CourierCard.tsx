@@ -35,7 +35,7 @@ function groups(booked: Awaiting[], today: string) {
 /** What the card says first: whether a courier is coming, in one line and its detail. `tone` colours the mark: calm is blue, `bad` is red. */
 function status(desk: CourierDesk, configured: boolean, today: string): { lead: string; detail: ReactNode; tone: "calm" | "bad" } {
   const { booked, ready, making } = desk;
-  if (!configured) return { lead: "The Courier Guy isn’t set up", detail: "Set TCG_API_KEY where the site is hosted, then reload, to book a collection.", tone: "bad" };
+  if (!configured) return { lead: "The Courier Guy isn’t set up", detail: "Ask whoever set up the site to add its Courier Guy key, then reload this page, and you can book collections here. It is a one-time job.", tone: "bad" };
 
   if (booked.length) {
     const late = booked.filter((b) => b.late);
@@ -126,7 +126,7 @@ export function CourierCard({ desk, configured, live, shop, now }: { desk: Couri
 
       {booked.length ? (
         <p className="widget__note">
-          {live ? "The Courier Guy reports here as it happens." : "The Courier Guy’s live updates are off, so this is read once a day. Set TCG_WEBHOOK_SECRET to turn them on."}
+          {live ? "The Courier Guy reports here as it happens." : "The Courier Guy’s live updates are off, so this is read once a day. Whoever set up the site can turn them on."}
           {read ? ` Last heard ${whenInline(read, now)}.` : ""}
         </p>
       ) : null}

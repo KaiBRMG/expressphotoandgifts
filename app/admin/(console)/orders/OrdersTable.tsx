@@ -164,8 +164,8 @@ export function OrdersTable({ rows, initial, now }: { rows: OrderRow[]; initial:
                     </span>
                     {r.flagged ? (
                       <span className="plist__flags">
-                        <Tooltip label="A payment didn’t match the order, or money was taken twice. Open the order to see which." openDelay={300} events={{ hover: true, focus: false, touch: false }}>
-                          <span className="flag">
+                        <Tooltip label="A payment didn’t match the order, or money was taken twice. Open the order to see which." openDelay={300} events={{ hover: true, focus: true, touch: true }}>
+                          <span className="flag" tabIndex={0}>
                             <Alert size={14} />
                             Needs a look
                           </span>

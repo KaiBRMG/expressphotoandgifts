@@ -479,7 +479,7 @@
     display: block;
     overflow: hidden;
     padding-inline: 14px;
-    font-size: 0.9375rem;
+    font-size: 1rem;
     color: var(--on-leather-soft);
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -579,21 +579,29 @@
       "today courier";
   }
 
-  .dash__top > :nth-child(1) {
+  /* By name, not position: the held-up card is left out on a good day, and a position would hand its area to Today. */
+  .dash__queue {
     grid-area: queue;
   }
 
-  .dash__top > :nth-child(2) {
+  .dash__courier {
     grid-area: courier;
   }
 
-  .dash__top > :nth-child(3) {
+  .dash__held {
     grid-area: held;
   }
 
-  .dash__top > :nth-child(4) {
+  .dash__today {
     grid-area: today;
   }
+}
+
+.dash__queue,
+.dash__courier,
+.dash__held,
+.dash__today {
+  min-width: 0;
 }
 
 /* Each keeps its own height. */
@@ -1373,6 +1381,28 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* A refund reason in the list: the words, then the clause of the terms as a mark beneath. */
+.reasonopt {
+  display: grid;
+  gap: 2px;
+}
+
+.reasonopt__terms {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+/* The question a button row asks before an action that can't be taken back: its own line, then the two answers. */
+.confirm__ask {
+  flex: 1 1 100%;
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
 }
 
 /* Photos */
@@ -4468,6 +4498,11 @@ a.pay__step:focus-visible {
   .pay__sandbox,
   .hidden__deal,
   .stk__hmeta,
+  .stk thead th,
+  .tline__week,
+  .tline__seasonName,
+  .tline__todayName,
+  .tline__bar,
   .mantine-InputWrapper-description {
     font-size: 1rem;
   }
@@ -5954,8 +5989,7 @@ a.pay__step:focus-visible {
 /* Grid columns may shrink below a table's natural width; its wrapper scrolls instead. */
 .takings__top > *,
 .an__split > *,
-.an__pair > *,
-.an__grid > * {
+.an__pair > * {
   min-width: 0;
 }
 
@@ -6053,15 +6087,13 @@ a.pay__step:focus-visible {
 }
 
 /* A chart's box takes its width from the page, never from the chart drawn in it; the chart redraws to fit. */
-.pace__plot,
-.daily {
+.pace__plot {
   position: relative;
   border-radius: 12px;
   contain: inline-size;
 }
 
-.pace svg,
-.daily svg {
+.pace svg {
   display: block;
   overflow: visible;
 }
@@ -6081,11 +6113,6 @@ a.pay__step:focus-visible {
 .pace {
   --chart-rule: rgb(255 255 255 / 0.16);
   --chart-ink: var(--on-leather-soft);
-}
-
-.daily {
-  --chart-rule: var(--rule-paper);
-  --chart-ink: var(--ink-soft);
 }
 
 .pace__plot:focus-visible {
@@ -6298,12 +6325,6 @@ a.pay__step:focus-visible {
   }
 }
 
-.an__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
-  column-gap: clamp(32px, 4vw, 48px);
-}
-
 .an__tableWrap {
   overflow-x: auto;
 }
@@ -6415,34 +6436,6 @@ a.pay__step:focus-visible {
 .an__aside svg {
   flex: none;
   margin-top: 2px;
-}
-
-.an__setup {
-  max-width: 44rem;
-  margin-top: 16px;
-  padding: 20px 22px;
-  border: 1px solid var(--rule-card);
-  border-radius: 18px;
-}
-
-.an__setupTitle {
-  font-size: 1.125rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.an__setupSteps {
-  display: grid;
-  gap: 8px;
-  margin: 12px 0 0;
-  padding-left: 1.3rem;
-  line-height: 1.55;
-  color: var(--ink-soft);
-}
-
-.an__setupSteps strong {
-  color: var(--ink);
-  font-weight: 600;
 }
 
 /* Bar lists ---------------------------------------------------------------- */
@@ -6578,26 +6571,6 @@ a.pay__step:focus-visible {
 
 .misses__n {
   color: var(--ink-soft);
-}
-
-/* Visitors each day -------------------------------------------------------- */
-
-.daily:focus-visible {
-  outline: 3px solid var(--blue);
-  outline-offset: 6px;
-}
-
-.daily__bar {
-  fill: var(--blue);
-  transition: opacity 0.15s var(--ease-out);
-}
-
-.daily__col--on .daily__bar {
-  opacity: 0.72;
-}
-
-.daily__hit {
-  fill: transparent;
 }
 
 /* Phones: nothing under 16px. */
@@ -6803,6 +6776,7 @@ a.pay__step:focus-visible {
 /* The 16px floor: on a phone nothing new here reads smaller. */
 @media (max-width: 46rem) {
   .clist__email,
+  .clist__phone,
   .clist__tag,
   .calso__label {
     font-size: 1rem;
@@ -6816,7 +6790,7 @@ a.pay__step:focus-visible {
   height: min(68vh, 680px);
   border: 1px solid var(--rule-hair);
   border-radius: 12px;
-  background: #e9edfa;
+  background: rgb(var(--blue-rgb) / 0.09);
 }
 
 /* ---- Dashboard: the courier -------------------------------------------------

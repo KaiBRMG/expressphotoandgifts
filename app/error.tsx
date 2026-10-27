@@ -40,7 +40,7 @@ export default function PageError({ error, retry }: { error: Error & { digest?: 
         <div className="shell lost__inner">
           <h1 className="lost__title">This page didn’t load.</h1>
           <p className="lost__text">
-            It’s us, not you, and often a dropped connection. Nothing was changed and nothing was charged. Try again, and if it keeps happening, message us and we’ll sort it out.
+            It’s us, not you, and often a dropped connection. Try again, and if it keeps happening, message us and we’ll sort it out.
           </p>
 
           <div className="lost__actions">

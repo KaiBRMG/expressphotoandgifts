@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Button, Checkbox, NumberInput, Select, Textarea, TextInput } from "@mantine/core";
+import { Button, Checkbox, NumberInput, Select, Textarea, TextInput, type ComboboxItem } from "@mantine/core";
 import type { OrderEmail } from "@/lib/checkout/emails";
 import { itemCount, rands } from "@/lib/catalog/listing";
 import { lineWhat, NOTE_MAX, type OrderActionResult, type OrderStage } from "@/lib/checkout/order";
@@ -80,6 +80,17 @@ export function AdvanceStage({ ref_, stage, label }: { ref_: string; stage: Orde
   );
 }
 
+/** A reason in the list: the words first, the clause of the terms it rests on as a small mark beneath. */
+const reasonOption = ({ option }: { option: ComboboxItem }) => {
+  const terms = REFUND_REASONS[option.value as RefundReason].terms;
+  return (
+    <span className="reasonopt">
+      {option.label}
+      {terms ? <span className="reasonopt__terms">{/^\d/.test(terms) ? `Terms ${terms}` : terms}</span> : null}
+    </span>
+  );
+};
+
 /**
  * The refund, as the terms work it out (`lib/checkout/refunds.ts`): why,
  * which units, and whether delivery goes back, with anything the terms let
@@ -148,7 +159,8 @@ export function RefundForm({ order }: { order: Refundable }) {
       <Select
         label="Why"
         placeholder="Choose the reason"
-        data={Object.entries(REFUND_REASONS).map(([value, r]) => ({ value, label: r.terms ? `${r.label} (${r.terms})` : r.label }))}
+        data={Object.entries(REFUND_REASONS).map(([value, r]) => ({ value, label: r.label }))}
+        renderOption={reasonOption}
         value={reason}
         onChange={(v) => {
           setReason(isRefundReason(v) ? v : null);
@@ -289,7 +301,8 @@ export function CancelOrder({ order, units, waybill }: { order: Refundable; unit
       <Select
         label="Why"
         placeholder="Choose the reason"
-        data={CANCEL_REASONS.map((value) => ({ value, label: `${REFUND_REASONS[value].label} (${REFUND_REASONS[value].terms})` }))}
+        data={CANCEL_REASONS.map((value) => ({ value, label: REFUND_REASONS[value].label }))}
+        renderOption={reasonOption}
         value={reason}
         onChange={(v) => setReason(isCancelReason(v) ? v : null)}
         allowDeselect={false}

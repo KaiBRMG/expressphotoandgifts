@@ -72,10 +72,20 @@ export default async function Dashboard() {
 
       <div className="dash">
         <div className={`dash__top${queue.collect.length ? "" : " dash__top--clear"}`}>
-          <NeedsDoing queue={queue} check={check} now={now} />
-          <CourierCard desk={queue.courier} configured={courierReady()} live={Boolean(process.env.TCG_WEBHOOK_SECRET?.trim())} shop={{ address: `${SHOP.street}, ${SHOP.town}`, phone: reach.phone }} now={now} />
-          <HeldUp collect={queue.collect} now={now} />
-          <TodayTakings today={sales.today} yesterday={sales.yesterday} />
+          <div className="dash__queue">
+            <NeedsDoing queue={queue} check={check} now={now} />
+          </div>
+          <div className="dash__courier">
+            <CourierCard desk={queue.courier} configured={courierReady()} live={Boolean(process.env.TCG_WEBHOOK_SECRET?.trim())} shop={{ address: `${SHOP.street}, ${SHOP.town}`, phone: reach.phone }} now={now} />
+          </div>
+          {queue.collect.length ? (
+            <div className="dash__held">
+              <HeldUp collect={queue.collect} now={now} />
+            </div>
+          ) : null}
+          <div className="dash__today">
+            <TodayTakings today={sales.today} yesterday={sales.yesterday} />
+          </div>
         </div>
         <div className="dash__more">
           <RunningLow rows={rows} deals={live} />

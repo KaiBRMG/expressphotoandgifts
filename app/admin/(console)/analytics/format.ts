@@ -35,17 +35,6 @@ export function percent(part: number, whole: number) {
   return `${p > 0 && p < 10 ? p.toFixed(1).replace(/\.0$/, "") : Math.round(p)}%`;
 }
 
-const regions = new Intl.DisplayNames(["en-ZA"], { type: "region" });
-
-/** "South Africa" for "ZA"; the code as given when it isn't one. */
-export const countryName = (code: string) => {
-  try {
-    return regions.of(code) ?? code;
-  } catch {
-    return code;
-  }
-};
-
 /** "3 orders", "1 order": a count with its noun. */
 export const numbered = (n: number, one: string, many: string) => `${n.toLocaleString("en-ZA")} ${n === 1 ? one : many}`;
 

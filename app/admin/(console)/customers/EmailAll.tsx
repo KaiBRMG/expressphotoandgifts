@@ -36,6 +36,9 @@ export function EmailAll({ count, campaigns }: { count: number; campaigns: Email
   const [sending, startSend] = useTransition();
   const [testing, startTest] = useTransition();
   const [previewing, startPreview] = useTransition();
+  // Two questions asked in the button row instead of acted on at once: the send, keyed to the email it was asked about so any edit takes the question back, and closing over a draft.
+  const [sure, setSure] = useState("");
+  const [leaving, setLeaving] = useState(false);
 
   const picked = campaigns.find((c) => c.id === campaignId) ?? null;
 
@@ -49,9 +52,20 @@ export function EmailAll({ count, campaigns }: { count: number; campaigns: Email
     setError(null);
     setNote(null);
     setDone(null);
+    setSure("");
+    setLeaving(false);
     setOpen(true);
   };
   const busy = sending || testing;
+  const key = JSON.stringify([subject, message, campaignId]);
+  const confirmed = sure === key;
+  const drafted = !done && (subject.trim() !== "" || message.trim() !== "");
+  // A written message isn't thrown away by a stray click outside the window or Escape.
+  const close = () => {
+    if (busy) return;
+    if (drafted && !leaving) return setLeaving(true);
+    setOpen(false);
+  };
   const ready = subject.trim() !== "" && (message.trim() !== "" || picked !== null);
 
   // A subject left empty, or still the last campaign's name, follows the campaign chosen.
@@ -79,6 +93,7 @@ export function EmailAll({ count, campaigns }: { count: number; campaigns: Email
 
   const send = () =>
     startSend(async () => {
+      setSure("");
       setError(null);
       setNote(null);
       const res = await emailAllCustomersAction(id, subject, message, campaignId);
@@ -102,7 +117,7 @@ export function EmailAll({ count, campaigns }: { count: number; campaigns: Email
         Email all
       </button>
 
-      <Modal opened={open} onClose={() => !busy && setOpen(false)} title="Email all" centered radius="lg" size="xl" closeOnClickOutside={!busy}>
+      <Modal opened={open} onClose={close} title="Email all" centered radius="lg" size="xl" closeOnClickOutside={!busy}>
         {done ? (
           <div className="stack">
             <p role="status">{done}</p>
@@ -169,17 +184,43 @@ export function EmailAll({ count, campaigns }: { count: number; campaigns: Email
               </p>
             ) : null}
             {note ? <p role="status">{note}</p> : null}
-            <div className="confirm__actions">
-              <Button variant="subtle" onClick={() => setOpen(false)} disabled={busy}>
-                Cancel
-              </Button>
-              <Button variant="default" onClick={test} loading={testing} disabled={!ready || sending}>
-                Send me a test
-              </Button>
-              <Button onClick={send} loading={sending} disabled={!ready || count === 0 || testing}>
-                {count ? `Send to ${people(count)}` : "Send"}
-              </Button>
-            </div>
+            {leaving ? (
+              <div className="confirm__actions">
+                <p className="confirm__ask" role="alert">
+                  Close without sending? What you wrote will be lost.
+                </p>
+                <Button variant="subtle" onClick={() => setLeaving(false)}>
+                  Keep writing
+                </Button>
+                <Button color="red" onClick={() => setOpen(false)}>
+                  Yes, discard it
+                </Button>
+              </div>
+            ) : confirmed ? (
+              <div className="confirm__actions">
+                <p className="confirm__ask" role="alert">
+                  Send this to {people(count)} now, each as their own email? It can’t be taken back.
+                </p>
+                <Button variant="subtle" onClick={() => setSure("")} disabled={sending}>
+                  Not yet
+                </Button>
+                <Button onClick={send} loading={sending}>
+                  Yes, send to {people(count)}
+                </Button>
+              </div>
+            ) : (
+              <div className="confirm__actions">
+                <Button variant="subtle" onClick={close} disabled={busy}>
+                  Cancel
+                </Button>
+                <Button variant="default" onClick={test} loading={testing} disabled={!ready || sending}>
+                  Send me a test
+                </Button>
+                <Button onClick={() => setSure(key)} disabled={!ready || count === 0 || testing}>
+                  {count ? `Send to ${people(count)}` : "Send"}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </Modal>

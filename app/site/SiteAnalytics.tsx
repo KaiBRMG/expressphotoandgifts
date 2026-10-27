@@ -17,7 +17,7 @@ function beforeSend(event: BeforeSendEvent): BeforeSendEvent | null {
 
 /**
  * Vercel Web Analytics: visitors, pages, referrers, devices and countries,
- * without cookies. Read back on the admin's Analytics page.
+ * without cookies, read in Vercel's own Analytics tab.
  */
 export function SiteAnalytics() {
   return <Analytics beforeSend={beforeSend} />;

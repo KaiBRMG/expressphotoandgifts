@@ -1,20 +1,18 @@
 import Link from "next/link";
 import type { Funnel, Report, Span } from "@/lib/admin/analytics";
-import type { TrafficRow } from "@/lib/admin/vercel";
 import { productHref, rands } from "@/lib/catalog/listing";
 import { Alert, Download } from "@/app/site/icons";
 import { Tip } from "../../Tip";
-import { MonthNav, monthName, shortMonth } from "../MonthNav";
+import { MonthNav, shortMonth } from "../MonthNav";
 import { dayMonth } from "../../when";
 import { BarList } from "./BarList";
-import { DailyChart } from "./DailyChart";
-import { countryName, percent, numbered, waited } from "./format";
+import { percent, numbered, waited } from "./format";
 import { Takings } from "./Takings";
 
 /**
  * How the online shop did, a month at a time, for the owner's review: the
  * money first, then what sold, how far customers got, who they were, how
- * long orders took, and where visitors came from.
+ * long orders took.
  */
 export function AnalyticsView({ report, current }: { report: Report; current: string }) {
   const month = report.month;
@@ -25,7 +23,7 @@ export function AnalyticsView({ report, current }: { report: Report; current: st
       <header className="page__head">
         <div>
           <h1 className="page__title">Analytics</h1>
-          <p className="page__lede">How the online shop did, a month at a time: the money, what sold, how far customers got and where they came from.</p>
+          <p className="page__lede">How the online shop did, a month at a time: the money, what sold, how far customers got and who they were.</p>
         </div>
         <a className="admin-link" href={`/admin/analytics/export?month=${month}`} download>
           <Download size={18} /> {name}&rsquo;s orders as a spreadsheet
@@ -43,8 +41,6 @@ export function AnalyticsView({ report, current }: { report: Report; current: st
         <Customers report={report} />
         <Turnaround report={report} />
       </div>
-
-      <Traffic report={report} />
     </div>
   );
 }
@@ -287,105 +283,6 @@ function Turnaround({ report }: { report: Report }) {
           ))}
         </dl>
       )}
-    </Section>
-  );
-}
-
-/* ---- Where visitors came from ------------------------------------------- */
-
-const SETUP: Record<"not-set-up" | "off" | "failed", { title: string; steps?: React.ReactNode[] }> = {
-  "not-set-up": {
-    title: "Vercel Web Analytics isn’t connected to this page yet.",
-    steps: [
-      <>
-        In Vercel, open the project&rsquo;s <strong>Analytics</strong> tab and switch Web Analytics on. The shop already sends it page views, without cookies.
-      </>,
-      <>
-        Make a token under <strong>Account settings → Tokens</strong> that can read the project.
-      </>,
-      <>
-        Add it to the project&rsquo;s environment variables as <span className="mono">VERCEL_API_TOKEN</span>, with <span className="mono">VERCEL_TEAM_ID</span> (Vercel sets{" "}
-        <span className="mono">VERCEL_PROJECT_ID</span> itself), and redeploy.
-      </>,
-    ],
-  },
-  off: {
-    title: "Web Analytics is switched off for this project in Vercel.",
-    steps: [
-      <>
-        Open the project&rsquo;s <strong>Analytics</strong> tab in Vercel and switch it on. Visitors are counted from then on; earlier months stay empty.
-      </>,
-    ],
-  },
-  failed: { title: "Vercel’s figures couldn’t be read just now." },
-};
-
-function Traffic({ report }: { report: Report }) {
-  const t = report.traffic;
-  if (!t.ok) {
-    const s = SETUP[t.reason];
-    return (
-      <Section id="an-traffic" title="Where visitors came from">
-        <div className="an__setup">
-          <p className="an__setupTitle">{s.title}</p>
-          {s.steps ? (
-            <ol className="an__setupSteps">
-              {s.steps.map((step, i) => (
-                <li key={i}>{step}</li>
-              ))}
-            </ol>
-          ) : (
-            <p className="hint">{t.message}</p>
-          )}
-        </div>
-      </Section>
-    );
-  }
-
-  const d = t.data;
-  if (d.pageviews === 0) {
-    return (
-      <Section id="an-traffic" title="Where visitors came from">
-        <Empty>Vercel has no visits for {monthName(report.month)}. On Vercel&rsquo;s Hobby plan only the last month or so is kept.</Empty>
-      </Section>
-    );
-  }
-
-  const list = (rows: TrafficRow[], name: (key: string) => string = (k) => k) => rows.map((r) => ({ key: r.key, label: name(r.key), value: r.visitors, shown: numbered(r.visitors, "visitor", "visitors") }));
-  const length = report.revenue.pace.length;
-  return (
-    <Section id="an-traffic" title="Where visitors came from" lede="From Vercel Web Analytics: the live shop only, counted without cookies, in UTC days.">
-      <dl className="an__facts">
-        <Fact term="Visitors" value={d.visitors} />
-        <Fact term="Page views" value={d.pageviews} />
-        <Fact term="Visitors who paid" value={percent(report.revenue.orders, d.visitors)} />
-      </dl>
-      <h3 className="an__sub">Visitors each day</h3>
-      <DailyChart month={report.month} length={length} days={d.days.map((r) => ({ day: Number(r.key.slice(8, 10)), visitors: r.visitors, pageviews: r.pageviews }))} />
-      <div className="an__grid">
-        <div>
-          <h3 className="an__sub">Pages</h3>
-          <BarList mono label="Most visited pages" bars={d.pages.map((r) => ({ key: r.key, label: r.key, value: r.pageviews, shown: numbered(r.pageviews, "view", "views") }))} />
-        </div>
-        <div>
-          <h3 className="an__sub">Came from</h3>
-          {d.referrers.length ? <BarList label="Where visitors came from" bars={list(d.referrers, (k) => (k === "(none)" ? "Typed in, or an app" : k))} /> : <Empty>No other site sent visitors.</Empty>}
-        </div>
-        {d.campaigns.length ? (
-          <div>
-            <h3 className="an__sub">Campaign links</h3>
-            <BarList mono label="Visitors by campaign link" bars={list(d.campaigns)} />
-          </div>
-        ) : null}
-        <div>
-          <h3 className="an__sub">Devices</h3>
-          <BarList label="Visitors by device" bars={list(d.devices)} />
-        </div>
-        <div>
-          <h3 className="an__sub">Countries</h3>
-          <BarList label="Visitors by country" bars={list(d.countries, countryName)} />
-        </div>
-      </div>
     </Section>
   );
 }

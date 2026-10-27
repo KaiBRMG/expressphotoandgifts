@@ -11,7 +11,6 @@ import { FUNNEL_STEPS, type FunnelDay } from "@/lib/funnel";
 import { daysIn, monthBounds, shiftMonth, shopDate, toShopLocal } from "@/lib/shopTime";
 import { courierMonth } from "./courier";
 import { monthLedger, monthRange } from "./payments";
-import { monthTraffic, type TrafficRead } from "./vercel";
 import { toCsv } from "./csv";
 
 /**
@@ -98,7 +97,6 @@ export type Report = {
   funnel: Funnel;
   customers: Customers;
   turnaround: Turnaround;
-  traffic: TrafficRead;
 };
 
 /** Orders paid from `start` up to `end`, oldest first; with `fields`, only those fields are read. */
@@ -205,9 +203,9 @@ export async function monthReport(month: string): Promise<Report> {
   const current = shopDate().slice(0, 7) === month;
   const today = current ? Number(shopDate().slice(8, 10)) : length;
 
-  // The month's paid orders feed the reads that depend on them, which then run alongside PayFast, TCG and Vercel.
+  // The month's paid orders feed the reads that depend on them, which then run alongside PayFast and TCG.
   const paidRead = paidBetween(now.start, now.end);
-  const [paid, paidBefore, both, placed, days, since, categoryOf, categories, returning, ledger, tcg, traffic] = await Promise.all([
+  const [paid, paidBefore, both, placed, days, since, categoryOf, categories, returning, ledger, tcg] = await Promise.all([
     paidRead,
     paidBetween(last.start, last.end, ["paidAt", "total"]),
     refundsBetween(last.start, now.end),
@@ -219,7 +217,6 @@ export async function monthReport(month: string): Promise<Report> {
     paidRead.then((p) => returningOf(p, now.start)),
     payfastReady() ? monthLedger(month) : unset("PayFast isn’t set up."),
     courierReady() ? courierMonth(month) : unset("The Courier Guy isn’t set up."),
-    monthTraffic(range.from, range.to, !current),
   ]);
 
   /* ---- Revenue ---- */
@@ -384,7 +381,7 @@ export async function monthReport(month: string): Promise<Report> {
     delivered: spans((o) => hoursBetween(o.paidAt!, o.shipment?.events?.find((e) => e.status === "delivered")?.at)),
   };
 
-  return { month, today, revenue, sales, funnel, customers, turnaround, traffic };
+  return { month, today, revenue, sales, funnel, customers, turnaround };
 }
 
 /* ---- The spreadsheet ---------------------------------------------------- */

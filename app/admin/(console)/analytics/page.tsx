@@ -6,7 +6,7 @@ import { AnalyticsView } from "./View";
 
 export const metadata: Metadata = { title: "Analytics" };
 
-/** The owner's month: read fresh on every visit, from the orders, the shop's counters, PayFast, The Courier Guy and Vercel. */
+/** The owner's month: read fresh on every visit, from the orders, the shop's counters, PayFast and The Courier Guy. */
 export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/analytics">) {
   await requireAdmin();
   const current = thisMonth();
