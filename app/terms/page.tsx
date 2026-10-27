@@ -635,7 +635,7 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           <strong>What you approve at checkout is what we print.</strong> Unless you crop or edit it, each photo is placed whole, as you uploaded it. When you crop,
-          zoom, turn, flip to black and white or otherwise edit a photo, we print your edited version, and any words exactly as you typed them, spelling included.
+          zoom, turn, change to black and white or otherwise edit a photo, we print your edited version, and any words exactly as you typed them, spelling included.
           Please check everything on the review before you pay: we don&rsquo;t send separate proofs.
         </p>
         <p>
@@ -818,7 +818,8 @@ const SECTIONS: LegalSection[] = [
           if already received, returned to the Company in their original state.
         </Clause>
         <Clause n="10.6">
-          All Order cancellations must be done by emailing <EmailLink subject="Order cancellation" />. We will then refund you as set out in clause 11.
+          Email <EmailLink subject="Order cancellation" /> if you can, so there is a written record; a cancellation by WhatsApp or phone is confirmed back to you in
+          writing. We will then refund you as set out in clause 11.
         </Clause>
       </>
     ),
@@ -836,7 +837,7 @@ const SECTIONS: LegalSection[] = [
           <strong>Counter purchases</strong> are refunded the way you paid.
         </Clause>
         <Clause n="11.3">
-          We refund within 30 days of a cancellation, or of receiving a returned item, and usually much sooner. We email you when the refund is made; how soon it shows
+          We refund within 30 days of your cancellation (for a faulty item you send back, within 30 days of our receiving it), and usually much sooner. We email you when the refund is made; how soon it shows
           on your statement then depends on your bank.
         </Clause>
         <Clause n="11.4">
@@ -992,7 +993,7 @@ const SECTIONS: LegalSection[] = [
           areas.
         </p>
         <p>
-          We email you the tracking number as soon as we book the courier. Your order&rsquo;s progress, from our making it to the courier&rsquo;s delivery, can then be
+          We email you the tracking number once the courier has collected your parcel from us. Your order&rsquo;s progress, from our making it to the courier&rsquo;s delivery, can then be
           viewed at any point via the &ldquo;Track my order&rdquo; link in your order emails.
         </p>
       </>

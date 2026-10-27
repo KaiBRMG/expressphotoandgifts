@@ -232,7 +232,7 @@ const SECTIONS: LegalSection[] = [
         <ul>
           <li>a sign-in cookie, only once you sign in to an account, which keeps you signed in for up to two weeks or until you sign out;</li>
           <li>your cart, and a discount code you entered at checkout, so they survive a reload or a closed tab (the code is cleared once your order is paid);</li>
-          <li>your checkout in progress: the order number, which photo goes where and your edits, cleared after 10 days;</li>
+          <li>your checkout in progress: the order number and a secret key that proves it is yours, which photo goes where and your edits, cleared after 10 days;</li>
           <li>
             the details you typed at checkout (name, email, mobile and address), so you don&rsquo;t retype them if you leave and come back. They&rsquo;re cleared once your
             order is paid or you sign out; and
@@ -370,8 +370,8 @@ const SECTIONS: LegalSection[] = [
                 account details;
               </li>
               <li>
-                <strong>Cloudinary</strong>, outside South Africa, to store the photos you upload so we can print them: your photos and any edited versions made at
-                checkout;
+                <strong>Cloudinary</strong>, outside South Africa, to store the photos you upload so we can print them (your photos and any edited versions made at
+                checkout), and to deliver the product pictures on our pages, which every visitor&rsquo;s browser fetches from it (so it receives the IP address);
               </li>
               <li>
                 <strong>Resend</strong>, outside South Africa, to send order, delivery, refund and account emails: your email address, name and the details of your order;

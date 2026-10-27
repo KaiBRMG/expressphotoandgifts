@@ -6,6 +6,7 @@ import { useActionState, useState } from "react";
 import { PASSWORD_MIN } from "@/lib/checkout/details";
 import { Alert, Check, SignOut } from "@/app/site/icons";
 import { Field, inputProps } from "@/app/checkout/Field";
+import { clearDraft } from "@/app/checkout/draft";
 import { makeAccountAction, resetPasswordAction, signInAction, signOutAction, type AccountState } from "./actions";
 
 export function SignInForm() {
@@ -94,6 +95,8 @@ export function SignOutButton() {
       className="inline-link account__out"
       onClick={async () => {
         await signOutAction();
+        // The privacy policy says the details typed at checkout go when the customer signs out.
+        clearDraft();
         router.refresh();
       }}
     >
