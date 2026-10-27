@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdmin } from "@/lib/admin/auth";
 import Link from "next/link";
 import { courierMonth, type CourierRow } from "@/lib/admin/courier";
 import { parseMonth, thisMonth } from "@/lib/admin/payments";
@@ -7,6 +8,7 @@ import { courierReady, courierSandbox } from "@/lib/checkout/courier";
 import { statusText } from "@/lib/checkout/order";
 import { Alert, Check, External } from "@/app/site/icons";
 import { short } from "../../when";
+import { Tip } from "../../Tip";
 import { MonthNav, monthName } from "../MonthNav";
 
 export const metadata: Metadata = { title: "Courier" };
@@ -20,9 +22,10 @@ const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
  * Read live from TCG on every visit.
  */
 export default async function CourierPage({ searchParams }: PageProps<"/admin/courier">) {
+  await requireAdmin();
   const current = thisMonth();
   const month = parseMonth((await searchParams).month) ?? current;
-  const read = courierReady() ? await courierMonth(month) : { ok: false as const, message: "The Courier Guy isn’t set up: TCG_API_KEY is missing." };
+  const read = courierReady() ? await courierMonth(month) : { ok: false as const, message: "The Courier Guy isn’t set up yet: the shop’s API key for it is missing. Whoever looks after the site can add it." };
   const ledger = read.ok ? read.data : null;
   const count = ledger?.rows.length ?? 0;
 
@@ -81,10 +84,30 @@ export default async function CourierPage({ searchParams }: PageProps<"/admin/co
                 <thead>
                   <tr>
                     <th>Booked</th>
-                    <th>Waybill</th>
-                    <th className="plist__num">Customer paid</th>
-                    <th className="plist__num">TCG charged</th>
-                    <th className="plist__num">Difference</th>
+                    <th>
+                      <span className="label-tip">
+                        Waybill
+                        <Tip about="Waybill">The Courier Guy’s booking for one parcel. Its number is what the customer tracks.</Tip>
+                      </span>
+                    </th>
+                    <th className="plist__num">
+                      <span className="label-tip">
+                        Customer paid
+                        <Tip about="Customer paid">What the customer paid the shop for delivery on this order.</Tip>
+                      </span>
+                    </th>
+                    <th className="plist__num">
+                      <span className="label-tip">
+                        TCG charged
+                        <Tip about="TCG charged">What The Courier Guy billed the shop for this waybill. If its billing couldn’t be read, this is its booking price instead.</Tip>
+                      </span>
+                    </th>
+                    <th className="plist__num">
+                      <span className="label-tip">
+                        Difference
+                        <Tip about="Difference">What the customer paid for delivery less what TCG charged. A minus means the shop paid more than it took.</Tip>
+                      </span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

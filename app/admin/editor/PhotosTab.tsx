@@ -10,6 +10,7 @@ import { ArrowLeft, ArrowRight, Grip, Trash, Upload } from "@/app/site/icons";
 import type { Update } from "./ProductEditor";
 import { ACCEPT, uploadPhoto } from "./uploads";
 import { Where } from "./Where";
+import { Hint } from "../Tip";
 
 type Pending = { id: string; name: string; url: string };
 
@@ -203,12 +204,16 @@ export function PhotosTab({
                   error={!m.alt.trim() ? "Describe it before saving" : undefined}
                 />
                 <div className="photo__actions">
-                  <Button variant="subtle" size="sm" px={10} aria-label={`Move photo ${i + 1} earlier`} onClick={() => move(i, i - 1)} disabled={i === 0}>
-                    <ArrowLeft size={18} />
-                  </Button>
-                  <Button variant="subtle" size="sm" px={10} aria-label={`Move photo ${i + 1} later`} onClick={() => move(i, i + 1)} disabled={i === media.length - 1}>
-                    <ArrowRight size={18} />
-                  </Button>
+                  <Hint label="Move earlier">
+                    <Button variant="subtle" size="sm" px={10} aria-label={`Move photo ${i + 1} earlier`} onClick={() => move(i, i - 1)} disabled={i === 0}>
+                      <ArrowLeft size={18} />
+                    </Button>
+                  </Hint>
+                  <Hint label="Move later">
+                    <Button variant="subtle" size="sm" px={10} aria-label={`Move photo ${i + 1} later`} onClick={() => move(i, i + 1)} disabled={i === media.length - 1}>
+                      <ArrowRight size={18} />
+                    </Button>
+                  </Hint>
                   <Button
                     variant="subtle"
                     color="red"

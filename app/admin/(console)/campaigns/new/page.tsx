@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdmin } from "@/lib/admin/auth";
 import { blankDraft, OFFS_FOR, type RuleKind } from "@/lib/catalog/campaigns";
 import { campaignContext, listCampaigns } from "@/lib/admin/campaigns";
 import { CampaignEditor } from "../../../campaigns/CampaignEditor";
@@ -11,6 +12,7 @@ export const metadata: Metadata = { title: "New campaign" };
  * price deal unless another kind is named.
  */
 export default async function NewCampaignPage({ searchParams }: PageProps<"/admin/campaigns/new">) {
+  await requireAdmin();
   const [ctx, all, params] = await Promise.all([campaignContext(), listCampaigns(), searchParams]);
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
   const kind = (first(params.kind) in OFFS_FOR ? first(params.kind) : "price") as RuleKind;

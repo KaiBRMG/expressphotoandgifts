@@ -21,7 +21,8 @@ import { cmLabel } from "@/lib/catalog/sizes";
 import { maxFor, type Availability } from "@/lib/catalog/stock";
 import type { ProductVariant } from "@/lib/catalog/types";
 import { cart, useCart } from "@/app/site/cartStore";
-import { HOURS, MAKE_TIME, SHOP, whatsapp } from "@/app/site/data";
+import { useWhatsApp } from "@/app/site/ContactContext";
+import { DELIVERY_TIME, HOURS, SHOP } from "@/app/site/data";
 import { Cart, Clock, Parcel, Pin, Tag, Truck, WhatsApp, YourPhoto } from "@/app/site/icons";
 import { QuantityStepper } from "@/app/site/QuantityStepper";
 import { StockLimit } from "@/app/site/StockLimit";
@@ -95,6 +96,7 @@ function PurchaseView({
   sku,
   onSelect,
 }: Props & { sku: string | null; onSelect?: (v: ProductVariant) => void }) {
+  const wa = useWhatsApp();
   const ids = useId();
   const [quantity, setQuantity] = useState(1);
   const { lines, available: counts } = useCart();
@@ -238,7 +240,7 @@ function PurchaseView({
         {soldOut ? (
           <a
             className="btn btn--blue"
-            href={whatsapp(`Hi! The ${what} (code ${variant.sku}) is sold out on the site. When will you have more?`)}
+            href={wa(`Hi! The ${what} (code ${variant.sku}) is sold out on the site. When will you have more?`)}
             target="_blank"
             rel="noopener"
           >
@@ -257,7 +259,7 @@ function PurchaseView({
         ) : (
           <a
             className="btn btn--blue"
-            href={whatsapp(`Hi! Could you tell me the price of the ${item.name}${which ? ` (${which})` : ""}? Product code: ${variant.sku}.`)}
+            href={wa(`Hi! Could you tell me the price of the ${item.name}${which ? ` (${which})` : ""}? Product code: ${variant.sku}.`)}
           >
             <WhatsApp size={19} />
             Ask the shop for a price
@@ -273,14 +275,13 @@ function PurchaseView({
 /**
  * How the order reaches the customer, under the button that commits to it:
  * the two real routes, collect or courier, with the shop's own address and
- * hours, and a way to ask about a date before ordering. Every fact here is
- * from `data.ts`; how long an order takes to make is stated only once the
- * shop has confirmed it (`MAKE_TIME`), and until then the customer is asked
- * to check, never promised. Last, what can come back: the law asks for a
+ * hours, the standard delivery time, and a way to ask about a date before
+ * ordering. Every fact here is from `data.ts`. Last, what can come back: the law asks for a
  * personalised product's lack of a change-of-mind return to be said before
  * the customer buys, not found later in the policy.
  */
 function Getting({ name, personal }: { name: string; personal: boolean }) {
+  const wa = useWhatsApp();
   const open = HOURS.filter((h) => !h.closed).map((h) => `${h.days} ${h.time}`).join(", ");
   return (
     <ul className="getting" aria-label="Collect or courier">
@@ -304,11 +305,11 @@ function Getting({ name, personal }: { name: string; personal: boolean }) {
         <Clock size={20} />
         <p>
           <strong>Need it by a date?</strong>
-          <span>{MAKE_TIME ? `${MAKE_TIME} Check with the shop for anything sooner.` : "Check with the shop before you order and they\u2019ll tell you if it can be ready."}</span>
+          <span>Delivery takes {DELIVERY_TIME}. Check with the shop for anything sooner.</span>
         </p>
         <a
           className="getting__ask"
-          href={whatsapp(`Hi! I'm looking at the ${name}. Could it be ready by `)}
+          href={wa(`Hi! I'm looking at the ${name}. Could it be ready by `)}
         >
           <WhatsApp size={17} />
           Ask about a date
@@ -322,7 +323,7 @@ function Getting({ name, personal }: { name: string; personal: boolean }) {
             {personal
               ? "Because it\u2019s made with your photos or words, it can\u2019t be returned for a change of mind. If it arrives faulty or not as you ordered, we put it right. "
               : "Return it within 7 days of delivery, unused. If it arrives faulty, we put it right. "}
-            <Link className="inline-link" href="/refunds-cancellations">
+            <Link className="inline-link" href="/terms#returns">
               Returns policy
             </Link>
           </span>

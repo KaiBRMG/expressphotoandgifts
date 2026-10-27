@@ -249,12 +249,15 @@ export const CATEGORIES: Category[] = [
 
 export const SHOP = {
   name: "Express Photo and Gifts",
+  /** The public address, which canonical links, the sitemap, robots and structured data all give: not SITE_URL, which is unset or a preview host on some builds. */
+  url: "https://expressphotoandgifts.com",
   street: "135 Scott Street",
   town: "Scottburgh",
   region: "Ugu District Municipality, KwaZulu-Natal",
   province: "KwaZulu-Natal",
   postcode: "4180",
   country: "South Africa",
+  /** The number and email below are only what the shop starts with: Settings changes them, and the site reads them through `lib/contact.ts`. */
   phoneDisplay: "076 491 2300",
   /** International form, for tel: and wa.me links. */
   phoneE164: "27764912300",
@@ -293,27 +296,56 @@ export const LEGAL: {
   informationOfficer: null,
 };
 
-export const HOURS: { days: string; time: string; closed?: boolean }[] = [
-  { days: "Monday to Friday", time: "8:30am – 4pm" },
-  { days: "Saturday", time: "9am – 1pm" },
-  { days: "Sunday", time: "Closed", closed: true },
+/**
+ * What the About page (hidden for now, in `app/_about/`) still needs from the shop. NOT YET SUPPLIED:
+ * every null is left off the public page until it is filled in, so nothing is
+ * guessed and nothing says "coming soon". In development and on preview builds
+ * the page marks each gap with a dashed slot naming the field. Only what is
+ * true goes in; PRODUCT.md bans invented years, figures and testimonials.
+ *
+ * Also still needed, and held in `LEGAL` above: the registered name, legal
+ * form, registration number, VAT number (only when registered) and the
+ * Information Officer. They show on the About page's "Who is behind the shop".
+ */
+export const ABOUT: {
+  /** Who runs the shop, as a customer would meet them: "Name Surname". */
+  ownerName: string | null;
+  /** Their part, e.g. "Owner", "Owner and photographer". */
+  ownerRole: string | null;
+  /** The year the shop opened, e.g. "2012". Never an estimate. */
+  opened: string | null;
+  /** How the shop started and why photos and gifts: one or two short paragraphs in the shop's own voice. */
+  story: string[] | null;
+  /** What a visit to the counter is like: one or two sentences, true on any ordinary weekday. */
+  visit: string | null;
+  /** A photograph of the shop or the people in it. `code` is its Cloudinary name under `products/<code>`, like every other photo, so it shares the site's two widths; `alt` describes it for a screen reader. */
+  shopPhoto: { code: string; alt: string } | null;
+  /** How long an order takes to make once paid, e.g. "Most orders are ready in 2 working days." Stated only when the shop will keep to it; the terms promise no date until one is confirmed in writing. */
+  makeTime: string | null;
+  /** How a school, club or business should order in quantity, and what the shop can offer them. Only once the line is confirmed. */
+  businessCustomers: string | null;
+} = {
+  ownerName: null,
+  ownerRole: null,
+  opened: null,
+  story: null,
+  visit: null,
+  shopPhoto: null,
+  makeTime: null,
+  businessCustomers: null,
+};
+
+type Weekday = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";
+
+/** What the footer prints, and the same hours as search engines read them (24-hour, `opens`/`closes`, none when closed). */
+export const HOURS: { days: string; time: string; closed?: boolean; weekdays: Weekday[]; opens?: string; closes?: string }[] = [
+  { days: "Monday to Friday", time: "8:30am – 4pm", weekdays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "08:30", closes: "16:00" },
+  { days: "Saturday", time: "9am – 1pm", weekdays: ["Saturday"], opens: "09:00", closes: "13:00" },
+  { days: "Sunday", time: "Closed", closed: true, weekdays: ["Sunday"] },
 ];
 
-/**
- * How long an order takes to make, as one sentence the product page states
- * under Add to cart ("Most orders are ready in 2 working days."). NOT YET
- * CONFIRMED BY THE SHOP: until it is, this stays null and the page asks the
- * customer to check a date instead of promising one.
- */
-export const MAKE_TIME: string | null = null;
-
-/** Builds a WhatsApp deep link with the message already written. */
-export function whatsapp(message: string): string {
-  return `https://wa.me/${SHOP.phoneE164}?text=${encodeURIComponent(message)}`;
-}
-
-/** The shop's general chat, opened from the dock and the footer. */
-export const CHAT_HREF = whatsapp("Hi! I have a question about…");
+/** The standard delivery time the product page states under Add to cart. */
+export const DELIVERY_TIME = "3\u20135 business days";
 
 /**
  * Every verified product photograph, for the cover wall. Order is deliberate:

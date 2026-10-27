@@ -7,10 +7,11 @@ import { db } from "@/lib/firebase";
 import { rateLimit } from "@/lib/rateLimit";
 import { shopDate } from "@/lib/shopTime";
 import { shippingBoxes } from "@/lib/settings";
-import { readParcels, sized, type Parcel } from "./boxes";
+import { parcelText, readParcels, sized, type Parcel } from "./boxes";
 import {
   accountExtras,
   cancelShipment,
+  courierReady,
   createShipment,
   findShipments,
   priceWaybill,
@@ -23,14 +24,18 @@ import {
   type Priced,
 } from "./courier";
 import { orderEmails } from "./emails";
-import { DAY_MS, FINAL_STATUSES, hasLeftShop, stageUpdate, needsLookUp, statusText, type Order, type OrderActionResult, type Shipment, type ShipmentOptions } from "./order";
+import { COLLECTION_MAX, DAY_MS, ENDED, REF, FINAL_STATUSES, hasLeftShop, holdsWaybill, readyToBook, stageUpdate, needsLookUp, statusText, type Order, type OrderActionResult, type Shipment, type ShipmentOptions } from "./order";
 import { changeOrder, getOrder, orders } from "./orders";
 
 /**
  * An order's courier waybills, from booking to delivery: the one out to the
  * customer (`shipment`) and, once that is delivered, a return of it to the
- * shop (`returnShipment`). Staff book each from the admin; The Courier Guy's
- * webhook and a daily check keep their status. TCG documents no idempotency
+ * shop (`returnShipment`). Orders are packed and marked ready through the day
+ * (`packOrder`, nothing sent to TCG); staff then book the courier once for
+ * every order that is ready (`bookCollection`), one waybill each with one
+ * collection window, and a return is booked on its own. The customer is
+ * emailed when the courier has collected, not at booking. The Courier Guy's
+ * webhook and a daily check keep the status. TCG documents no idempotency
  * key and its webhooks carry no signature, so:
  *
  * - booking holds the order (`state: "booking"`) before asking TCG, and an
@@ -57,6 +62,9 @@ const EVENTS_KEPT = 30;
 
 /** How many waybills the daily check asks TCG about at once: well inside its rate limit. */
 const CHECKS_AT_ONCE = 3;
+
+/** How recently a waybill's status may have been read for the daily check to leave it: a webhook keeps a busy one fresh. */
+const FRESH_FOR_CHECK_MS = 6 * 60 * 60 * 1000;
 
 /** How far ahead staff may set the collection day. */
 const COLLECT_WITHIN_DAYS = 30;
@@ -105,26 +113,21 @@ const bookedAs = (s: Shipment, b: Booked): Shipment => {
   return booked;
 };
 
-/** After the response: the customer's "on its way" email, recorded on the order. Never throws. */
-const emailShipped = (order: Order) =>
-  after(async () => {
-    const sent = (await orderEmails(order, "shipped")).shipped!;
-    await orders()
-      .doc(order.ref)
-      .update({ "emails.shipped": sent })
-      .catch((e) => console.error("Shipped email record not saved", order.ref, e));
-  });
+/** The customer's "on its way" email, recorded on the order. Sent once the courier has collected the parcel, never at booking. Never throws. */
+const emailShipped = async (order: Order) => {
+  const sent = (await orderEmails(order, "shipped")).shipped!;
+  await orders()
+    .doc(order.ref)
+    .update({ "emails.shipped": sent })
+    .catch((e) => console.error("Shipped email record not saved", order.ref, e));
+};
 
 // ─── What staff choose ─────────────────────────────────────────────────────────
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-/**
- * Reads the booking options staff sent: a collection day from today to a
- * month out, hours in order, and extras only from those the account offers
- * on this route (read from TCG now), or why not.
- */
-async function readOptions(raw: unknown, which: Direction, o: CourierOrder): Promise<{ options: BookingOptions; extras: Extra[] } | { error: string }> {
+/** Reads a collection day (today to a month out) and hours in order, or why not. */
+function readWindow(raw: unknown): { collectionDate: string | null; after: string | null; before: string | null } | { error: string } {
   const x = (raw ?? {}) as Partial<Record<keyof BookingOptions, unknown>>;
   const date = typeof x.collectionDate === "string" && x.collectionDate ? x.collectionDate : null;
   const today = shopDate();
@@ -136,6 +139,18 @@ async function readOptions(raw: unknown, which: Direction, o: CourierOrder): Pro
   const before = time(x.before);
   if ((x.after && !after) || (x.before && !before)) return { error: "Collection hours are times like 10:00." };
   if (after && before && after >= before) return { error: "The collection window has to end after it starts." };
+  return { collectionDate: date, after, before };
+}
+
+/**
+ * Reads the booking options staff sent: the collection window, and extras
+ * only from those the account offers on this route (read from TCG now), or
+ * why not.
+ */
+async function readOptions(raw: unknown, which: Direction, o: CourierOrder): Promise<{ options: BookingOptions; extras: Extra[] } | { error: string }> {
+  const window = readWindow(raw);
+  if ("error" in window) return window;
+  const x = (raw ?? {}) as Partial<Record<keyof BookingOptions, unknown>>;
 
   const ids = Array.isArray(x.extras) ? [...new Set(x.extras.filter((id): id is number => Number.isSafeInteger(id)))] : [];
   let extras: Extra[] = [];
@@ -145,7 +160,7 @@ async function readOptions(raw: unknown, which: Direction, o: CourierOrder): Pro
     extras = offered.extras.filter((e) => ids.includes(e.id));
     if (extras.length !== ids.length) return { error: "An extra chosen isn’t offered on the account any more. Reload and choose again." };
   }
-  return { options: { collectionDate: date, after, before, extras: extras.map((e) => e.id) }, extras };
+  return { options: { ...window, extras: extras.map((e) => e.id) }, extras };
 }
 
 /** The options as the order keeps them: what was set, and nothing else. */
@@ -208,13 +223,16 @@ export async function proofFor(ref: string, which: Direction) {
 
 // ─── Booking ───────────────────────────────────────────────────────────────────
 
+/** A booking whose outcome isn't known: the waybill may exist at TCG. */
+type Unsure = { error: string; unsure: true };
+
 /**
  * Books a waybill for a paid courier order: out to the customer, or a return
  * of a delivered one, with the parcels and options staff chose. Holds the
  * order first, so a second press, a second tab or a second member of staff
  * can't book it twice.
  */
-export async function bookShipment(ref: string, which: Direction, rawParcels: unknown, rawOptions: unknown, rawCode: unknown, by: string): Promise<OrderActionResult> {
+export async function bookShipment(ref: string, which: Direction, rawParcels: unknown, rawOptions: unknown, rawCode: unknown, by: string): Promise<OrderActionResult | Unsure> {
   const chosen = readParcels(rawParcels);
   if (!chosen) return { error: "Each parcel needs a box and its packed weight." };
   const [before, boxes] = await Promise.all([getOrder(ref), shippingBoxes()]);
@@ -231,6 +249,7 @@ export async function bookShipment(ref: string, which: Direction, rawParcels: un
     const o = (await tx.get(doc)).data() as Order | undefined;
     if (!o || !isCourier(o)) return { error: "This order isn’t sent by courier." };
     if (o.status !== "paid") return { error: "Only a paid order can be sent." };
+    if (which === "out" && o.stage !== "ready") return { error: "Only an order marked ready to send can be booked." };
     if (which === "return" && returnProblem(o)) return { error: returnProblem(o)! };
     const w = waybillOf(o, which);
     if (w?.state === "booked") return { error: `This order already has a ${NAMED[which]}. Cancel it first to book another.` };
@@ -268,7 +287,6 @@ export async function bookShipment(ref: string, which: Direction, rawParcels: un
       update: { [field]: booked },
       log: `Booked ${what}, waybill ${booked.tracking}.${chargeNote(o, result.shipment, which)}`,
     }));
-    if (which === "out") emailShipped({ ...o, shipment: booked });
     return { ok: true };
   }
   if (result.kind === "refused") {
@@ -283,7 +301,99 @@ export async function bookShipment(ref: string, which: Direction, rawParcels: un
     log: `Booking ${which === "return" ? "the return" : "the courier"} didn’t finish: ${result.error}`,
     issue: `The courier booking${which === "return" ? " of the return" : ""} may or may not have been made (${result.error}). Look it up before booking again.`,
   }));
-  return { error: `${result.error} It may still have been booked: press Look it up before trying again.` };
+  return { error: `${result.error} It may still have been booked: press Look it up before trying again.`, unsure: true };
+}
+
+// ─── Packing, and the day's collection ─────────────────────────────────────────
+
+/**
+ * Saves the boxes and weights a courier order was packed into and marks it
+ * ready to send: the step before the order is ready, so that when staff book
+ * the courier everything it needs is already on the order. Nothing is asked
+ * of TCG and nobody is emailed. Parcels can be changed while the order waits
+ * in Ready, until a waybill stands.
+ */
+export async function packOrder(ref: string, rawParcels: unknown, by: string): Promise<OrderActionResult> {
+  const chosen = readParcels(rawParcels);
+  if (!chosen) return { error: "Each parcel needs a box and its packed weight." };
+  const boxes = await shippingBoxes();
+  const parcels = chosen.map((p) => sized(boxes, p));
+  const text = parcels.map((p) => parcelText(boxes, p)).join("; ");
+  return changeOrder(ref, by, (o) => {
+    if (o.status !== "paid") return { error: "Only a paid order can be packed." };
+    if (o.stage === "cancelled") return { error: "This order was cancelled and refunded, so there’s nothing to send." };
+    if (!isCourier(o)) return { error: "Only an order sent by courier has parcels to pack." };
+    if (o.stage === "done") return { error: "This order has already been sent." };
+    if (holdsWaybill(o.shipment)) return { error: "It already has a waybill. Cancel that first to change the parcels." };
+    const first = o.stage !== "ready";
+    return {
+      update: { packed: { parcels, at: new Date().toISOString(), by }, ...(first ? stageUpdate("ready") : {}) },
+      log: first ? `Packed ${parcelsText(parcels).trim()}: ${text}. Marked ready to send.` : `Changed the parcels to ${text}.`,
+    };
+  });
+}
+
+/**
+ * After this long no further order is started, so the rest wait for the next
+ * press instead of the request being cut off mid-booking. An order started at
+ * the last moment can wait 30 seconds for TCG, so this plus that must stay
+ * under the dashboard's `maxDuration` (60).
+ */
+const COLLECTION_BUDGET_MS = 20_000;
+
+/** What came of one order in a collection: made, refused (it can be tried again), not known (look it up on the order), or left for later. */
+export type CollectionLine = { ref: string; outcome: "booked" | "refused" | "unsure" | "left"; text?: string };
+
+/** Why an order the page listed can't be booked now, or null when it can. */
+const notBookable = (o: Order | null) => {
+  if (!o || !isCourier(o)) return "It isn’t a courier order.";
+  if (readyToBook(o)) return null;
+  if (holdsWaybill(o.shipment)) return "It already has a waybill.";
+  if (o.stage !== "ready") return "It isn’t marked ready to send any more.";
+  return "Its parcels aren’t saved.";
+};
+
+/**
+ * Books the courier for every order named, in one go: each gets its own
+ * waybill (TCG makes one per delivery address), all with the same collection
+ * day and hours so a single driver takes them in one visit, from the parcels
+ * saved on the order. The orders are the ones staff saw and confirmed; each is
+ * read again and booked only if it is still ready, and held while its booking
+ * runs, so a second press or a second person can't double any of them.
+ * A few at a time, and never retried: an answer that isn't known is flagged
+ * on its order for staff to look up.
+ */
+export async function bookCollection(rawRefs: unknown, rawWindow: unknown, by: string): Promise<{ ok: true; lines: CollectionLine[] } | { error: string }> {
+  const refs = Array.isArray(rawRefs) ? [...new Set(rawRefs.filter((r): r is string => typeof r === "string" && REF.test(r)))] : [];
+  if (!refs.length) return { error: "There are no orders to book." };
+  if (refs.length > COLLECTION_MAX) return { error: `Book at most ${COLLECTION_MAX} orders at once. Book the rest after.` };
+  const window = readWindow(rawWindow);
+  if ("error" in window) return window;
+  if (!courierReady()) return { error: "The Courier Guy isn’t set up (TCG_API_KEY)." };
+
+  const started = Date.now();
+  const queue = [...refs];
+  const lines: CollectionLine[] = [];
+  await Promise.all(
+    Array.from({ length: CHECKS_AT_ONCE }, async () => {
+      for (let ref = queue.shift(); ref; ref = queue.shift()) {
+        if (Date.now() - started > COLLECTION_BUDGET_MS) {
+          lines.push({ ref, outcome: "left", text: "Not tried: the booking ran out of time. Book the courier again for the rest." });
+          continue;
+        }
+        const o = await getOrder(ref);
+        const why = notBookable(o);
+        if (why || !o?.packed) {
+          lines.push({ ref, outcome: "left", text: why ?? "Its parcels aren’t saved." });
+          continue;
+        }
+        const done = await bookShipment(ref, "out", o.packed.parcels, window, undefined, by);
+        lines.push("ok" in done ? { ref, outcome: "booked" } : { ref, outcome: "unsure" in done ? "unsure" : "refused", text: done.error });
+      }
+    }),
+  );
+  lines.sort((a, b) => refs.indexOf(a.ref) - refs.indexOf(b.ref));
+  return { ok: true, lines };
 }
 
 const parcelsText = (parcels: Parcel[]) => ` (${parcels.length} parcel${parcels.length === 1 ? "" : "s"})`;
@@ -325,7 +435,6 @@ export async function lookUpShipment(ref: string, which: Direction, by: string):
   });
   if ("error" in done) return done;
   if (!first) return { ok: true, notice: "The Courier Guy has no waybill for this. You can book it again." };
-  if (which === "out") emailShipped({ ...o, shipment: bookedAs(s, first) });
   return extra.length ? { ok: true, notice: `Found ${found.length} waybills. Cancel the extra ones in TCG’s portal.` } : { ok: true };
 }
 
@@ -347,7 +456,13 @@ export async function cancelOrderShipment(ref: string, which: Direction, by: str
   const s = o && waybillOf(o, which);
   if (s?.state !== "booked" || !s.tracking) return { error: "There’s no waybill to cancel." };
   const done = await cancelShipment(s.tracking);
-  if ("error" in done) return { error: `The Courier Guy didn’t cancel it: ${done.error}` };
+  if ("error" in done) {
+    // Already ended on TCG's side (cancelled in its portal, say): reading its status settles the order instead.
+    const synced = await syncShipment(ref, { which, tracking: s.tracking, staff: by });
+    const now = "ok" in synced ? await getOrder(ref) : null;
+    if (now && waybillOf(now, which)?.state !== "booked") return { ok: true, notice: "The Courier Guy had already ended this waybill. You can book another." };
+    return { error: `The Courier Guy didn’t cancel it: ${done.error}` };
+  }
   return changeOrder(ref, by, () => ({
     update: { [`${FIELD[which]}.state`]: "cancelled", [`${FIELD[which]}.open`]: false },
     log: `Cancelled ${which === "return" ? "the return, " : ""}waybill ${s.tracking}, with The Courier Guy.`,
@@ -378,13 +493,17 @@ export async function syncShipment(
     return { error: tracking ? "The Courier Guy’s tracking couldn’t be read just now. Try again later." : "There’s no waybill to follow." };
   }
 
-  return changeOrder(ref, by, (o) => {
+  // Set when this read is the first to show the parcel in the courier's hands: the customer is told then, not at booking.
+  let collected = false;
+  const done = await changeOrder(ref, by, (o) => {
     const s = waybillOf(o, which);
     // Cancelled or rebooked while TCG was asked: this answer is for a waybill the order no longer has.
     if (s?.state !== "booked" || s.tracking !== tracking) return { update: {}, issue: opts.issue };
 
     const changed = tracked.status !== s.status;
-    const sent = which === "out" && changed && hasLeftShop(tracked.status) && o.stage !== "done";
+    const ended = ENDED[tracked.status];
+    const sent = which === "out" && changed && hasLeftShop(tracked.status) && o.stage !== "done" && o.stage !== "cancelled";
+    collected = which === "out" && hasLeftShop(tracked.status) && !hasLeftShop(s.status) && !o.emails?.shipped?.ok;
     const problem = changed ? PROBLEMS[tracked.status] : undefined;
     const label = which === "return" ? "Return" : "Courier";
     const issue = [opts.issue, problem && `${which === "return" ? "The return: " : ""}${problem} Waybill ${tracking}; see TCG’s portal for details.`].filter(Boolean).join(" ");
@@ -395,12 +514,23 @@ export async function syncShipment(
         [`${field}.checkedAt`]: new Date().toISOString(),
         ...(tracked.estimate ? { [`${field}.estimate`]: tracked.estimate } : {}),
         ...(FINAL_STATUSES.has(tracked.status) ? { [`${field}.open`]: false } : {}),
+        ...(ended ? { [`${field}.state`]: ended, [`${field}.error`]: PROBLEMS[tracked.status] } : {}),
         ...(sent ? stageUpdate("done") : {}),
       },
-      log: changed ? `${label} status: ${statusText(tracked.status)}.${sent ? " Moved to Sent: the courier has it." : ""}` : opts.staff ? `Checked the ${label.toLowerCase()} status: no change.` : undefined,
+      log:
+        changed || ended
+          ? `${label} status: ${statusText(tracked.status)}.${sent ? " Moved to Sent: the courier has it." : ""}${ended ? ` Waybill ${tracking} no longer stands; book another.` : ""}`
+          : opts.staff
+            ? `Checked the ${label.toLowerCase()} status: no change.`
+            : undefined,
       issue: issue || undefined,
     };
   });
+  if ("ok" in done && collected) {
+    const order = await getOrder(ref);
+    if (order) await emailShipped(order);
+  }
+  return done;
 }
 
 /** How old the courier's status on an order may get before a customer's view of it asks TCG again. */
@@ -435,11 +565,12 @@ export async function orderForShipment(id: number): Promise<{ ref: string; which
 }
 
 /**
- * The daily check: every open waybill (out and returns) has its status read
- * again (a webhook missed is caught here), a few at a time, and a booking
+ * The daily check: every open waybill (out and returns) not read in the last
+ * few hours has its status read again (a webhook missed is caught here), a
+ * few at a time, and a booking
  * left half-done by a server that stopped is flagged for staff to look up.
  */
-export async function checkShipments(): Promise<{ checked: number; failed: number; stuck: number }> {
+export async function checkShipments(): Promise<{ checked: number; failed: number; stuck: number; fresh: number }> {
   const directions = ["out", "return"] as const;
   const [open, booking] = await Promise.all([
     Promise.all(directions.map((which) => orders().where(`${FIELD[which]}.open`, "==", true).select(FIELD[which]).get())),
@@ -460,7 +591,14 @@ export async function checkShipments(): Promise<{ checked: number; failed: numbe
     ),
   );
 
-  const queue = directions.flatMap((which, i) => open[i].docs.map((d) => ({ ref: d.id, which, tracking: waybillOf(d.data() as Order, which)?.tracking })));
+  // A waybill read lately (a webhook, a customer watching, staff) has nothing new to say: TCG's API limits its rate, so only the rest are asked.
+  const fresh = Date.now() - FRESH_FOR_CHECK_MS;
+  const queue = directions.flatMap((which, i) =>
+    open[i].docs.flatMap((d) => {
+      const w = waybillOf(d.data() as Order, which);
+      return w?.checkedAt && Date.parse(w.checkedAt) > fresh ? [] : [{ ref: d.id, which, tracking: w?.tracking }];
+    }),
+  );
   let checked = 0;
   let failed = 0;
   await Promise.all(
@@ -472,6 +610,7 @@ export async function checkShipments(): Promise<{ checked: number; failed: numbe
       }
     }),
   );
-  return { checked, failed, stuck: stuck.length };
+  const total = open.reduce((n, snap) => n + snap.size, 0);
+  return { checked, failed, stuck: stuck.length, fresh: total - checked - failed };
 }
 

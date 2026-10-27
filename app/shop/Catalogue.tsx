@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import {
   PRICE_BANDS,
@@ -12,8 +12,8 @@ import {
 } from "@/lib/catalog/listing";
 import { FILTER_FACETS, findTerm, tag, termCounts, termLabel, type FilterFacet, type Vocabulary } from "@/lib/catalog/tags";
 import { searchItems } from "@/lib/catalog/search";
-import { whatsapp } from "@/app/site/data";
-import { Close, Filter, YourPhoto } from "@/app/site/icons";
+import { useWhatsApp } from "@/app/site/ContactContext";
+import { Close, Filter, Search, YourPhoto } from "@/app/site/icons";
 import { ProductCard } from "./ProductCard";
 
 /**
@@ -85,6 +85,8 @@ const COMPARE: Record<SortId, (a: Listing, b: Listing) => number> = {
  */
 type Props = {
   listings: Listing[];
+  /** Every product in the shop, which a search looks through whatever shelf it is typed on; the shelf's own `listings` when omitted. */
+  everything?: Listing[];
   shelfName: string;
   /** Offer the shelf's types as a row of chips; on a category, not across the whole shop. */
   byType?: boolean;
@@ -92,7 +94,7 @@ type Props = {
   vocabulary: Vocabulary;
 };
 
-export function Catalogue({ listings, shelfName, byType = false, vocabulary }: Props) {
+export function Catalogue({ listings, everything = listings, shelfName, byType = false, vocabulary }: Props) {
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -114,6 +116,7 @@ export function Catalogue({ listings, shelfName, byType = false, vocabulary }: P
   return (
     <CatalogueView
       listings={listings}
+      everything={everything}
       shelfName={shelfName}
       byType={byType}
       vocabulary={vocabulary}
@@ -150,6 +153,7 @@ const PENDING_SCRIPT = `(function(){var m=document.currentScript.parentElement;v
 
 function CatalogueView({
   listings,
+  everything = listings,
   shelfName,
   byType,
   vocabulary,
@@ -164,35 +168,40 @@ function CatalogueView({
   /** The static stand-in, before the URL has been read. */
   pending?: boolean;
 }) {
+  const wa = useWhatsApp();
   const id = useId();
   const [open, setOpen] = useState(false);
   const band = PRICE_BANDS.find((b) => b.id === view.price);
-  // A search narrows the shelf first, best match first; the filters and their
-  // counts then work within what it found.
-  const pool = view.q ? searchItems(listings, view.q, vocabulary) : listings;
+  // A search looks through the whole shop, not the shelf it was typed on, best
+  // match first; the shelf's own kinds step aside, and the other filters and
+  // their counts then work within what it found.
+  const searching = view.q !== "";
+  const base = searching ? everything : listings;
+  const pool = searching ? searchItems(everything, view.q, vocabulary) : listings;
+  const typeNow = searching ? null : view.type;
   const matched = pool.filter(
     (l) =>
       (!band || band.test(l.min)) &&
       (!view.photo || l.personalisable) &&
-      FILTER_FACETS.every((f) => hasTerm(l, f, view[f])),
+      FILTER_FACETS.every((f) => hasTerm(l, f, f === "type" ? typeNow : view[f])),
   );
   // "Featured" on a search means relevance, which `pool` is already in.
   const shown = view.q && view.sort === "featured" ? matched : matched.sort(COMPARE[view.sort]);
-  const filtered = view.price !== null || view.photo || FILTER_FACETS.some((f) => view[f] !== null);
+  const filtered = view.price !== null || view.photo || FILTER_FACETS.some((f) => (f === "type" ? typeNow : view[f]) !== null);
   const anyPersonalisable = pool.some((l) => l.personalisable);
   const disabled = !onChange;
-  const types = byType ? terms(vocabulary, pool, "type", view.type) : [];
+  const types = byType && !searching ? terms(vocabulary, pool, "type", view.type) : [];
   const occasions = terms(vocabulary, pool, "occasion", view.occasion);
   const recipients = terms(vocabulary, pool, "for", view.for);
-  const offerPhoto = anyPersonalisable && listings.some((l) => !l.personalisable);
+  const offerPhoto = anyPersonalisable && base.some((l) => !l.personalisable);
   // On a shelf where everything takes a photo, the card's line says nothing.
-  const mixed = !listings.every((l) => l.personalisable);
+  const mixed = !base.every((l) => l.personalisable);
 
   // Every filter in force, each removable on its own. The type is here only
   // when there is no row of type chips to show it.
   const applied: { key: string; label: string; clear: Partial<View> }[] = [
-    ...(view.type && types.length <= 1
-      ? [{ key: "type", label: termLabel(vocabulary, "type", view.type), clear: { type: null } }]
+    ...(typeNow && types.length <= 1
+      ? [{ key: "type", label: termLabel(vocabulary, "type", typeNow), clear: { type: null } }]
       : []),
     ...(view.occasion
       ? [{ key: "occasion", label: termLabel(vocabulary, "occasion", view.occasion), clear: { occasion: null } }]
@@ -208,7 +217,7 @@ function CatalogueView({
   // "nothing matching “mug”, in Mugs for Christmas, for kids, under R100 that takes your photo"
   const why = [
     view.q ? `matching “${view.q}”` : null,
-    view.type ? `in ${termLabel(vocabulary, "type", view.type)}` : null,
+    typeNow ? `in ${termLabel(vocabulary, "type", typeNow)}` : null,
     view.occasion ? `for ${termLabel(vocabulary, "occasion", view.occasion)}` : null,
     view.for ? termLabel(vocabulary, "for", view.for).toLowerCase() : null,
     band?.phrase ?? null,
@@ -233,17 +242,8 @@ function CatalogueView({
         </>
       ) : null}
 
-      {view.q ? (
-        <div className="searched">
-          <p className="searched__label">
-            Results for <strong>&ldquo;{view.q}&rdquo;</strong>
-          </p>
-          <button type="button" className="toggle" disabled={disabled} onClick={() => onChange?.({ q: "" })}>
-            <Close size={16} />
-            Clear search
-          </button>
-        </div>
-      ) : null}
+      {/* The first row: a search covers the whole shop, whichever shelf it is typed on. */}
+      <SearchField id={`${id}-search`} value={view.q} disabled={disabled} onChange={(q) => onChange?.({ q })} />
 
       {/* One row of what the shelf holds: the finer grouping a second tier of
           categories would have been, without the extra page. */}
@@ -275,6 +275,7 @@ function CatalogueView({
         <p className="toolbar__count" aria-live="polite">
           <strong>{shown.length}</strong> {shown.length === 1 ? "product" : "products"}
           {filtered ? <span> of {pool.length}</span> : null}
+          {searching ? <span> for &ldquo;{view.q}&rdquo; across the shop</span> : null}
         </p>
 
         <div className="toolbar__controls">
@@ -403,28 +404,27 @@ function CatalogueView({
       ) : (
         <div className="nomatch">
           <p className="nomatch__title">Nothing here matches.</p>
-          {/* Nothing found at all: the search line above already offers to
-              clear it, so this only suggests what to try. */}
+          {/* Nothing found at all: the search field above clears itself, so this only suggests what to try. */}
           {pool.length === 0 ? (
             <>
               <p className="nomatch__text">
-                {shelfName} has nothing matching &ldquo;{view.q}&rdquo;. Try a
+                The shop has nothing matching &ldquo;{view.q}&rdquo;. Try a
                 product, like mug or frame, or an occasion, like birthday. If
                 it&rsquo;s something the shop makes that isn&rsquo;t online yet,{" "}
                 <a
                   className="inline-link"
-                  href={whatsapp(`Hi! Do you make ${view.q}? I couldn't find it in the online shop.`)}
+                  href={wa(`Hi! Do you make ${view.q}? I couldn't find it in the online shop.`)}
                 >
                   ask on WhatsApp
                 </a>
                 .
               </p>
-              <Suggestions listings={listings} />
+              <Suggestions listings={base} where={searching ? "in the shop" : "on this shelf"} />
             </>
           ) : (
             <>
               <p className="nomatch__text">
-                {shelfName} has nothing {why.join(", ")}. Clear the filters to
+                {searching ? "The shop" : shelfName} has nothing {why.join(", ")}. Clear the filters to
                 see all {pool.length}.
               </p>
               <button type="button" className="btn btn--blue" onClick={reset}>
@@ -442,7 +442,7 @@ function CatalogueView({
  * What to look at instead when a search finds nothing: the shelf's first
  * photo products in the shop's own order, so the page is never a dead end.
  */
-function Suggestions({ listings }: { listings: Listing[] }) {
+function Suggestions({ listings, where }: { listings: Listing[]; where: string }) {
   const photo = listings.filter((l) => l.personalisable);
   const yours = photo.length >= 4;
   const picks = (yours ? photo : listings).slice(0, 4);
@@ -450,7 +450,7 @@ function Suggestions({ listings }: { listings: Listing[] }) {
   return (
     <section className="nomatch__picks" aria-labelledby="picks-title">
       <h2 id="picks-title" className="nomatch__picksTitle">
-        {yours ? "Things your photo can go on" : "Also on this shelf"}
+        {yours ? "Things your photo can go on" : `Also ${where}`}
       </h2>
       <ul className="grid">
         {picks.map((l) => (
@@ -482,6 +482,79 @@ function Kind({
       <span>{children}</span>
       <span className="kinds__count">{count}</span>
     </button>
+  );
+}
+
+/**
+ * The catalogue's search: the header search's matcher (`searchItems`) applied
+ * to the whole shop as the customer types. The URL's `q` is the truth; the field keeps
+ * its own text so typing never waits on a navigation, and writes it to the URL
+ * once the customer pauses.
+ */
+function SearchField({
+  id,
+  value,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  disabled: boolean;
+  onChange: (q: string) => void;
+}) {
+  const [text, setText] = useState(value);
+  // The last words this field put in the URL, to tell its own echo from a change made elsewhere.
+  const sent = useRef(value);
+  const latest = useRef(onChange);
+  useEffect(() => {
+    latest.current = onChange;
+  });
+
+  // "Clear search" or the header's "See all" changed `q`: the field follows.
+  useEffect(() => {
+    if (value === sent.current) return;
+    sent.current = value;
+    setText(value);
+  }, [value]);
+
+  const apply = (next: string) => {
+    const q = next.trim();
+    if (q === sent.current) return;
+    sent.current = q;
+    latest.current(q);
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => apply(text), 300);
+    return () => clearTimeout(timer);
+  }, [text]);
+
+  return (
+    <form
+      className="catalogsearch"
+      role="search"
+      onSubmit={(e) => {
+        e.preventDefault();
+        apply(text);
+      }}
+    >
+      <label htmlFor={id} className="visually-hidden">
+        Search the shop
+      </label>
+      <Search size={20} aria-hidden="true" />
+      <input
+        id={id}
+        name="q"
+        type="search"
+        placeholder="Search the shop: mugs, frames, birthday…"
+        autoComplete="off"
+        enterKeyHint="search"
+        maxLength={80}
+        disabled={disabled}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+    </form>
   );
 }
 

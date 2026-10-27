@@ -6,9 +6,10 @@ import { shopTimestamp } from "@/lib/shopTime";
 import { payfastCredentials, pfEncode } from "./payfast";
 
 /**
- * PayFast's server-to-server API (api.payfast.co.za, "API Ref" in its docs):
- * read only, for the admin. Transaction history, a card payment's status, and
- * a payment's refunds. Nothing here moves money.
+ * PayFast's server-to-server API (api.payfast.co.za, "API Ref" in its docs),
+ * for the admin: transaction history, a card payment's status, and a
+ * payment's refunds. `createRefund` is the one call that moves money, and is
+ * only made through `lib/admin/refunds.ts`.
  *
  * Signed unlike a payment: every header (merchant-id, version, timestamp),
  * body and query field, and the passphrase, sorted alphabetically, URL-encoded
@@ -33,7 +34,10 @@ const signature = (fields: Record<string, string>, passphrase: string) =>
     .digest("hex");
 
 /** One signed GET, and its body read as JSON when it is JSON. */
-async function get(path: string, query: Record<string, string> = {}): Promise<ApiResult<unknown>> {
+const get = (path: string, query: Record<string, string> = {}) => call("GET", path, query);
+
+/** One signed call. A POST's JSON body is signed with the headers, as PayFast's own SDK signs it. */
+async function call(method: "GET" | "POST", path: string, query: Record<string, string> = {}, json?: Record<string, string | number>): Promise<ApiResult<unknown>> {
   const c = payfastCredentials();
   if (!c) return { ok: false, reason: "not-set-up", message: "PayFast isn’t set up: the merchant ID, key and passphrase are needed." };
   const headers = { "merchant-id": c.merchantId, version: "v1", timestamp: shopTimestamp() };
@@ -43,8 +47,11 @@ async function get(path: string, query: Record<string, string> = {}): Promise<Ap
 
   let res: Response;
   try {
+    const signed = { ...headers, ...query, ...Object.fromEntries(Object.entries(json ?? {}).map(([k, v]) => [k, String(v)])) };
     res = await fetch(url, {
-      headers: { ...headers, signature: signature({ ...headers, ...query }, c.passphrase) },
+      method,
+      headers: { ...headers, signature: signature(signed, c.passphrase), ...(json ? { "content-type": "application/json" } : {}) },
+      ...(json ? { body: JSON.stringify(json) } : {}),
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
     });
@@ -65,6 +72,9 @@ async function get(path: string, query: Record<string, string> = {}): Promise<Ap
   if (res.status === 404) return { ok: false, reason: "not-found", message };
   return { ok: false, reason: res.status >= 500 ? "unreachable" : "refused", message };
 }
+
+const isPaymentId = (id: string) => /^\d+$/.test(id);
+const NOT_AN_ID: ApiFailure = { ok: false, reason: "not-found", message: "That isn’t a PayFast payment ID." };
 
 /** The `data.response` PayFast wraps most answers in. */
 const responseOf = (body: unknown) => (body as { data?: { response?: unknown } })?.data?.response;
@@ -173,7 +183,7 @@ export async function transactionHistory(from: string, to: string): Promise<ApiR
 export type CardStatus = { status: string; amount: number | null; bankCode: string; bankMessage: string };
 
 export async function cardPayment(pfPaymentId: string): Promise<ApiResult<CardStatus>> {
-  if (!/^\d+$/.test(pfPaymentId)) return { ok: false, reason: "not-found", message: "That isn’t a PayFast payment ID." };
+  if (!isPaymentId(pfPaymentId)) return NOT_AN_ID;
   const got = await get(`/process/query/${pfPaymentId}`);
   if (!got.ok) return got.reason === "not-found" ? { ...got, message: "PayFast has no card payment by that ID. It may have been paid another way, such as EFT." } : got;
   const r = responseOf(got.data) as { status?: unknown; amount?: unknown; cc_status?: unknown; cc_message?: unknown } | undefined;
@@ -195,7 +205,7 @@ export async function cardPayment(pfPaymentId: string): Promise<ApiResult<CardSt
 export type PaymentRefunds = { available: number | null; refunds: { at: string; amount: number; type: string }[] };
 
 export async function paymentRefunds(pfPaymentId: string): Promise<ApiResult<PaymentRefunds>> {
-  if (!/^\d+$/.test(pfPaymentId)) return { ok: false, reason: "not-found", message: "That isn’t a PayFast payment ID." };
+  if (!isPaymentId(pfPaymentId)) return NOT_AN_ID;
   const got = await get(`/refunds/${pfPaymentId}`);
   // PayFast answers 404 "Failed" for a payment nothing has been refunded on.
   if (!got.ok) return got.reason === "not-found" ? { ok: true, data: { available: null, refunds: [] } } : got;
@@ -210,6 +220,41 @@ export async function paymentRefunds(pfPaymentId: string): Promise<ApiResult<Pay
         .map((t) => ({ at: String(t.date ?? ""), amount: Number(t.amount) || 0, type: String(t.type ?? "") })),
     },
   };
+}
+
+/** Everything PayFast has refunded on a payment so far, in cents. */
+export const refundedTotal = (r: PaymentRefunds) => r.refunds.reduce((n, x) => n + Math.abs(x.amount), 0);
+
+/**
+ * How PayFast can refund a payment (its query endpoint, which its docs say to
+ * ask first): back to the card or account it came from, only to a bank
+ * account (an EFT, say, which needs the customer's bank details, so it is
+ * done in PayFast's dashboard), not at all, or not said in a way the shop can
+ * read, which the refund itself then settles.
+ */
+export type RefundMethod = "source" | "bank" | "none" | "unknown";
+
+export async function refundMethod(pfPaymentId: string): Promise<ApiResult<{ method: RefundMethod; message: string }>> {
+  if (!isPaymentId(pfPaymentId)) return NOT_AN_ID;
+  const got = await get(`/refunds/query/${pfPaymentId}`);
+  if (!got.ok) return got;
+  const response = responseOf(got.data);
+  const said = JSON.stringify(response ?? got.data);
+  const errors = (response as { errors?: unknown } | undefined)?.errors;
+  const message = Array.isArray(errors) ? errors.map(String).join(" ") : "";
+  const method: RefundMethod = said.includes("PAYMENT_SOURCE") ? "source" : said.includes("BANK_PAYOUT") ? "bank" : said.includes("NOT_AVAILABLE") ? "none" : "unknown";
+  return { ok: true, data: { method, message } };
+}
+
+/**
+ * Asks PayFast to refund `amount` cents of a payment to the card or account
+ * it came from. PayFast doesn't email the buyer: the shop's own refund email
+ * does. PayFast makes no refunds in its sandbox.
+ */
+export async function createRefund(pfPaymentId: string, amount: number, reason: string): Promise<ApiResult<unknown>> {
+  if (!isPaymentId(pfPaymentId)) return NOT_AN_ID;
+  if (!Number.isSafeInteger(amount) || amount <= 0) return { ok: false, reason: "refused", message: "That isn’t an amount to refund." };
+  return call("POST", `/refunds/${pfPaymentId}`, {}, { amount, reason: reason.slice(0, 100), notify_buyer: 0 });
 }
 
 /* ---- PayFast's status page (public, unsigned) --------------------------- */

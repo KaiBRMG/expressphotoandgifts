@@ -6,7 +6,7 @@ import { productHref, rands, shelfHref } from "./listing";
  * order, which is what charges). No Firestore here.
  *
  *   campaigns/{id}                    Campaign
- *   campaigns/{id}/customers/{hash}   who has had a once-per-customer deal (SHA-256 of their email)
+ *   campaignCodes/{code}              one single-use code emailed to one customer, for a campaign that needs one
  *
  * A campaign holds one or more rules, each a sentence the shop writes:
  * - price: these are 20% off, R50 off, or sold for R199;
@@ -74,8 +74,12 @@ export type Caps = {
   orders: number | null;
   /** Discounted units, then it ends (the order that crosses it keeps its deal). */
   units: number | null;
-  /** Once per customer, by email. */
-  perCustomer: boolean;
+  /**
+   * Only with a one-time code: the deal is kept off the shop, and applies to
+   * an order only when the customer enters a code emailed to them at
+   * checkout. Email all mints each customer's own; each works once.
+   */
+  code: boolean;
 };
 
 /** Counted from paid orders, in the transaction that marks each paid; refunds are not taken off. Cents for money. */
@@ -118,7 +122,7 @@ export const MAX_RULES = 8;
 export const MAX_PICKS = 200;
 
 export const NO_USE: Usage = { orders: 0, units: 0, discount: 0, sales: 0 };
-export const NO_CAPS: Caps = { orders: null, units: null, perCustomer: false };
+export const NO_CAPS: Caps = { orders: null, units: null, code: false };
 
 export const RULE_NAMES: Record<RuleKind, string> = {
   price: "Price off",
@@ -774,6 +778,8 @@ export function campaignWarnings(d: CampaignDraft, products: readonly DealProduc
       if (stray.length) say(`The words “${r.label}” name ${stray.join(", ")}, which the deal doesn’t give: it is “${meant}”.`);
     }
   });
+  // A deal that needs a code is never on the shop, so nothing there can lead with it.
+  if (d.caps.code && d.featured) out.push({ message: "It needs a code, so it isn’t on the shop: the storefront’s specials band will not show it." });
   return out;
 }
 
@@ -844,7 +850,7 @@ export function readDraft(x: unknown): CampaignDraft | null {
     startsAt: iso(d.startsAt),
     endsAt: iso(d.endsAt),
     rules: rules as Rule[],
-    caps: { orders: intOrNull(caps.orders, 999_999), units: intOrNull(caps.units, 999_999), perCustomer: caps.perCustomer === true },
+    caps: { orders: intOrNull(caps.orders, 999_999), units: intOrNull(caps.units, 999_999), code: caps.code === true },
     featured: d.featured === true,
     blurb: str(d.blurb, BLURB_MAX),
   };

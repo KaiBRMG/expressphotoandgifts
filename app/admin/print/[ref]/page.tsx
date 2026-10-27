@@ -28,7 +28,7 @@ export default async function PrintPage({ params, searchParams }: PageProps<"/ad
   const specs = await printSpecs(o);
   const [line, set, slot] = [one(q.line), one(q.set), one(q.slot)];
 
-  const pages = o.lines.flatMap((l, li) =>
+  const pages = o.photosDeletedAt ? [] : o.lines.flatMap((l, li) =>
     line !== null && li !== line
       ? []
       : l.sets.flatMap((s, si) =>

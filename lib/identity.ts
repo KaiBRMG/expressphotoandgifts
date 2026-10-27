@@ -35,6 +35,14 @@ export const adminAllowlist = () =>
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 
+/**
+ * The custom claim every shop customer's account is made with. Staff listed
+ * in ADMIN_EMAILS are let into /admin by their address, so an account anyone
+ * could have registered first under that address must never count: a marked
+ * account is a customer's, and the allowlist does not open /admin for it.
+ */
+export const CUSTOMER_CLAIMS = { customer: true } as const;
+
 /** Whether an address is on the admin allowlist, however it was typed. */
 export const isStaffEmail = (email: string) => adminAllowlist().includes(email.trim().toLowerCase());
 

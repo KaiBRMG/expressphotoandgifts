@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
       { source: "/shop/personalised-gifts", destination: "/shop/photo-gifts", permanent: true },
       { source: "/shop/photos", destination: "/shop/photo-printing", permanent: true },
       { source: "/shop/batteries", destination: "/shop/add-ons?type=batteries", permanent: true },
+      // Returns, cancellations and refunds now sit in the terms; emails already sent link to the old page.
+      { source: "/refunds-cancellations", destination: "/terms#returns", permanent: true },
       { source: "/shop/snacks", destination: "/shop/add-ons?type=snacks", permanent: true },
     ];
   },

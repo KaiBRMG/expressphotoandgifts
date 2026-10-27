@@ -7,9 +7,10 @@ import { customerKey } from "@/lib/campaigns";
 import { addressLine, contactName } from "@/lib/checkout/details";
 import { orders } from "@/lib/checkout/orders";
 import { refundedOf, type Order } from "@/lib/checkout/order";
-import { allConsent, savedDetails, type Consent, type SavedDetails } from "@/lib/account/auth";
+import { allConsent, savedDetails, type Consent, type ConsentChange, type SavedDetails } from "@/lib/account/auth";
 import { auth } from "@/lib/firebase";
 import { isStaffEmail } from "@/lib/identity";
+import { allSubscribers } from "@/lib/subscribers";
 import { orderRow, type OrderRow } from "./orders";
 import { toCsv } from "./csv";
 
@@ -49,7 +50,15 @@ export type CustomerRow = {
 /** Only what the list needs of every paid order; a customer's page reads the rest of theirs. */
 type PaidOrder = Pick<Order, "ref" | "contact" | "total" | "refunds" | "paidAt" | "uid">;
 
-type Group = { key: string; email: string; user: UserRecord | null; paid: PaidOrder[] };
+/** `consent` is whether marketing email may go to them and every change they made: the account's record and an email-only subscription (`lib/subscribers.ts`) to the same address, together. */
+type Group = { key: string; email: string; user: UserRecord | null; paid: PaidOrder[]; consent?: Consent };
+
+/** The account's record and the subscription as one: agreed if either is, with both histories in date order. */
+function mergeConsent(...parts: (Consent | undefined)[]): Consent | undefined {
+  const some = parts.filter((c): c is Consent => c !== undefined);
+  if (some.length === 0) return undefined;
+  return { optedIn: some.some((c) => c.optedIn), history: some.flatMap((c) => c.history).sort((a, b) => a.at.localeCompare(b.at)) };
+}
 
 /** Every sign-in account that isn't staff's. */
 async function customerAccounts(): Promise<UserRecord[]> {
@@ -68,11 +77,12 @@ async function customerAccounts(): Promise<UserRecord[]> {
  * one: their own, and that of each other email their paid orders were placed
  * with. Once per request, so the list and a customer's page share one read.
  */
-const groups = cache(async (): Promise<{ groups: Group[]; byKey: Map<string, Group>; consent: Map<string, Consent> }> => {
-  const [paidSnap, users, consent] = await Promise.all([
+const groups = cache(async (): Promise<{ groups: Group[]; byKey: Map<string, Group> }> => {
+  const [paidSnap, users, consent, subscribed] = await Promise.all([
     orders().where("status", "==", "paid").select("ref", "contact", "total", "refunds", "paidAt", "uid").get(),
     customerAccounts(),
     allConsent(),
+    allSubscribers(),
   ]);
 
   const byUid = new Map(users.map((u) => [u.uid, u]));
@@ -90,22 +100,26 @@ const groups = cache(async (): Promise<{ groups: Group[]; byKey: Map<string, Gro
     group(account ? account.email!.toLowerCase() : o.contact.email.trim().toLowerCase()).paid.push(o);
   }
 
+  // Subscribers join the customer with their address; one who never ordered and has withdrawn is not worth a row.
+  for (const [email, c] of subscribed) if (c.optedIn) group(email);
+
   const all = [...byEmail.values()];
   const byKey = new Map(all.map((g) => [g.key, g]));
   for (const g of all) {
+    g.consent = mergeConsent(g.user ? consent.get(g.user.uid) : undefined, subscribed.get(g.email));
     g.paid.sort((a, b) => b.paidAt!.localeCompare(a.paidAt!));
     for (const o of g.paid) {
       const k = customerKey(o.contact.email);
       if (!byKey.has(k)) byKey.set(k, g);
     }
   }
-  return { groups: all, byKey, consent };
+  return { groups: all, byKey };
 });
 
 /** The latest paid order's name, or the account's. */
 const nameOf = (g: Group) => (g.paid[0] && contactName(g.paid[0].contact)) || g.user?.displayName?.trim() || "";
 
-function toRow(g: Group, consent: Map<string, Consent>): CustomerRow {
+function toRow(g: Group): CustomerRow {
   const total = g.paid.reduce((n, o) => n + o.total, 0);
   const refunded = g.paid.reduce((n, o) => n + refundedOf(o), 0);
   return {
@@ -119,38 +133,47 @@ function toRow(g: Group, consent: Map<string, Consent>): CustomerRow {
     first: g.paid.at(-1)?.paidAt ?? null,
     last: g.paid[0]?.paidAt ?? null,
     account: g.user !== null,
-    marketing: g.user !== null && consent.get(g.user.uid)?.optedIn === true,
+    marketing: g.consent?.optedIn === true,
     refs: g.paid.map((o) => o.ref),
   };
 }
 
 /** Everyone who has paid, and every account, the latest order first, then accounts by when they were made. */
 export async function listCustomers(): Promise<CustomerRow[]> {
-  const { groups: all, consent } = await groups();
+  const { groups: all } = await groups();
   const made = (g: Group) => (g.user ? new Date(g.user.metadata.creationTime).toISOString() : "");
   return all
     .sort((a, b) => (b.paid[0]?.paidAt ?? "").localeCompare(a.paid[0]?.paidAt ?? "") || made(b).localeCompare(made(a)))
-    .map((g) => toRow(g, consent));
+    .map(toRow);
+}
+
+/** Everyone who agreed to marketing email and hasn't withdrawn, by email, with the name and when and where they last agreed. */
+async function optedIn(): Promise<{ email: string; name: string; agreed: ConsentChange }[]> {
+  const { groups: all } = await groups();
+  return all
+    .flatMap((g) => {
+      const c = g.consent;
+      if (!c?.optedIn) return [];
+      return [{ email: g.email, name: nameOf(g), agreed: c.history.filter((h) => h.optedIn).at(-1)! }];
+    })
+    .sort((a, b) => a.email.localeCompare(b.email));
 }
 
 /** The opted-in list, for the shop's mailing tool: email, name and when and where they last agreed. */
 export async function marketingCsv(): Promise<string> {
-  const { groups: all, consent } = await groups();
-  const rows = all
-    .flatMap((g) => {
-      const c = g.user ? consent.get(g.user.uid) : undefined;
-      if (!c?.optedIn) return [];
-      const agreed = c.history.filter((h) => h.optedIn).at(-1)!;
-      return [[g.email, nameOf(g), agreed.at.slice(0, 10), agreed.source]];
-    })
-    .sort((a, b) => a[0].localeCompare(b[0]));
+  const rows = (await optedIn()).map((c) => [c.email, c.name, c.agreed.at.slice(0, 10), c.agreed.source]);
   return toCsv([["Email", "Name", "Agreed on", "Where"], ...rows]);
+}
+
+/** Who a marketing email may go to, read fresh at the moment of sending. */
+export async function marketingRecipients(): Promise<{ email: string; name: string }[]> {
+  return (await optedIn()).map(({ email, name }) => ({ email, name }));
 }
 
 /* ---- One customer ---------------------------------------------------- */
 
 /** An order of theirs, as their page lists it: its row, and what was in it ("Photo Mug, A4 Print and 2 more"). */
-export type CustomerOrder = OrderRow & { what: string };
+export type CustomerOrder = OrderRow;
 
 export type Tally = { key: string; label: string; detail: string | null; count: number; amount: number };
 
@@ -173,12 +196,6 @@ export type CustomerDetail = {
   recipients: Tally[];
 };
 
-function what(lines: Order["lines"]): string {
-  const names = [...new Set(lines.map((l) => l.name))];
-  if (names.length <= 2) return names.join(" and ");
-  return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
-}
-
 /** Adds to a tally by key, keeping the first label it was given (the newest order's). */
 function tallyInto(map: Map<string, Tally>, key: string, label: string, detail: string | null, count: number, amount: number) {
   const t = map.get(key);
@@ -197,10 +214,10 @@ const others = (values: string[], shown: string) => [...new Set(values.filter((v
  * an order that never went through is answered here. Null for no one's key.
  */
 export const getCustomer = cache(async (key: string): Promise<CustomerDetail | null> => {
-  const { byKey, consent } = await groups();
+  const { byKey } = await groups();
   const g = byKey.get(key);
   if (!g) return null;
-  const row = toRow(g, consent);
+  const row = toRow(g);
   const uid = g.user?.uid ?? null;
 
   // Their orders in full, every status, by the emails they used (Firestore's `in` takes 30) and their account.
@@ -235,7 +252,7 @@ export const getCustomer = cache(async (key: string): Promise<CustomerDetail | n
     if (f.recipient?.name) tallyInto(recipients, `${f.recipient.name}/${f.recipient.phone}`.toLowerCase(), f.recipient.name, f.recipient.phone || null, 1, 0);
   }
   const most = (m: Map<string, Tally>, by: "count" | "amount") => [...m.values()].sort((a, b) => b[by] - a[by] || a.label.localeCompare(b.label));
-  const c = uid ? consent.get(uid) : undefined;
+  const c = g.consent;
 
   return {
     row,
@@ -247,7 +264,7 @@ export const getCustomer = cache(async (key: string): Promise<CustomerDetail | n
         }
       : null,
     marketing: c ? { optedIn: c.optedIn, history: [...c.history].reverse() } : null,
-    orders: all.map((o) => ({ ...orderRow(o), what: what(o.lines) })).sort((a, b) => b.at.localeCompare(a.at)),
+    orders: all.map((o) => orderRow(o)).sort((a, b) => b.at.localeCompare(a.at)),
     also: {
       names: others(g.paid.map((o) => contactName(o.contact)), row.name),
       phones: others(g.paid.map((o) => o.contact.phone), row.phone),

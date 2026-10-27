@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdmin } from "@/lib/admin/auth";
 import Link from "next/link";
 import { PHASE_LABELS, RULE_HINTS, RULE_KINDS, RULE_NAMES, campaignSkus, endedBy, phaseOf, ruleSentence, type Campaign, type Phase } from "@/lib/catalog/campaigns";
 import { rands } from "@/lib/catalog/listing";
@@ -43,6 +44,7 @@ function dates(c: Campaign, phase: Phase, now: string): string {
  * stock behind it while it's on, and what it has done from paid orders.
  */
 export default async function CampaignsPage() {
+  await requireAdmin();
   const [campaigns, ctx, hand] = await Promise.all([listCampaigns(), campaignContext(), handSpecials()]);
   const names = contextNames(ctx);
   const now = Date.parse(ctx.now);

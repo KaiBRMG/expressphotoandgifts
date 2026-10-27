@@ -17,9 +17,9 @@ const CONFIRMED: Record<string, string> = {
 const day = (date: string) => new Date(`${date}T12:00:00+02:00`).toLocaleDateString("en-ZA", { timeZone: "Africa/Johannesburg", weekday: "short", day: "numeric", month: "short" });
 
 /**
- * The order's waybills as TCG has them: the outbound one once booked (booking
- * itself happens in the next step), its controls, proof and tracking; then,
- * once delivered, a return of it to the shop.
+ * The order's waybills as TCG has them: the outbound one once booked (the
+ * Dashboard books it with the day's collection), its controls, proof and
+ * tracking; then, once delivered, a return of it to the shop.
  */
 export function Courier({ order: o, boxes }: { order: Order; boxes: Boxes }) {
   const f = o.fulfilment;
@@ -28,7 +28,16 @@ export function Courier({ order: o, boxes }: { order: Order; boxes: Boxes }) {
 
   return (
     <div className="otab">
-      {o.shipment ? <Waybill o={o} boxes={boxes} which="out" /> : <p className="osec__soft">No waybill yet. Book it from the next step once it&rsquo;s packed.</p>}
+      {o.shipment ? (
+        <Waybill o={o} boxes={boxes} which="out" />
+      ) : (
+        <p className="osec__soft">
+          No waybill yet.{" "}
+          {o.packed
+            ? `Packed in ${o.packed.parcels.map((p) => parcelText(boxes, p)).join("; ")}. It is booked from the Dashboard with the other orders that are ready.`
+            : "Pack it and mark it ready, and it is booked from the Dashboard with the other orders that are ready."}
+        </p>
+      )}
       {delivered || o.returnShipment ? (
         <>
           <h3 className="osec__sub osec__sub--split">Return</h3>

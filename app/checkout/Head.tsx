@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { cart } from "@/app/site/cartStore";
-import { whatsapp } from "@/app/site/data";
+import { useWhatsApp } from "@/app/site/ContactContext";
 
 /** The steps of checkout, as the breadcrumb names them. The receipt has no way back. */
 const STEPS = {
@@ -41,6 +41,7 @@ export function CheckoutHead({
   /** Named in the WhatsApp message, so the shop can find the order. */
   orderRef?: string;
 }) {
+  const wa = useWhatsApp();
   const trail = step ? STEPS[step].trail : null;
   const before = (trail ?? []).slice(0, -1).filter((s) => !(skipPhotos && s === "photos"));
   return (
@@ -74,7 +75,7 @@ export function CheckoutHead({
           {step ? (
             <p className="ckhead__ask">
               Not sure about something?{" "}
-              <a className="inline-link" href={whatsapp(`Hi! I have a question about my order${orderRef ? ` ${orderRef}` : ""}…`)} target="_blank" rel="noreferrer">
+              <a className="inline-link" href={wa(`Hi! I have a question about my order${orderRef ? ` ${orderRef}` : ""}…`)} target="_blank" rel="noreferrer">
                 WhatsApp the shop
               </a>
             </p>

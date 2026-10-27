@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdmin } from "@/lib/admin/auth";
 import { listCategories } from "@/lib/admin/products";
 import { BackToProducts } from "../BackToProducts";
 import { NewProductForm } from "./NewProductForm";
@@ -6,6 +7,7 @@ import { NewProductForm } from "./NewProductForm";
 export const metadata: Metadata = { title: "New product" };
 
 export default async function NewProductPage() {
+  await requireAdmin();
   const categories = await listCategories();
   return (
     <div className="page page--narrow">

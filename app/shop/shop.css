@@ -1221,6 +1221,55 @@
   width: 100%;
 }
 
+/* The first row of the catalogue: a pill like the selects below it; 16px
+   text, so mobile Safari never zooms in. */
+.catalogsearch {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 30rem;
+  margin-bottom: clamp(1rem, 2vw, 1.4rem);
+  min-height: 44px;
+  padding-inline: 1.05rem 0.6rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--print);
+  color: var(--blue);
+  transition: border-color 0.25s var(--ease-out);
+}
+
+.catalogsearch:hover,
+.catalogsearch:focus-within {
+  border-color: var(--blue);
+}
+
+.catalogsearch:focus-within {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.catalogsearch svg {
+  flex: none;
+}
+
+.catalogsearch input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  outline: none;
+}
+
+.catalogsearch input::placeholder {
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+
 .toolbar__filter {
   justify-content: center;
 }
@@ -1499,26 +1548,4 @@
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.015em;
-}
-
-/* ---- A search's results ------------------------------------------------ */
-
-/* What was searched for, said back above the shelf, with the way out of it. */
-.searched {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 1rem;
-  margin-bottom: 1rem;
-}
-
-.searched__label {
-  margin: 0;
-  font-size: clamp(1.15rem, 2vw, 1.4rem);
-  color: var(--ink-soft);
-}
-
-.searched__label strong {
-  font-weight: 600;
-  color: var(--ink);
 }

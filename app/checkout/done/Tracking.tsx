@@ -1,7 +1,9 @@
+"use client";
+
 import type { ReactNode } from "react";
 
 import { estimateText, eventWords, momentText, type StepState, type Tracking } from "@/lib/checkout/tracking";
-import { SHOP } from "@/app/site/data";
+import { useContact } from "@/app/site/ContactContext";
 import { Alert, Check } from "@/app/site/icons";
 
 /** What a screen reader hears after each step's name. */
@@ -14,6 +16,7 @@ const HEARD: Record<StepState, string> = { done: ", done", now: ", happening now
  */
 export function OrderTracking({ t, id = "track-title", title = "Where your order is", foot }: { t: Tracking; id?: string; title?: ReactNode; foot?: ReactNode }) {
   const c = t.courier;
+  const shop = useContact();
   return (
     <section className={`track${c ? " track--courier" : ""}`} aria-labelledby={id}>
       <div className="track__main">
@@ -26,7 +29,7 @@ export function OrderTracking({ t, id = "track-title", title = "Where your order
         </p>
         {t.problem ? (
           <p className="receipt__soft">
-            Call the shop on <a className="inline-link" href={`tel:+${SHOP.phoneE164}`}>{SHOP.phoneDisplay}</a> and we&rsquo;ll sort it out with the courier.
+            Call the shop on <a className="inline-link" href={`tel:+${shop.phoneE164}`}>{shop.phoneDisplay}</a> and we&rsquo;ll sort it out with the courier.
           </p>
         ) : null}
 

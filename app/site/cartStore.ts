@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
-import { inWindow, priceDeals, stageOne, type DealPriced, type LiveCampaign } from "@/lib/catalog/campaigns";
+import { inWindow, priceDeals, stackOrder, stageOne, type DealPriced, type LiveCampaign } from "@/lib/catalog/campaigns";
 import { addLine, liveLines, reprice, type CartLine, type PriceList } from "@/lib/catalog/cart";
 import type { LineDraft } from "@/lib/catalog/checkout";
 import { clampQuantity } from "@/lib/catalog/purchase";
@@ -20,6 +20,9 @@ import { track } from "./track";
  * once the page is in the browser, so nothing is drawn that the server did
  * not send.
  */
+/** A one-time code the customer entered (normalised), with the campaign it brings: this campaign is on no shelf, so the server sends it with the code. */
+export type AppliedCode = { code: string; deal: LiveCampaign };
+
 type CartState = {
   lines: CartLine[];
   open: boolean;
@@ -31,12 +34,15 @@ type CartState = {
   available: Availability | null;
   /** The campaigns live or starting soon, from the last check; null before one. */
   deals: LiveCampaign[] | null;
-  /** Once-per-customer campaigns checkout found this customer has had: left out of the price. */
-  skip: string[];
+  /** The code entered at checkout: its campaign prices with the live ones. Kept with the cart until the order is paid, and checked again by the server whenever it is used. */
+  code: AppliedCode | null;
+  /** The line taken out last, and where it sat, for Undo; gone with the next change to the cart. */
+  removed: { line: CartLine; index: number } | null;
 };
 
 const KEY = "epg:cart:v1";
-const EMPTY: CartState = { lines: [], open: false, prices: null, was: {}, available: null, deals: null, skip: [] };
+const CODE_KEY = "epg:code:v1";
+const EMPTY: CartState = { lines: [], open: false, prices: null, was: {}, available: null, deals: null, code: null, removed: null };
 /** Campaigns (`/api/deals`) are rebuilt every five minutes, and come with the prices, so a check holds that long. */
 const PRICES_FRESH_MS = 5 * 60 * 1000;
 /** Stock moves with every sale, so it is asked again after a minute. */
@@ -69,8 +75,17 @@ function load(): CartLine[] {
   }
 }
 
+function loadCode(): AppliedCode | null {
+  try {
+    const raw = JSON.parse(window.localStorage.getItem(CODE_KEY) ?? "null") as AppliedCode | null;
+    return raw && typeof raw.code === "string" && Array.isArray(raw.deal?.rules) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
 function current(): CartState {
-  return (state ??= { ...EMPTY, lines: load() });
+  return (state ??= { ...EMPTY, lines: load(), code: loadCode() });
 }
 
 const notify = () => listeners.forEach((fn) => fn());
@@ -85,13 +100,21 @@ function set(next: Partial<CartState>) {
       // Private mode or a full disk: the cart still works for this visit.
     }
   }
+  if (next.code !== undefined && next.code !== prev.code) {
+    try {
+      if (next.code) window.localStorage.setItem(CODE_KEY, JSON.stringify(next.code));
+      else window.localStorage.removeItem(CODE_KEY);
+    } catch {
+      // Private mode: the code stays for this visit.
+    }
+  }
   notify();
 }
 
 /** Another tab changed the cart: take its lines, keep this tab's drawer. */
 function onStorage(e: StorageEvent) {
-  if (e.key !== KEY) return;
-  state = { ...current(), lines: load() };
+  if (e.key !== KEY && e.key !== CODE_KEY) return;
+  state = { ...current(), lines: load(), code: loadCode() };
   notify();
 }
 
@@ -108,9 +131,15 @@ export function useCart(): CartState {
   return useSyncExternalStore(subscribe, current, () => EMPTY);
 }
 
-/** The deals that apply this minute, in the order they stack (the server sends them in it). */
-export const dealsNow = (deals: LiveCampaign[] | null, skip: readonly string[]) =>
-  (deals ?? []).filter((c) => inWindow(c, Date.now()) && !skip.includes(c.id));
+/**
+ * The deals that apply this minute, in the order they stack: the shop's, and
+ * the entered code's, whose place among them is the one the server gives it.
+ * A campaign the shop now shows to everyone is not counted twice.
+ */
+export const dealsNow = (deals: LiveCampaign[] | null, code: AppliedCode | null) => {
+  const shown = (deals ?? []).filter((c) => inWindow(c, Date.now()));
+  return code && inWindow(code.deal, Date.now()) ? stackOrder([...shown.filter((c) => c.id !== code.deal.id), code.deal]) : shown;
+};
 
 /**
  * The lines the shop can sell, priced with the campaigns live now: each
@@ -131,7 +160,7 @@ let pricedFor: { from: CartState; result: PricedCart } | null = null;
 function priceState(s: CartState): PricedCart {
   if (pricedFor?.from === s) return pricedFor.result;
   const live = liveLines(s.lines, s.prices, s.available);
-  const priced = priceDeals(live, dealsNow(s.deals, s.skip));
+  const priced = priceDeals(live, dealsNow(s.deals, s.code));
   const units = new Map(priced.lines.map((l) => [l.sku, l.price]));
   const result = { live, priced, unit: (l: Pick<CartLine, "sku" | "price">) => units.get(l.sku) ?? l.price };
   pricedFor = { from: s, result };
@@ -156,7 +185,7 @@ const sameCounts = (a: Availability, b: Availability | null) =>
 export const cart = {
   /** Adds a line and opens the drawer on it; `quiet` adds it where the customer already is (the photo step). */
   add(line: CartLine, { quiet = false } = {}) {
-    set({ lines: addLine(current().lines, line), ...(quiet ? {} : { open: true, was: {} }) });
+    set({ lines: addLine(current().lines, line), removed: null, ...(quiet ? {} : { open: true, was: {} }) });
     // A quiet add is checkout's offer of a matching print, not the customer choosing a product.
     if (!quiet) track({ step: "cart", slug: line.slug });
   },
@@ -169,23 +198,34 @@ export const cart = {
     const swapped = lines.some((l) => l.sku === line.sku)
       ? addLine(lines.filter((l) => l !== old), { ...line, quantity: old.quantity })
       : lines.map((l) => (l === old ? { ...line, quantity: old.quantity } : l));
-    set({ lines: swapped });
+    set({ lines: swapped, removed: null });
   },
   setQuantity(sku: string, quantity: number) {
-    set({ lines: current().lines.map((l) => (l.sku === sku ? { ...l, quantity: clampQuantity(quantity) } : l)) });
+    set({ lines: current().lines.map((l) => (l.sku === sku ? { ...l, quantity: clampQuantity(quantity) } : l)), removed: null });
   },
+  /** Takes a line out, keeping it for `undo` until the cart changes again. */
   remove(sku: string) {
-    set({ lines: current().lines.filter((l) => l.sku !== sku) });
+    const lines = current().lines;
+    const index = lines.findIndex((l) => l.sku === sku);
+    if (index < 0) return;
+    set({ lines: lines.filter((l) => l.sku !== sku), removed: { line: lines[index], index } });
   },
-  /** Empties the cart once its order is paid. */
+  /** Puts the line removed last back where it was; merged if the same SKU has been added again since. */
+  undo() {
+    const { removed, lines } = current();
+    if (!removed) return;
+    const back = lines.some((l) => l.sku === removed.line.sku) ? addLine(lines, removed.line) : [...lines.slice(0, removed.index), removed.line, ...lines.slice(removed.index)];
+    set({ lines: back, removed: null });
+  },
+  /** Empties the cart once its order is paid. The code goes with it: it was used up with the payment. */
   clear() {
-    if (current().lines.length > 0) set({ lines: [], was: {} });
+    if (current().lines.length > 0 || current().code) set({ lines: [], was: {}, removed: null, code: null });
   },
   open() {
     set({ open: true, was: {} });
   },
   close() {
-    if (current().open) set({ open: false });
+    if (current().open) set({ open: false, removed: null });
   },
   /**
    * Re-checks every line against the catalogue's prices, at most once an
@@ -202,9 +242,13 @@ export const cart = {
     const { lines, was } = reprice(current().lines, prices);
     set({ lines, prices, was: { ...current().was, ...was }, ...(deals ? { deals } : {}) });
   },
-  /** Campaigns checkout found this customer has had already, once each: the cart prices without them. */
-  skip(ids: string[]) {
-    if (ids.length) set({ skip: [...new Set([...current().skip, ...ids])] });
+  /** A code the server has just accepted: the cart prices with its campaign. */
+  applyCode(code: AppliedCode) {
+    set({ code });
+  },
+  /** Takes the code off: removed by the customer, or refused by the server. */
+  removeCode() {
+    if (current().code) set({ code: null });
   },
   /**
    * Re-checks how many of each tracked SKU can be ordered: on every open after
@@ -230,6 +274,6 @@ export const useUnitPrice = () => usePricedCart().unit;
 
 /** What a size not yet in the cart costs after the price deals live now: for an offer to add it. */
 export function useDealPrice(): (sku: string, base: number) => number {
-  const { deals, skip } = useCart();
-  return (sku, base) => stageOne(sku, base, dealsNow(deals, skip)).price;
+  const { deals, code } = useCart();
+  return (sku, base) => stageOne(sku, base, dealsNow(deals, code)).price;
 }

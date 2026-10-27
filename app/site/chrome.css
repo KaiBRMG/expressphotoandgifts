@@ -157,7 +157,7 @@ button.inline-link {
   border: 1px solid transparent;
   border-radius: 999px;
   font: inherit;
-  font-size: 0.95rem;
+  font-size: var(--fs-btn);
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
@@ -179,9 +179,13 @@ button.inline-link {
   box-shadow: var(--shadow-gold);
 }
 
-.btn--gold:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-gold-hover);
+/* Lifts belong to a pointer: on a touch screen :hover sticks after a tap and
+   would leave the button raised until the next one. */
+@media (hover: hover) {
+  .btn--gold:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-gold-hover);
+  }
 }
 
 .btn--blue {
@@ -192,9 +196,11 @@ button.inline-link {
 
 /* The blue has no lighter step to brighten into — there is only the one blue
    — so under the pointer it lifts and its glow deepens instead. */
-.btn--blue:hover {
-  box-shadow: var(--shadow-blue-hover);
-  transform: translateY(-2px);
+@media (hover: hover) {
+  .btn--blue:hover {
+    box-shadow: var(--shadow-blue-hover);
+    transform: translateY(-2px);
+  }
 }
 
 /* ---- Header ------------------------------------------------------------ */
@@ -220,27 +226,38 @@ button.inline-link {
 }
 
 .header__logo {
-  flex: none;
+  flex: 1 1 auto;
   min-width: 0;
+  max-width: 280px;
 }
 
 /*
- * The wordmark is a 7:1 mark, so below the shell breakpoint it is sized by
- * width and not by height: a bar holding a very wide mark and three targets has
- * width, not height, as its scarce axis, and sizing by height is what let the
- * mark run the actions off the end of the screen at every phone width.
- * Above 62rem the bar has room to spare and the mark goes back to being set by
- * its height, which is what keeps it in step with the bar's own 74px.
+ * The file is 1400x200 but the wordmark only occupies the middle 42% of it
+ * (rows 57-140), so sized as a 7:1 box the lettering painted at under half the
+ * height it was budgeted. The image is cropped to the wordmark's own 14:1
+ * instead (`object-fit: cover` trims the empty bands, which are transparent),
+ * so every pixel of the box is lettering and the bar's height, which is the
+ * 44px marks plus the padding, does not move.
+ *
+ * Below the shell breakpoint the mark takes whatever width the actions leave,
+ * up to 280px: a bar holding a very wide mark and three targets has width, not
+ * height, as its scarce axis. From 62rem there is room to spare and the width
+ * grows with the viewport, kept under 44px tall by its ratio so it never lifts
+ * the bar.
  */
 .header__logo img {
-  width: clamp(175px, 46vw, 210px);
+  display: block;
+  width: 100%;
   height: auto;
+  aspect-ratio: 14 / 1;
+  object-fit: cover;
 }
 
 @media (min-width: 62rem) {
-  .header__logo img {
-    width: auto;
-    height: clamp(35px, 3.7vw, 48px);
+  .header__logo {
+    flex: none;
+    max-width: none;
+    width: clamp(300px, 36vw, 560px);
   }
 }
 
@@ -248,7 +265,8 @@ button.inline-link {
   display: none;
   gap: clamp(12px, 1.7vw, 28px);
   margin-inline-start: auto;
-  font-size: 13.5px;
+  /* The only navigation a visitor has on a wide screen, so it is set to be read: 15px, not a caption. */
+  font-size: 15px;
   color: var(--on-leather-soft);
 }
 
@@ -273,14 +291,9 @@ button.inline-link {
   margin-inline-start: auto;
 }
 
-.header__actions > .btn {
-  padding: 0.6rem 1.05rem;
-  font-size: 13.5px;
-}
-
-/* The three icon controls. Bare marks, not pills: the gold Shop now beside
-   them is the bar's one filled shape, and three more outlined circles would
-   turn the right end of the header into a row of buttons with no hierarchy. */
+/* The three controls. Bare marks, not pills: three outlined circles would turn
+   the right end of the header into a row of buttons with no hierarchy. Wide
+   enough, each says its name beside its mark (`.header__label`). */
 .header__icon {
   display: inline-flex;
   align-items: center;
@@ -298,8 +311,31 @@ button.inline-link {
     color 0.2s;
 }
 
-.header__icon:hover {
-  background: rgb(255 255 255 / 0.12);
+@media (hover: hover) {
+  .header__icon:hover {
+    background: rgb(255 255 255 / 0.12);
+  }
+}
+
+/* The name beside the mark, where the bar has the width for it. Below that the
+   mark is alone and its name is the button's label. */
+.header__label {
+  display: none;
+}
+
+@media (min-width: 75rem) {
+  .header__icon {
+    width: auto;
+    gap: 0.5rem;
+    padding-inline: 0.85rem 1rem;
+  }
+
+  .header__label {
+    display: inline;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
 }
 
 /* The cart is a button, not a link: it opens the drawer, as the dock's pill does. */
@@ -312,12 +348,19 @@ button.inline-link {
   cursor: pointer;
 }
 
+/* The mark and its count, so the count anchors to the mark whether or not a
+   name sits beside it. */
+.header__glyph {
+  position: relative;
+  display: inline-grid;
+}
+
 /* The count rides the mark's top right corner on gold, the bar's one accent,
    and pops on each change the way the dock's disc does. */
 .header__count {
   position: absolute;
-  top: -2px;
-  right: -4px;
+  top: -8px;
+  right: -12px;
   display: inline-grid;
   place-items: center;
   min-width: 1.4rem;
@@ -337,14 +380,13 @@ button.inline-link {
 
 /*
  * At the narrow end the wordmark and three targets are wider than the screen.
- * At 320px the gutter takes 40px, three 44px marks take 132px, and the logo at
- * its 35px floor is another 152px — over the 280px available before any gap is
- * counted at all, and `overflow-x: hidden` on the body was quietly clipping the
- * basket rather than letting it show as a scroll.
+ * At 320px the gutter takes 40px and three 44px marks take 132px, leaving the
+ * wordmark 140px against the 280px the bar has, and `overflow-x: hidden` on
+ * the body would quietly clip the basket rather than let it show as a scroll.
  *
- * The air goes first, then the wordmark: the marks are what the bar is for down
- * here, so they keep full size and the logo drops to a floor that fits. The
- * logo is still legible at 28px — it is a wordmark, not a detail drawing.
+ * The air goes first: the marks keep full size and the wordmark takes what is
+ * left. At 360px that is 180px, a wordmark 13px tall, which still reads as the
+ * shop's name.
  */
 @media (max-width: 26rem) {
   .header__bar {
@@ -354,9 +396,12 @@ button.inline-link {
   .header__actions {
     gap: 0;
   }
+}
 
-  /* The account steps out here; see HEADER_ICONS in SiteHeader.tsx for why it
-     is the one that goes. Two targets and the wordmark fit at 320px. */
+/* Under 360px the wordmark would fall below 13px tall with all three marks, so
+   the account steps out of the bar (see HEADER_ICONS in SiteHeader.tsx). It is
+   in the footer's sign-in line on every page. */
+@media (max-width: 22.4rem) {
   .header__icon[data-narrow="drop"] {
     display: none;
   }
@@ -435,8 +480,8 @@ button.inline-link {
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 999px;
   background: none;
@@ -446,7 +491,7 @@ button.inline-link {
 }
 
 .search__close:hover {
-  background: rgb(1 38 186 / 0.08);
+  background: rgb(var(--blue-rgb) / 0.08);
 }
 
 /* The window: a sheet of the shop's white hung from the bar's right end, as
@@ -455,7 +500,9 @@ button.inline-link {
   position: absolute;
   top: calc(100% - 4px);
   inset-inline: 0;
-  max-height: calc(100dvh - var(--header-h) - 20px);
+  /* `--keyboard` is the height the on-screen keyboard covers (set from the
+     visual viewport while search is open), so "See all" is never under it. */
+  max-height: calc(100dvh - var(--header-h) - 20px - var(--keyboard, 0px));
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0.5rem;
@@ -463,7 +510,7 @@ button.inline-link {
   border-radius: var(--radius);
   background: var(--print);
   color: var(--ink);
-  box-shadow: 0 28px 60px -26px rgb(1 38 186 / 0.5);
+  box-shadow: 0 28px 60px -26px rgb(var(--blue-rgb) / 0.5);
   animation: search-drop 0.35s var(--ease-out);
 }
 
@@ -490,6 +537,12 @@ button.inline-link {
   padding: 0.35rem 0.25rem 0.75rem;
   border-bottom: 1px solid var(--rule-card);
   list-style: none;
+}
+
+.search__shortcuts--start {
+  margin: 0;
+  padding-top: 0;
+  border-bottom: 0;
 }
 
 .search__shortcut {
@@ -546,7 +599,7 @@ button.inline-link {
 
 .search__result:hover,
 .search__result[aria-selected="true"] {
-  background: rgb(1 38 186 / 0.07);
+  background: rgb(var(--blue-rgb) / 0.07);
 }
 
 /* The shop's shots are on white, so they sit whole in a pale tile rather
@@ -556,7 +609,7 @@ button.inline-link {
   height: 56px;
   overflow: hidden;
   border-radius: var(--radius-sm);
-  background: rgb(1 38 186 / 0.05);
+  background: rgb(var(--blue-rgb) / 0.05);
 }
 
 .search__thumb img {
@@ -624,15 +677,8 @@ button.inline-link {
 }
 
 /* On a phone the bar is the wordmark and the three marks. The section links
-   are on the page a scroll away, and Shop now is already docked at the foot
-   of the screen within thumb reach — a second gold pill a few centimetres
-   above it would be the same tap twice. */
-@media (max-width: 61.99rem) {
-  .header__shop {
-    display: none;
-  }
-}
-
+   are on the page a scroll away, and Shop now is docked at the foot of the
+   screen within thumb reach. */
 @media (min-width: 62rem) {
   .header__nav {
     display: flex;
@@ -640,11 +686,6 @@ button.inline-link {
   .header__actions {
     margin-inline-start: 0;
     gap: 0.35rem;
-  }
-  /* The gold pill is the step up from the plain section links, so it keeps a
-     little air of its own before the marks begin. */
-  .header__shop {
-    margin-inline-end: 0.45rem;
   }
 }
 
@@ -673,9 +714,9 @@ button.inline-link {
   gap: 0.5rem;
   margin-bottom: 1rem;
   font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 11.5px;
+  font-size: var(--fs-label);
   font-weight: 400;
-  letter-spacing: 0.16em;
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: var(--gold);
 }
@@ -713,7 +754,7 @@ button.inline-link {
 .hours td {
   padding: 0.58rem 0;
   text-align: start;
-  font-size: 15.5px;
+  font-size: var(--fs-text);
   font-weight: 400;
   border-bottom: 1px solid var(--rule-leather);
 }
@@ -721,7 +762,7 @@ button.inline-link {
 .hours td {
   text-align: end;
   font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 13.5px;
+  font-size: var(--fs-small);
   color: var(--on-leather-soft);
 }
 
@@ -745,7 +786,7 @@ button.inline-link {
   gap: 0.7rem;
   min-height: 44px;
   padding: 0.35rem 0;
-  font-size: 15.5px;
+  font-size: var(--fs-text);
   text-decoration: none;
 }
 
@@ -776,13 +817,13 @@ button.inline-link {
   padding-top: clamp(48px, 6vw, 84px);
 }
 
-/* A step under the section headline: in a compact footer this names the
-   columns under it rather than opening a new room. */
+/* The statement-loud step, a step under the section headline: in a compact
+   footer this names the columns under it rather than opening a new room. */
 .footer__title {
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-size: clamp(1.5rem, 3.4vw, 2.6rem);
   font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: -0.025em;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
 }
 
 /*
@@ -828,72 +869,29 @@ button.inline-link {
 
 .footer__signup-sub {
   margin: 0.45rem 0 0;
-  font-size: 14.5px;
+  font-size: var(--fs-ui);
   line-height: 1.6;
   color: var(--on-leather-soft);
 }
 
-/* The sign-up: email first, then a password line that opens under it once
-   the email is known. Each line is one rule under the field with the submit
-   sitting on its end, so the whole thing reads as lines to write on rather
-   than a boxed form. */
+/* The sign-up: one line to write on, with the button on its end. The rule under
+   the field is the field's edge, so it is strong enough to find: 60% white on
+   the blue is 4.6:1, where the footer's hairline (22%) was under 2:1. */
 .newsletter__line {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 0.6rem;
-  min-height: 44px;
-  border-bottom: 1px solid var(--rule-leather);
+  gap: 0.75rem;
+  min-height: 48px;
+  border-bottom: 2px solid var(--rule-leather-strong);
   transition: border-color 0.2s;
 }
 
 .newsletter__line:focus-within {
   border-color: var(--gold);
-}
-
-/* The password line, folded to nothing until the email above it is known.
-   The grid row is what animates, so the content keeps its own height. */
-.newsletter__more {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  transition:
-    grid-template-rows 0.4s var(--ease-out),
-    opacity 0.3s var(--ease-out);
-}
-
-.newsletter__more > div {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.newsletter[data-open] .newsletter__more {
-  grid-template-rows: 1fr;
-  opacity: 1;
-}
-
-/* What the lookup found, said under the email line: new, or already an
-   account. Empty, it holds no space. */
-.newsletter__status {
-  margin: 0;
-  font-size: 14.5px;
-  line-height: 1.5;
-  color: var(--on-leather-soft);
-}
-
-.newsletter__status:not(:empty) {
-  padding-block: 0.75rem 0.15rem;
-}
-
-.newsletter__status[data-exists] {
-  color: var(--gold);
-}
-
-.newsletter__forgot {
-  margin-top: 0.7rem;
-  min-height: 44px;
-  font-size: 14.5px;
-  color: var(--on-leather-soft);
+  /* Thicker as well as gold: the unfocused rule is a light periwinkle, close to
+     the gold in lightness, so the hue alone would be the whole difference. */
+  box-shadow: 0 2px 0 var(--gold);
 }
 
 .newsletter__error {
@@ -901,7 +899,7 @@ button.inline-link {
   align-items: flex-start;
   gap: 0.45rem;
   margin: 0.75rem 0 0;
-  font-size: 14.5px;
+  font-size: var(--fs-small);
   line-height: 1.5;
   color: var(--print);
 }
@@ -910,12 +908,6 @@ button.inline-link {
   flex: none;
   margin-top: 0.15em;
   color: var(--gold);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .newsletter__more {
-    transition: none;
-  }
 }
 
 .newsletter__input {
@@ -934,8 +926,9 @@ button.inline-link {
   color: var(--on-leather-soft);
 }
 
-/* The rule under the field is the focus indicator; a ring around a bare
-   input drawn on top of it would only double the same signal. */
+/* The gold rule under the field is the focus indicator, 2px like the rest
+   state's, in the shop's accent: a ring around a bare input drawn on top of
+   it would only double the same signal. */
 .newsletter__input:focus {
   outline: none;
 }
@@ -951,34 +944,47 @@ button.inline-link {
   caret-color: var(--gold);
 }
 
+/* An outlined pill at rest, so the line reads as a field with a button and
+   not as a bare arrow; gold under the pointer, the footer's one accent. */
 .newsletter__submit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border: 0;
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border: 1.5px solid var(--print);
   border-radius: 999px;
   background: none;
   color: var(--print);
+  font: inherit;
+  font-size: var(--fs-ui);
+  font-weight: 600;
   cursor: pointer;
   transition:
-    background 0.2s,
+    background-color 0.2s,
+    border-color 0.2s,
     color 0.2s;
 }
 
 .newsletter__submit:hover {
+  border-color: var(--gold);
   background: var(--gold);
   color: var(--ink);
 }
 
-/* Waiting on the server: the arrow stays put but stops inviting a press. */
+.newsletter__submit:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+/* Waiting on the server: the button stays put but stops inviting a press. */
 .newsletter__submit[aria-disabled] {
   opacity: 0.55;
   cursor: progress;
 }
 
 .newsletter__submit[aria-disabled]:hover {
+  border-color: var(--print);
   background: none;
   color: var(--print);
 }
@@ -987,8 +993,8 @@ button.inline-link {
 .newsletter__fine,
 .newsletter__done {
   margin: 1.1rem 0 0;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: var(--fs-small);
+  line-height: 1.55;
   color: var(--on-leather-soft);
 }
 
@@ -998,6 +1004,28 @@ button.inline-link {
 .newsletter__done {
   margin-top: 0;
   color: var(--gold);
+}
+
+/* Those who already have an account, or want one, are a quiet second line:
+   plain links, each a 44px target, so the sign-up above stays the one thing
+   to do. */
+.newsletter__account {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.5rem;
+  margin: 0.5rem 0 0;
+  font-size: var(--fs-small);
+}
+
+.newsletter__account a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--on-leather-soft);
+}
+
+.newsletter__account a:hover {
+  color: var(--print);
 }
 
 /* The policies: small print on the footer's ground, in Archivo at the
@@ -1068,7 +1096,7 @@ button.inline-link {
 .footer__colophon {
   margin: 0;
   font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 12.5px;
+  font-size: var(--fs-fine);
   line-height: 1.3;
   color: var(--on-leather-soft);
 }
@@ -1145,7 +1173,7 @@ button.inline-link {
   width: 52px;
   height: 52px;
   background: var(--print);
-  border: 1px solid rgb(1 38 186 / 0.22);
+  border: 1px solid rgb(var(--blue-rgb) / 0.22);
   border-radius: 999px;
   color: var(--blue);
   text-decoration: none;
@@ -1156,14 +1184,35 @@ button.inline-link {
     box-shadow 0.45s var(--ease-out);
 }
 
-.dock__chat:hover {
-  border-color: rgb(1 38 186 / 0.5);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-blue-hover);
+@media (hover: hover) {
+  .dock__chat:hover {
+    border-color: rgb(var(--blue-rgb) / 0.5);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-blue-hover);
+  }
 }
 
 .dock__chat:active {
   transform: scale(0.98);
+}
+
+/* The dock floats over white and over the footer's blue, so no single ring
+   colour reads on both. Two tones do: a blue band against the control, then a
+   white ring outside it. On white the band is what shows, on blue the ring. */
+.dock .dock__cta:focus-visible {
+  outline: 3px solid var(--print);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 0 3px var(--blue),
+    var(--shadow-gold);
+}
+
+.dock .dock__chat:focus-visible {
+  outline: 3px solid var(--print);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 0 3px var(--blue),
+    var(--shadow-blue);
 }
 
 /* Room to breathe once there is a page wide enough to give it. */
@@ -1222,7 +1271,7 @@ button.inline-link {
   display: inline-flex;
   align-items: center;
   padding: 3px;
-  border: 1px solid var(--rule-hair);
+  border: 1px solid var(--rule-field);
   border-radius: 999px;
 }
 
@@ -1241,7 +1290,7 @@ button.inline-link {
 }
 
 .qty__step:hover:not(:disabled) {
-  background: rgb(1 38 186 / 0.07);
+  background: rgb(var(--blue-rgb) / 0.07);
 }
 
 .qty__step:disabled {
@@ -1344,7 +1393,7 @@ button.inline-link {
 }
 
 .cart::backdrop {
-  background: rgb(1 38 186 / 0);
+  background: rgb(var(--blue-rgb) / 0);
   transition:
     background-color 0.4s var(--ease-out),
     overlay 0.4s allow-discrete,
@@ -1352,12 +1401,12 @@ button.inline-link {
 }
 
 .cart[open]::backdrop {
-  background: rgb(1 38 186 / 0.34);
+  background: rgb(var(--blue-rgb) / 0.34);
 }
 
 @starting-style {
   .cart[open]::backdrop {
-    background: rgb(1 38 186 / 0);
+    background: rgb(var(--blue-rgb) / 0);
   }
 }
 
@@ -1422,12 +1471,18 @@ html:has(.cart[open]) {
   background: rgb(255 255 255 / 0.12);
 }
 
-.cart__lines {
-  margin: 0;
+/* The one region that scrolls: the lines, then the savings and the reassurance. */
+.cart__body {
+  min-height: 0;
   padding: 0 var(--cart-pad);
-  list-style: none;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.cart__lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .cart__line {
@@ -1527,7 +1582,7 @@ html:has(.cart[open]) {
 
 .cart__addprint:hover {
   border-color: var(--blue);
-  background: rgb(1 38 186 / 0.05);
+  background: rgb(var(--blue-rgb) / 0.05);
 }
 
 .cart__addprint span {
@@ -1551,8 +1606,8 @@ html:has(.cart[open]) {
   margin-top: 0.7rem;
   padding: 0.85rem 1rem 1rem;
   border: 1px solid var(--rule-hair);
-  border-radius: 14px;
-  background: rgb(1 38 186 / 0.05);
+  border-radius: var(--radius-sm);
+  background: rgb(var(--blue-rgb) / 0.05);
 }
 
 .limit__say {
@@ -1599,7 +1654,7 @@ html:has(.cart[open]) {
 }
 
 .limit__take:hover {
-  background: rgb(1 38 186 / 0.88);
+  background: rgb(var(--blue-rgb) / 0.88);
 }
 
 .limit__ask {
@@ -1700,8 +1755,8 @@ html:has(.cart[open]) {
 /* What one more would bring: amber, because it is the deal talking, never an alarm. */
 .deals__nudge {
   padding: 0.7rem 0.9rem;
-  border-radius: 14px;
-  background: rgb(255 183 42 / 0.2);
+  border-radius: var(--radius-sm);
+  background: rgb(var(--gold-rgb) / 0.2);
   font-size: 1rem;
   line-height: 1.45;
 }
@@ -1718,7 +1773,9 @@ html:has(.cart[open]) {
   color: var(--ink-soft);
 }
 
-/* The slip: ruled, not boxed, and always on screen under the lines. */
+/* The slip: ruled, not boxed, and always on screen under the lines. It holds
+   only what must stay put (subtotal, the way on, Keep shopping); the savings
+   and the reassurance scroll with the lines above it. */
 .cart__foot {
   display: grid;
   gap: 0.75rem;
@@ -1735,6 +1792,50 @@ html:has(.cart[open]) {
   font-size: 1rem;
   line-height: 1.5;
   color: var(--ink-soft);
+}
+
+/* The one reassurance and the way to ask about a date: small print under the
+   button, ruled off from the note above it so it reads as the shop's promise. */
+.cart__assure {
+  margin-block: 0.75rem 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.cart__body > .deals {
+  padding-block: 0.75rem;
+  border-top: 1px solid var(--rule-paper);
+}
+
+/* A line taken out, and the way back: a ruled row where the line was, not a toast. */
+.cart__undo-row {
+  list-style: none;
+}
+
+.cart__undo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 44px;
+  margin: 0.75rem 0 0;
+  padding: 0.35rem 0.9rem;
+  border-radius: var(--radius-sm);
+  background: rgb(var(--blue-rgb) / 0.06);
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.cart__empty .cart__undo {
+  justify-self: stretch;
+  margin: 0;
+}
+
+.cart__undo-btn {
+  flex: none;
+  min-height: 44px;
+  padding-inline: 0.5rem;
+  font-weight: 600;
 }
 
 .cart__keep {
@@ -1796,35 +1897,4 @@ html:has(.cart[open]) {
 
 .skip:focus {
   left: 0;
-}
-
-/* ---- The phone floor ---------------------------------------------------- */
-
-/*
- * Nothing on a phone is smaller than 16px: the owner's rule, and the size
- * under which mobile Safari zooms a field on tap. The footer's small print,
- * its mono labels and the buttons are set finer above this width, where a
- * desktop reading distance carries them; here they all come up to the floor.
- * The mono labels lose some tracking as they grow, so they stay a label.
- */
-@media (max-width: 45.99rem) {
-  .btn,
-  .header__actions > .btn,
-  .hours th,
-  .hours td,
-  .contacts a,
-  .footer__signup-sub,
-  .newsletter__fine,
-  .newsletter__done,
-  .newsletter__status,
-  .newsletter__error,
-  .newsletter__forgot,
-  .footer__colophon {
-    font-size: 1rem;
-  }
-
-  .shop__block h3 {
-    font-size: 1rem;
-    letter-spacing: 0.1em;
-  }
 }

@@ -1,8 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  accountExists,
   changePassword,
   createAccount,
   currentCustomer,
@@ -17,10 +17,11 @@ import {
   signOut,
   type SavedDetails,
 } from "@/lib/account/auth";
-import { reorder, type Reorder } from "@/lib/account/orders";
+import { deletePhotos, reorder, type Reorder } from "@/lib/account/orders";
 import { addressErrors, cleanAddress, cleanContact, contactErrors, hasErrors, isBlankAddress, isEmail, readAddress, readContact, type Address, type Contact } from "@/lib/checkout/details";
 import { REF } from "@/lib/checkout/order";
-import { rateLimit } from "@/lib/rateLimit";
+import { callerIp, rateLimit } from "@/lib/rateLimit";
+import { withdrawMarketing } from "@/lib/subscribers";
 import { attachCustomer, orderForReceipt } from "@/lib/checkout/orders";
 
 /**
@@ -57,40 +58,23 @@ export async function resetPasswordAction(email: string): Promise<AccountState> 
   return { notice: `If ${email.trim()} has an account, a link to set a new password is on its way.` };
 }
 
-/**
- * The footer sign-up's first step: whether the email it was handed already
- * has an account, so the field that follows asks for the right password.
- */
-export async function lookupSignUpEmail(email: string): Promise<{ exists: boolean } | { error: string }> {
-  const address = String(email).trim();
-  if (!isEmail(address)) return { error: "That doesn’t look like an email address." };
-  try {
-    return { exists: await accountExists(address) };
-  } catch (e) {
-    console.error("Email lookup failed", e);
-    return { error: "We couldn’t check that email just now. Try again in a moment." };
-  }
-}
-
-export type SignUpResult = { done: "created" | "signedIn" } | { error: string; exists?: boolean };
+const accountsMade = rateLimit(5, 60 * 60_000);
 
 /**
- * The footer sign-up's second step: makes the account (`exists: false`) or
- * signs in to the one the email already has, and records the marketing
- * consent the form's small print asks for. If the lookup was wrong by the
- * time the password comes (someone made the account meanwhile), says so
- * with `exists` so the form can turn into the other one.
+ * The sign-in page's "Make an account": an email and a password, and the
+ * customer is signed in. The footer's sign-up no longer makes accounts (it
+ * subscribes to specials, `app/subscription`); this is the one place to make
+ * one without an order, besides ticking "Save my details" at checkout.
  */
-export async function footerSignUp(email: string, password: string, exists: boolean): Promise<SignUpResult> {
-  const address = String(email).trim();
-  const secret = String(password);
-  if (!isEmail(address) || !secret) return NEEDS_BOTH;
-  const result = exists ? await signIn(address, secret) : await createAccount(address, secret, null);
-  if ("error" in result) {
-    return "exists" in result && result.exists ? { error: `${result.error} Enter its password to sign in.`, exists: true } : { error: result.error };
-  }
-  await setMarketing(result.uid, true, "footer").catch((e) => console.error("Consent not recorded", e));
-  return { done: exists ? "signedIn" : "created" };
+export async function makeAccountAction(_: AccountState, form: FormData): Promise<AccountState> {
+  const email = String(form.get("email") ?? "").trim();
+  const password = String(form.get("password") ?? "");
+  if (!isEmail(email) || !password) return NEEDS_BOTH;
+  const ip = callerIp(await headers());
+  if (ip && !accountsMade(ip)) return BUSY;
+  const made = await createAccount(email, password, null);
+  if ("error" in made) return { error: made.exists ? `${made.error} Sign in above with its password.` : made.error };
+  redirect("/account");
 }
 
 export async function signOutAction(): Promise<void> {
@@ -120,6 +104,7 @@ const BUSY = { error: "That’s a lot of tries at once. Wait a few minutes, then
 const passwordTries = rateLimit(10, 10 * 60_000);
 const reorders = rateLimit(10, 60 * 60_000);
 const checkEmails = rateLimit(3, 60 * 60_000);
+const photoDeletes = rateLimit(20, 60 * 60_000);
 
 export type DetailsErrors = Partial<Record<keyof Contact | keyof Address, string>>;
 export type DetailsResult = { ok: true; details: SavedDetails } | { errors: DetailsErrors } | { error: string };
@@ -144,12 +129,13 @@ export async function saveDetailsAction(rawContact: unknown, rawAddress: unknown
   return { ok: true, details };
 }
 
-/** The specials-and-campaigns switch: saved at once, either way, with the change recorded. */
+/** The specials-and-campaigns switch: saved at once, either way, with the change recorded. Turning it off clears an email-only subscription to the same address too. */
 export async function setMarketingAction(on: boolean): Promise<{ ok: true } | { error: string }> {
   const customer = await currentCustomer();
   if (!customer) return SIGNED_OUT;
   try {
-    await setMarketing(customer.uid, on === true, "account");
+    if (on === true) await setMarketing(customer.uid, true, "account");
+    else await withdrawMarketing(customer.email, "account", customer.uid);
     return { ok: true };
   } catch (e) {
     console.error("Marketing choice not saved", customer.uid, e);
@@ -184,6 +170,20 @@ export async function reorderAction(ref: string): Promise<Reorder | { error: str
     return await reorder(customer, String(ref));
   } catch (e) {
     console.error("Reorder failed", ref, e);
+    return { error: "That didn’t work just now. Try again in a minute." };
+  }
+}
+
+/** Deletes the photos the shop keeps for one of the signed-in customer's orders. */
+export async function deletePhotosAction(ref: string): Promise<{ ok: true } | { error: string }> {
+  const customer = await currentCustomer();
+  if (!customer) return SIGNED_OUT;
+  if (!REF.test(ref)) return { error: "We can’t find that order on your account." };
+  if (!photoDeletes(customer.uid)) return BUSY;
+  try {
+    return await deletePhotos(customer, ref);
+  } catch (e) {
+    console.error("Photo deletion failed", ref, e);
     return { error: "That didn’t work just now. Try again in a minute." };
   }
 }

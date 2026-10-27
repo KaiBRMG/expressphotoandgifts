@@ -1,3 +1,4 @@
+import type { RefundPlan } from "./refunds";
 import type { Saving } from "@/lib/catalog/campaigns";
 import { orderWhat } from "@/lib/catalog/purchase";
 import type { Taken } from "@/lib/catalog/stock";
@@ -68,6 +69,8 @@ export type OrderInput = {
   lines: LineInput[];
   /** The total the customer was shown, in cents: if the server's differs, they see the new one before paying. */
   shownTotal: number;
+  /** The one-time code the customer entered (`lib/campaignCodes.ts`), or null. */
+  code: string | null;
   /** The policies the customer ticked to agree to (`POLICIES_VERSION`), or "" when they didn't. */
   accepted: string;
 };
@@ -93,9 +96,10 @@ export type OrderLine = {
 
 export type OrderStatus = "pending" | "paid";
 
-/** Where a paid order is in the shop: just in, being made, ready (to collect or to send), and gone. */
+/** Where a paid order is in the shop: just in, being made, ready (to collect or to send), and gone. Staff move an order between these. */
 export const STAGES = ["new", "making", "ready", "done"] as const;
-export type OrderStage = (typeof STAGES)[number];
+/** Those, or `cancelled`: refunded in full before it left the shop (`lib/admin/refunds.ts`), the one way there, and the end of it. */
+export type OrderStage = (typeof STAGES)[number] | "cancelled";
 
 /** A stage in the shop's words, which differ for an order collected and one sent. */
 export const stageLabel = (stage: OrderStage, method: Fulfilment["method"]) =>
@@ -104,10 +108,11 @@ export const stageLabel = (stage: OrderStage, method: Fulfilment["method"]) =>
     making: "Being made",
     ready: method === "collect" ? "Ready to collect" : "Ready to send",
     done: method === "collect" ? "Collected" : "Sent",
+    cancelled: "Cancelled",
   })[stage];
 
 /** What the customer paid for: the order as it stood when they pressed Pay. */
-export type Snapshot = Pick<Order, "contact" | "fulfilment" | "lines" | "subtotal" | "discount" | "savings" | "delivery" | "total">;
+export type Snapshot = Pick<Order, "contact" | "fulfilment" | "lines" | "subtotal" | "discount" | "savings" | "code" | "delivery" | "total">;
 
 /**
  * One press of Pay (`orders/{ref}/attempts/{id}`): the order frozen as it was
@@ -129,9 +134,11 @@ export type Payment = Notice & { provider: "payfast"; at: string };
  * What became of a notice: paid the order, or why it didn't. `missed` and
  * `no-record` come from the daily check against PayFast's transaction history,
  * not a notice: PayFast took a payment whose notice never arrived, or the
- * order is paid but PayFast's history has no such payment.
+ * order is paid but PayFast's history has no such payment. `refund` is a
+ * refund PayFast made that the order doesn't record, and `unconfirmed` an
+ * attempt PayFast's window reported paid with no payment to show for it.
  */
-export type NoticeOutcome = "paid" | "duplicate" | "mismatch" | "not-complete" | "unknown-attempt" | "refused" | "missed" | "no-record";
+export type NoticeOutcome = "paid" | "duplicate" | "mismatch" | "not-complete" | "unknown-attempt" | "refused" | "missed" | "no-record" | "refund" | "unconfirmed";
 
 /** Every PayFast notice that reached an order (`orders/{ref}/notices/{id}`), whatever came of it. */
 export type NoticeRecord = Notice & { at: string; outcome: NoticeOutcome; reason?: string };
@@ -139,8 +146,29 @@ export type NoticeRecord = Notice & { at: string; outcome: NoticeOutcome; reason
 /** Something about an order the shop must look at by hand, such as a payment that didn't match. */
 export type Issue = { at: string; text: string };
 
-/** A refund the shop made in PayFast's dashboard, recorded here. Cents. */
-export type Refund = { at: string; by: string; amount: number; note: string };
+/** Units of one line given back, by the line's place in the order, and what they came to after its deals. Cents. */
+export type RefundLine = { line: number; sku: string; quantity: number; amount: number };
+
+/**
+ * Money given back on an order (`lib/checkout/refunds.ts`), always through
+ * PayFast to what the customer paid with: by the shop through PayFast's API
+ * (`via: "payfast"`), or in PayFast's dashboard and recorded here
+ * (`"dashboard"`). Refunds from before the reason and lines were kept carry
+ * only the amount and note. Cents.
+ */
+export type Refund = {
+  at: string;
+  by: string;
+  amount: number;
+  note: string;
+  reason?: string;
+  lines?: RefundLine[];
+  delivery?: number;
+  keep?: { amount: number; note: string } | null;
+  /** The shop's words to the customer, as their refund email gave them. */
+  message?: string;
+  via?: "payfast" | "dashboard";
+};
 
 /** Who did what to an order in the admin. */
 export type LogEntry = { at: string; by: string; text: string };
@@ -162,6 +190,8 @@ export type Order = {
   discount?: number;
   /** Every campaign saving, every stage, as priced when Pay was pressed (`lib/catalog/campaigns.ts`). */
   savings?: Saving[];
+  /** The one-time code (normalised, `lib/campaignCodes.ts`) whose deal is in these savings; used up when the order is paid. Absent when none, or when the code saved nothing on this order. */
+  code?: string;
   delivery: number;
   /** Subtotal, less discount, plus delivery. */
   total: number;
@@ -176,6 +206,8 @@ export type Order = {
   /** Set once paid: the payment, when, and where the shop has got to with it. */
   payment?: Payment;
   paidAt?: string;
+  /** When the customer's photos were deleted from Cloudinary (by them, with their account, or by the clean-up of a guest order). The lines keep their file records. */
+  photosDeletedAt?: string;
   stage?: OrderStage;
   /** When staff moved it to each stage, latest move kept; for the customer's tracking. Orders from before it was kept have none. */
   stagedAt?: Partial<Record<OrderStage, string>>;
@@ -183,19 +215,34 @@ export type Order = {
   flagged?: boolean;
   issues?: Issue[];
   refunds?: Refund[];
+  /**
+   * A refund asked of PayFast's API whose answer is still to be recorded:
+   * `sending` while the request is out, `unknown` when PayFast's answer
+   * couldn't be read. `before` is what PayFast had refunded on the payment
+   * when it was asked, so its total afterwards settles whether it went. No
+   * other refund is made while it stands.
+   */
+  refunding?: { state: "sending" | "unknown"; at: string; by: string; before: number; plan: RefundPlan; note: string };
   emails?: { shop?: EmailSent; customer?: EmailSent; shipped?: EmailSent; ready?: EmailSent; refund?: EmailSent };
   log?: LogEntry[];
   /** What paying took out of tracked stock; absent on orders paid before stock was kept, or that took none. */
   stock?: Taken;
+  /** The parcels staff packed a courier order into, saved when they marked it ready to send. The next courier booking sends exactly these. */
+  packed?: Packed;
   /** The courier waybill, once staff book one. */
   shipment?: Shipment;
   /** A return of the delivered waybill, back to the shop, once staff book one. */
   returnShipment?: Shipment;
   /** The policies agreed to at the last press of Pay; absent on orders from before checkout asked. */
   terms?: Agreed;
+  /** PayFast's Onsite window told the customer this attempt was paid (`reportPaid`). Never marks it paid; it only stops Pay being offered again until the notice comes, or `REPORTED_HOLD_MS` passes. */
+  reportedPaid?: { attempt: string; at: string };
   /** PayFast's own word on the order's card payment, when staff last asked ("Check with PayFast"). */
   payfastCheck?: { at: string; by: string; pfPaymentId: string; status: string; amount: number | null; bankMessage: string } | { at: string; by: string; pfPaymentId: string; error: string };
 };
+
+/** The boxes and weights an order was packed into, and who saved them, when. */
+export type Packed = { parcels: SizedParcel[]; at: string; by: string };
 
 /**
  * The Courier Guy's waybill for an order. `booking` while the request is with
@@ -282,6 +329,14 @@ export const statusText = (status: string) => (status.charAt(0).toUpperCase() + 
 export const FINAL_STATUSES = new Set(["delivered", "cancelled", "returned-to-sender", "undeliverable", "failed", "approval-rejected", "payment-failed", "quote-expired"]);
 
 /**
+ * The final statuses of a waybill that ended with no parcel on the road
+ * (cancelled on TCG's side, or never made), as the state the order then
+ * keeps: no waybill stands, so staff can book again. A parcel returned or
+ * undeliverable still exists, and stays booked, flagged.
+ */
+export const ENDED: Record<string, ShipmentState> = { cancelled: "cancelled", failed: "failed", "approval-rejected": "failed", "payment-failed": "failed", "quote-expired": "failed" };
+
+/**
  * The parcel's own troubles, in the customer's words: what they're told,
  * and what marks their tracking as a problem. Each is also flagged for the
  * shop (`PROBLEMS` in shipments.ts, which adds the account's own troubles).
@@ -310,11 +365,28 @@ export function trackingWords(status: string | undefined): string {
   return "With the courier, on its way.";
 }
 
+/** Whether a waybill stands on the order: booked, being booked, or a booking whose outcome staff must settle. Failed and cancelled ones don't. */
+export const holdsWaybill = (s: { state?: ShipmentState } | undefined) => s?.state !== undefined && s.state !== "failed" && s.state !== "cancelled";
+
+/**
+ * Whether the next courier booking takes the order: paid, sent by courier,
+ * marked ready to send with its parcels saved, and no waybill standing.
+ * The dashboard counts these and the booking sends them, by this one rule.
+ */
+export const readyToBook = (o: Partial<Pick<Order, "status" | "stage" | "packed">> & { shipment?: { state?: ShipmentState }; fulfilment?: { method?: string } }) =>
+  o.status === "paid" && o.fulfilment?.method === "courier" && o.stage === "ready" && !!o.packed && !holdsWaybill(o.shipment);
+
+/** The most orders one courier collection books: what the time in `bookCollection` allows. The dialog takes this many and names the rest as waiting for the next booking. */
+export const COLLECTION_MAX = 30;
+
 /** The fields that move an order to a stage, with when, for the customer's tracking. Every stage write uses it. */
 export const stageUpdate = (stage: OrderStage, now = new Date().toISOString()) => ({ stage, [`stagedAt.${stage}`]: now });
 
 /** Every photo on the order, across its lines. */
 export const orderPhotos = (o: Pick<Order, "lines">) => o.lines.reduce((n, l) => n + fileCount(l), 0);
+
+/** The different photos the order places, by Cloudinary ID: one photo in several places counts once. */
+export const photoIds = (o: Pick<Order, "lines">) => [...new Set(o.lines.flatMap((l) => l.sets.flatMap((s) => s.files.map((f) => f.publicId))))];
 
 /** How long a booking holds the order before it counts as stuck: the server stopped before TCG's answer was recorded. */
 export const LOCK_MS = 2 * 60 * 1000;
@@ -378,8 +450,35 @@ export const refundedOf = (o: Pick<Order, "refunds">) => (o.refunds ?? []).reduc
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** How long the shop keeps the photos of a paid order that no account holds, counted from payment; an account's are kept until its customer deletes them. */
+export const GUEST_PHOTO_DAYS = 365;
+
+/** Whether the shop still holds photos for the order: it took some, and none has been deleted. */
+export const holdsPhotos = (o: Pick<Order, "lines" | "photosDeletedAt">) => !o.photosDeletedAt && orderPhotos(o) > 0;
+
 /** How long the photo step keeps an unpaid order's photos before starting over. */
 export const KEEP_DAYS = 10;
+
+/**
+ * How long a customer's word that PayFast's window said paid stops the order
+ * being paid again: past the next daily check of PayFast's history, which
+ * finds a payment whose notice went missing, and flags the order when none
+ * came.
+ */
+export const REPORTED_HOLD_MS = 2 * DAY_MS;
+
+/** The ID of the order's latest payment attempt: PayFast's `m_payment_id`, as `ATTEMPT` reads it. */
+export const latestAttempt = (o: Pick<Order, "ref" | "attempts">) => `${o.ref}-${o.attempts}`;
+
+/** When PayFast's window reported the unpaid order's latest attempt paid; null when it didn't, or a later attempt has been made since. */
+export const reportedAt = (o: Pick<Order, "status" | "ref" | "attempts" | "reportedPaid">) =>
+  o.status === "pending" && o.reportedPaid?.attempt === latestAttempt(o) ? Date.parse(o.reportedPaid.at) : null;
+
+/** Whether PayFast's window reported the order's latest attempt paid, lately enough to wait for its notice rather than offer Pay again. */
+export const awaitingNotice = (o: Pick<Order, "status" | "ref" | "attempts" | "reportedPaid">, now = Date.now()) => {
+  const reported = reportedAt(o);
+  return reported !== null && now - reported < REPORTED_HOLD_MS;
+};
 
 /** When the daily sweep deletes an unpaid order's photos: always after the browser has let go of them. */
 export const SWEEP_AFTER_DAYS = KEEP_DAYS + 4;
@@ -425,6 +524,7 @@ export function readOrderInput(x: unknown): OrderInput | null {
     fulfilment?: { method?: unknown; address?: unknown; recipient?: unknown; service?: unknown; insure?: unknown };
     lines?: unknown;
     shownTotal?: unknown;
+    code?: unknown;
     accepted?: unknown;
   } | null;
   if (!o || typeof o.ref !== "string" || typeof o.key !== "string" || !ORDER_KEY.test(o.key) || typeof o.shownTotal !== "number" || !Array.isArray(o.lines) || o.lines.length > MAX_LINES) return null;
@@ -440,5 +540,5 @@ export function readOrderInput(x: unknown): OrderInput | null {
     if (o.fulfilment.recipient != null && !recipient) return null;
     fulfilment = { method: "courier", address, recipient, service: o.fulfilment.service, insure: o.fulfilment.insure === true };
   }
-  return { ref: o.ref, key: o.key, contact, fulfilment, lines: lines as LineInput[], shownTotal: o.shownTotal, accepted: typeof o.accepted === "string" ? o.accepted : "" };
+  return { ref: o.ref, key: o.key, contact, fulfilment, lines: lines as LineInput[], shownTotal: o.shownTotal, code: typeof o.code === "string" && o.code.length <= 40 ? o.code : null, accepted: typeof o.accepted === "string" ? o.accepted : "" };
 }

@@ -19,7 +19,7 @@ const NAV: NavItem[] = [
 export default function CheckoutLayout({ children }: LayoutProps<"/checkout">) {
   return (
     <>
-      <SiteHeader nav={NAV} shopAction={false} />
+      <SiteHeader nav={NAV} />
       <main id="main" className="ck">
         {children}
       </main>

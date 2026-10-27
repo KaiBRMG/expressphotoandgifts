@@ -27,13 +27,18 @@ export type Admin = { uid: string; email: string };
 /**
  * Accounts made in the Firebase console are never email-verified, so the
  * allowlist cannot ask for it. What keeps a listed address safe is that its
- * account already exists (nobody else can register it) and that public
- * sign-up is switched off in Firebase Auth's settings. Customer accounts are
- * made by the server with the Admin SDK, which needs no public sign-up, and
- * never for a listed address (`lib/account/auth.ts`).
+ * account already exists (nobody else can register it), that public sign-up
+ * is switched off in Firebase Auth's settings, and that the allowlist never
+ * opens the admin for a customer's account: customer accounts are made by the
+ * server with the Admin SDK, marked with `CUSTOMER_CLAIMS`, and never for a
+ * listed address (`lib/account/auth.ts`). So an address that someone
+ * registered as a customer before it was listed cannot be used to get in
+ * once it is. (`scripts/mark-customer-accounts.mts` marks the accounts made
+ * before the mark existed.) The `admin: true` claim is the one way in for a
+ * marked account, and is set outside the console's sign-up.
  */
 const isAdmin = (t: DecodedIdToken) =>
-  t.admin === true || (!!t.email && isStaffEmail(t.email));
+  t.admin === true || (!!t.email && isStaffEmail(t.email) && t.customer !== true);
 
 /** Signs a member of staff in and sets the session cookie, or says why not. */
 export async function signIn(email: string, password: string): Promise<{ error: string } | null> {

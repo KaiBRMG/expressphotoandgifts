@@ -1,10 +1,11 @@
 import { rands } from "@/lib/catalog/listing";
 import { unitsToReturn } from "@/lib/catalog/stock";
-import { refundedOf, type NoticeOutcome, type NoticeRecord, type Order } from "@/lib/checkout/order";
+import { hasLeftShop, refundedOf, type NoticeOutcome, type NoticeRecord, type Order } from "@/lib/checkout/order";
 import { paymentIdFor } from "@/lib/admin/payments";
-import { paymentRefunds } from "@/lib/checkout/payfastApi";
+import { paymentRefunds, refundedTotal } from "@/lib/checkout/payfastApi";
+import { cancelProblem, REFUND_REASONS, isRefundReason, unrecordedRefund, type Refundable } from "@/lib/checkout/refunds";
 import { at } from "../../../when";
-import { CheckWithPayfast, RecordRefund, ReturnToStock } from "./OrderActions";
+import { CancelOrder, CheckRefund, CheckWithPayfast, RefundForm, ReturnToStock } from "./OrderActions";
 
 /** PayFast's "123.45" as cents. */
 const pfCents = (amount: string) => Math.round(Number(amount) * 100) || 0;
@@ -18,6 +19,8 @@ const OUTCOMES: Record<NoticeOutcome, string> = {
   refused: "Refused",
   missed: "Paid, notice missed",
   "no-record": "Not in PayFast’s record",
+  refund: "Refund not recorded",
+  unconfirmed: "Window said paid, no payment",
 };
 
 /**
@@ -33,6 +36,8 @@ export async function PaymentPanel({ order: o, notices }: { order: Order; notice
   const pf = paymentIdFor(o, notices);
   const recorded = refundedOf(o);
   const check = o.payfastCheck;
+  // All the refund and cancel forms are sent of the order.
+  const refundable: Refundable = { ref: o.ref, status: o.status, stage: o.stage, lines: o.lines, refunds: o.refunds, delivery: o.delivery, total: o.total, fulfilment: o.fulfilment, shipment: o.shipment };
 
   return (
     <div className="otab">
@@ -108,20 +113,33 @@ export async function PaymentPanel({ order: o, notices }: { order: Order; notice
 
       {o.refunds?.length ? (
         <>
-          <h3 className="osec__sub">Refunds (outside PayFast)</h3>
+          <h3 className="osec__sub">Refunds recorded</h3>
           <ul className="olog">
             {o.refunds.map((r) => (
               <li key={r.at}>
-                <strong>{rands(r.amount)}</strong> · {r.note}
+                <strong>{rands(r.amount)}</strong> · {isRefundReason(r.reason) ? REFUND_REASONS[r.reason].label : r.note}
+                {r.keep ? ` · ${rands(r.keep.amount)} kept: ${r.keep.note}` : ""}
                 <span className="osec__soft">
                   {at(r.at)}, {r.by}
+                  {r.via === "dashboard" ? ", made in PayFast’s dashboard" : r.via === "payfast" ? ", through PayFast" : ""}
+                  {isRefundReason(r.reason) && r.note !== REFUND_REASONS[r.reason].label ? `: ${r.note}` : ""}
                 </span>
               </li>
             ))}
           </ul>
         </>
       ) : null}
-      {paid && recorded < o.total ? <RecordRefund ref_={o.ref} left={o.total - recorded} /> : null}
+      {fromPayfast?.ok && unrecordedRefund(o, refundedTotal(fromPayfast.data)) > 0 ? (
+        <p className="admin-error">
+          PayFast shows {rands(unrecordedRefund(o, refundedTotal(fromPayfast.data)))} refunded that this order doesn’t record. Record it below (It was refunded in PayFast’s dashboard), so the
+          customer is emailed and the books match.
+        </p>
+      ) : null}
+      {o.refunding ? <CheckRefund ref_={o.ref} amount={o.refunding.plan.amount} unclear={o.refunding.state === "unknown"} /> : null}
+      {paid && !o.refunding && !cancelProblem(refundable) ? (
+        <CancelOrder order={refundable} units={unitsToReturn(o.stock)} waybill={o.shipment?.state === "booked" && !hasLeftShop(o.shipment.status) ? (o.shipment.tracking ?? null) : null} />
+      ) : null}
+      {paid && !o.refunding && recorded < o.total ? <RefundForm order={refundable} /> : null}
       {paid && unitsToReturn(o.stock) > 0 ? <ReturnToStock ref_={o.ref} units={unitsToReturn(o.stock)} /> : null}
 
       {notices.length ? (

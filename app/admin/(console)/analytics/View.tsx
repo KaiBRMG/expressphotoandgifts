@@ -3,6 +3,7 @@ import type { Funnel, Report, Span } from "@/lib/admin/analytics";
 import type { TrafficRow } from "@/lib/admin/vercel";
 import { productHref, rands } from "@/lib/catalog/listing";
 import { Alert, Download } from "@/app/site/icons";
+import { Tip } from "../../Tip";
 import { MonthNav, monthName, shortMonth } from "../MonthNav";
 import { dayMonth } from "../../when";
 import { BarList } from "./BarList";
@@ -87,7 +88,14 @@ function Sales({ report }: { report: Report }) {
                       <th>Product</th>
                       <th className="an__num">Sold</th>
                       <th className="an__num">Takings</th>
-                      {counted ? <th className="an__num">Viewed, added</th> : null}
+                      {counted ? (
+                        <th className="an__num">
+                          <span className="label-tip">
+                            Viewed, added
+                            <Tip about="Viewed, added">Visits that opened the product’s page, then visits that added it to the cart. The shop counts each once a visit.</Tip>
+                          </span>
+                        </th>
+                      ) : null}
                     </tr>
                   </thead>
                   <tbody>
@@ -129,7 +137,12 @@ function Sales({ report }: { report: Report }) {
                       <tr>
                         <th>Campaign</th>
                         <th className="an__num">Orders</th>
-                        <th className="an__num">Given away</th>
+                        <th className="an__num">
+                          <span className="label-tip">
+                            Given away
+                            <Tip about="Given away">What the deal took off prices on paid orders this month.</Tip>
+                          </span>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>

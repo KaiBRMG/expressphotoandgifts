@@ -1,9 +1,10 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
-import { SHOP } from "@/app/site/data";
+import { cache } from "react";
 import { checkBoxes, readBoxes, type Boxes } from "@/lib/checkout/boxes";
 import { isEmail, LIMITS } from "@/lib/checkout/details";
+import { checkContact, DEFAULT_CONTACT, readContact, type ContactInput, type SaveContactResult, type ShopContact } from "@/lib/contact";
 import { db } from "@/lib/firebase";
 import { MAX_RECIPIENTS } from "./settings-shared";
 
@@ -18,6 +19,9 @@ import { MAX_RECIPIENTS } from "./settings-shared";
  * or none. Until the Settings page has saved once, it's ORDER_EMAIL_TO, or the
  * shop's own address.
  *
+ * `contact` is the email and mobile number the site gives the public, wherever it
+ * states them (`lib/contact.ts`); until saved, the shop's own.
+ *
  * `boxes` are the name, outside size and empty weight of each box the shop ships in
  * (`lib/checkout/boxes.ts`); until saved, the placeholders there.
  */
@@ -28,9 +32,14 @@ const doc = () => db().collection("settings").doc("shop");
 /** Tag for updateTag() after a save. */
 export const SETTINGS_TAG = "settings";
 
+/** The contact details have a tag of their own: every public page reads them, so only saving them should expire those pages. */
+export const CONTACT_TAG = "shop-contact";
+
 const saved = unstable_cache(async (): Promise<Record<string, unknown>> => (await doc().get()).data() ?? {}, ["settings-shop"], { tags: [SETTINGS_TAG], revalidate: 3600 });
 
-const fallback = () => [process.env.ORDER_EMAIL_TO?.trim() || SHOP.email];
+const savedContact = unstable_cache(async (): Promise<unknown> => (await doc().get()).data()?.contact, ["settings-shop-contact"], { tags: [CONTACT_TAG] });
+
+const fallback = () => [process.env.ORDER_EMAIL_TO?.trim() || DEFAULT_CONTACT.email];
 
 /** Where the shop's new-order email goes. Empty when the shop has turned it off. */
 export async function orderRecipients(): Promise<string[]> {
@@ -60,4 +69,24 @@ export async function saveShippingBoxes(raw: unknown, by: string): Promise<{ ok:
   if (!("ok" in checked)) return checked;
   await doc().set({ boxes: checked.boxes, updatedAt: new Date().toISOString(), updatedBy: by }, { merge: true });
   return checked;
+}
+
+/**
+ * The email and number the public reaches the shop on, read once a render. A
+ * failed read fails the render rather than falling back: a page built without
+ * them would keep the shop's old number until it was next rebuilt.
+ */
+export const shopContact = cache(async (): Promise<ShopContact> => readContact(await savedContact()));
+
+/** Checks and saves the public email and mobile number. */
+export async function saveShopContact(raw: unknown, by: string): Promise<SaveContactResult> {
+  const checked = checkContact(raw);
+  if ("ok" in checked) await doc().set({ contact: checked.input, updatedAt: new Date().toISOString(), updatedBy: by }, { merge: true });
+  return checked;
+}
+
+/** What Settings' fields start from. */
+export async function shopContactInput(): Promise<ContactInput> {
+  const { email, phone } = await shopContact();
+  return { email, phone };
 }

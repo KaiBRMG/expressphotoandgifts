@@ -3,7 +3,7 @@ import "server-only";
 import { detailsFrom, saveDetails } from "@/lib/account/auth";
 import { orderEmails } from "./emails";
 import type { Order } from "./order";
-import { orders } from "./orders";
+import { changeOrder } from "./orders";
 import { lowStockEmail } from "@/lib/stock";
 import { getLiveDeals } from "@/lib/campaigns";
 
@@ -21,8 +21,10 @@ export async function afterPaid(order: Order): Promise<void> {
     (order.stock?.low.length ? getLiveDeals().then((deals) => lowStockEmail(order, deals)) : lowStockEmail(order)).catch((e) => console.error("Low-stock email not sent", order.ref, e)),
   ]);
   const update = Object.fromEntries(Object.entries(sent).map(([who, s]) => [`emails.${who}`, s]));
-  await orders()
-    .doc(order.ref)
-    .update(update)
-    .catch((e) => console.error("Email record not saved", order.ref, e));
+  // The customer has no confirmation but PayFast's: the shop resends it from the order, or calls them.
+  const issue =
+    sent.customer && !sent.customer.ok
+      ? `The order confirmation didn’t reach ${order.contact.email} (${sent.customer.error ?? "no reason given"}). Resend it from the order’s emails, or call the customer.`
+      : undefined;
+  await changeOrder(order.ref, "The shop", () => ({ update, issue })).catch((e) => console.error("Email record not saved", order.ref, e));
 }

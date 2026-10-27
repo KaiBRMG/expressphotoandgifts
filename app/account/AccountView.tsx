@@ -76,7 +76,7 @@ export function AccountView({ email, saved, orders, marketing, proved, said }: P
               {orders.length > 0 ? <span className="aorders__count">{orders.length}</span> : null}
             </h2>
             <OrderList
-              orders={orders.map((o) => ({ ref: o.ref, receipt: o.receipt, when: dateText(o.at), total: o.total, standing: o.standing, items: o.items, prints: o.prints, product: o.product }))}
+              orders={orders.map((o) => ({ ref: o.ref, receipt: o.receipt, when: dateText(o.at), total: o.total, standing: o.standing, items: o.items, prints: o.prints, kept: o.kept, deleted: o.deleted, product: o.product }))}
             />
             {proved ? null : <FindOrders email={email} />}
           </section>

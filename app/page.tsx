@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Fragment } from "react";
 
 import Image from "next/image";
@@ -13,6 +14,7 @@ import { ProductImage } from "./site/ProductImage";
 import { SiteFooter } from "./site/SiteFooter";
 import { SiteHeader, type NavItem } from "./site/SiteHeader";
 import { ArrowRight, Parcel, Pin } from "./site/icons";
+import { OrganizationJsonLd } from "./site/OrganizationJsonLd";
 import { MARQUEE_WORDS, SHOP, WALL_ROWS } from "./site/data";
 
 /**
@@ -42,14 +44,18 @@ const BAND_LOGO_EVERY = 4;
  * bar is a control, not a destination.
  */
 const NAV: NavItem[] = [
+  { href: "/shop", label: "Shop" },
   { href: "#categories", label: "Categories" },
   { href: "#find-us", label: "Find Us" },
 ];
 
 
+export const metadata: Metadata = { alternates: { canonical: "/" } };
+
 export default function Home() {
   return (
     <>
+      <OrganizationJsonLd />
       <SiteHeader nav={NAV} />
 
       <main id="main">
@@ -134,6 +140,12 @@ export default function Home() {
               </Fragment>
             ))}
           </div>
+
+          {/* Stops the wall travelling (WCAG 2.2.2). Hidden until Motion wires
+              it, and for good under reduced motion, where nothing travels. */}
+          <button type="button" className="cover__hold" hidden>
+            Pause motion
+          </button>
 
           {/* The catalogue's top edge, drawn here at the wall's lean so its
               blue reads as the widest band, the one the wall settles into. */}

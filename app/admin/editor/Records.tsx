@@ -6,7 +6,7 @@ import { LIMITS, normaliseCode, recodeVariants, SLUG_MAX, SLUG_PATTERN, slugFor,
 import { tagValues, withFacet } from "@/lib/catalog/tags";
 import { changeSlugAction } from "../actions";
 import type { ErrorOn, Suggestions, Update } from "./ProductEditor";
-import { Tip } from "./Tip";
+import { Tip } from "../Tip";
 import { Where } from "./Where";
 
 /**

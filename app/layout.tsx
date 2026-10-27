@@ -1,7 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SHOP } from "./site/data";
+import { shopContact } from "@/lib/settings";
+import { ContactProvider } from "./site/ContactContext";
 import { SiteAnalytics } from "./site/SiteAnalytics";
 
 const archivo = Archivo({
@@ -24,17 +26,23 @@ export const metadata: Metadata = {
   },
   description:
     "A photo and gift shop in Scott Street, Scottburgh. Photo printing, ID photos, print services, framing, albums and personalised photo gifts. Collect in store or have it delivered.",
-  metadataBase: new URL("https://expressphotoandgifts.com"),
+  metadataBase: new URL(SHOP.url),
   openGraph: {
     title: `${SHOP.name} — Scottburgh`,
     description:
       "Photo printing, ID photos, framing and personalised photo gifts, from a real shop in Scott Street, Scottburgh.",
     locale: "en_ZA",
     type: "website",
+    siteName: SHOP.name,
   },
+  twitter: { card: "summary_large_image" },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+/** The brand blue, which the mobile browser's bar takes on and the web manifest repeats. */
+export const viewport: Viewport = { themeColor: "#0126ba" };
+
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const contact = await shopContact();
   return (
     // The script below adds a class before first paint, which React would
     // otherwise report as a mismatch on hydration.
@@ -55,7 +63,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body className="min-h-full">
-        {children}
+        <ContactProvider contact={contact}>{children}</ContactProvider>
         <SiteAnalytics />
       </body>
     </html>

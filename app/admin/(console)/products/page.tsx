@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdmin } from "@/lib/admin/auth";
 import { getVocabulary } from "@/lib/catalog/queries";
 import { listCategories, listProducts } from "@/lib/admin/products";
 import { NEED_LABELS, productNeeds, type Issue } from "@/lib/catalog/edit";
@@ -14,6 +15,7 @@ export const metadata: Metadata = { title: "Products" };
 const toNeed = (i: Issue): Need => ({ kind: i.need, label: i.need ? NEED_LABELS[i.need] : i.message, hint: i.message, tab: i.tab, field: i.field });
 
 export default async function ProductsPage({ searchParams }: PageProps<"/admin/products">) {
+  await requireAdmin();
   const [products, categories, vocabulary, params, deals] = await Promise.all([listProducts(), listCategories(), getVocabulary(), searchParams, getLiveDeals()]);
   const categoryName = new Map(categories.map((c) => [c.id, c.name]));
 

@@ -9,11 +9,12 @@ import { primaryPhoto } from "@/lib/catalog/listing";
 import { getProducts } from "@/lib/catalog/queries";
 import { maxFor } from "@/lib/catalog/stock";
 import { liveAvailability } from "@/lib/stock";
-import { orders } from "@/lib/checkout/orders";
-import { lineWhat, orderFolder, receiptPath, refundedOf, type LogEntry, type Order } from "@/lib/checkout/order";
+import { changeOrder, orders } from "@/lib/checkout/orders";
+import { AT_ONCE, deleteOrderPhotos } from "@/lib/checkout/uploads";
+import { holdsPhotos, lineWhat, photoIds, receiptPath, refundedOf, type LogEntry, type Order } from "@/lib/checkout/order";
 import { orderSettled, trackOrder, type Tracking } from "@/lib/checkout/tracking";
 import type { Customer } from "./auth";
-import { stillOnTheWay } from "./words";
+import { photosStillNeeded, stillOnTheWay } from "./words";
 
 /**
  * What a customer account does with orders: lists the ones it holds, brings
@@ -44,6 +45,9 @@ export type AccountOrder = {
   items: string[];
   /** Up to three of the customer's own placed photos, the first of each line first; none when nothing took a photo. */
   prints: { publicId: string; version: number }[];
+  /** How many different photos the shop holds for it, and whether they have been deleted. */
+  kept: number;
+  deleted: boolean;
   /** The first line's product photograph, when the order holds none of the customer's. */
   product: string | null;
   /** Still to reach the customer: tracked live at the top of the page. */
@@ -59,6 +63,7 @@ const NOW_WORDS: Record<string, string> = { paid: "Next in line", making: "Being
 
 function standingOf(o: Order, t: Tracking | null): Standing {
   const refunded = refundedOf(o);
+  if (o.stage === "cancelled") return { label: "Cancelled", tone: "refunded" };
   if (refunded >= o.total) return { label: "Refunded", tone: "refunded" };
   const part = refunded > 0 ? ", part refunded" : "";
   if (!t) return { label: `Paid${part}`, tone: "done" };
@@ -68,8 +73,12 @@ function standingOf(o: Order, t: Tracking | null): Standing {
   return { label: `${NOW_WORDS[now.key] ?? now.label}${part}`, tone: "now" };
 }
 
+/** The different photos an order holds. */
+const keptOf = (o: Order) => (holdsPhotos(o) ? photoIds(o).length : 0);
+
 /** Up to three placed photos, one from each line before a second from any, without repeats. */
 function printsOf(o: Order) {
+  if (o.photosDeletedAt) return [];
   const seen = new Set<string>();
   const rows = o.lines.map((l) => l.sets.flatMap((s) => s.files));
   const out: { publicId: string; version: number }[] = [];
@@ -107,6 +116,8 @@ export async function accountOrders(uid: string): Promise<AccountOrder[]> {
       standing,
       items: o.lines.map(lineWhat),
       prints: printsOf(o),
+      kept: keptOf(o),
+      deleted: !!o.photosDeletedAt,
       product: photoOf.get(o.lines[0]?.slug) ?? null,
       live: !orderSettled(o, tracking),
       tracking,
@@ -131,6 +142,15 @@ export async function claimGuestOrders(c: Customer): Promise<number> {
   for (const d of snap.docs) batch.update(d.ref, { uid: c.uid, updatedAt: now });
   await batch.commit();
   return snap.size;
+}
+
+const NOT_FOUND = { error: "We can’t find that order on your account." };
+
+/** One of the account's paid orders, or why not. */
+async function ownPaidOrder(c: Customer, ref: string): Promise<Order | { error: string }> {
+  const snap = await orders().doc(ref).get();
+  const order = snap.exists ? (snap.data() as Order) : null;
+  return order && order.uid === c.uid && order.status === "paid" ? order : NOT_FOUND;
 }
 
 /* ---- Ordering again ---------------------------------------------------- */
@@ -174,15 +194,14 @@ async function storedPhotos(ids: string[]): Promise<Map<string, { px: Pixels; ve
  * as the print it made, since only that render was kept.
  */
 export async function reorder(c: Customer, ref: string): Promise<Reorder | { error: string }> {
-  const [snap, products] = await Promise.all([orders().doc(ref).get(), getProducts()]);
-  const order = snap.exists ? (snap.data() as Order) : null;
-  if (!order || order.uid !== c.uid || order.status !== "paid") return { error: "We can’t find that order on your account." };
+  const [order, products] = await Promise.all([ownPaidOrder(c, ref), getProducts()]);
+  if ("error" in order) return order;
 
   const bySku = new Map(products.flatMap((p) => p.variants.map((v) => [v.sku, { p, v }] as const)));
   const needs = buildNeeds(products);
   const [available, stored] = await Promise.all([
     liveAvailability(order.lines.map((l) => l.sku)),
-    storedPhotos([...new Set(order.lines.flatMap((l) => l.sets.flatMap((s) => s.files.map((f) => f.publicId))))]).catch((e) => {
+    storedPhotos(order.photosDeletedAt ? [] : photoIds(order)).catch((e) => {
       console.error("Reorder photo lookup failed", ref, e);
       return null;
     }),
@@ -231,17 +250,32 @@ export async function reorder(c: Customer, ref: string): Promise<Reorder | { err
   return out;
 }
 
-/* ---- Leaving ----------------------------------------------------------- */
+/* ---- Deleting photos ---------------------------------------------------- */
 
-/** How many order folders are deleted from Cloudinary at once. */
-const DELETING = 5;
-
-/** Every customer photo under one order's folder, deleted; the Admin API takes a prefix. */
-async function deleteOrderPhotos(ref: string) {
-  const { admin, headers } = api();
-  const res = await fetch(`${admin}/upload?prefix=${encodeURIComponent(orderFolder(ref))}`, { method: "DELETE", headers, cache: "no-store" });
-  if (!res.ok) throw new Error(`Cloudinary delete failed for ${ref}: ${res.status}`);
+/**
+ * Deletes the photos kept for one of the account's orders, at the customer's
+ * word, once it has arrived (the shop may need them until then). A photo that
+ * another of the account's orders still places (Order again) stays. The order
+ * stays too, noting that its photos are gone.
+ */
+export async function deletePhotos(c: Customer, ref: string): Promise<{ ok: true } | { error: string }> {
+  const [order, mine] = await Promise.all([ownPaidOrder(c, ref), ordersOf(c.uid)]);
+  if ("error" in order) return order;
+  if (!holdsPhotos(order)) return { error: "The shop isn’t keeping any photos for that order." };
+  if (!orderSettled(order)) return { error: photosStillNeeded(ref) };
+  const keep = new Set(mine.filter((o) => o.ref !== ref && holdsPhotos(o)).flatMap(photoIds));
+  try {
+    await deleteOrderPhotos(ref, photoIds(order), keep);
+  } catch (e) {
+    console.error("Order photos not deleted", ref, e);
+    return { error: "We couldn’t delete the photos just now, so nothing has changed. Try again in a few minutes." };
+  }
+  return changeOrder(ref, "The customer", (o) =>
+    o.uid !== c.uid ? NOT_FOUND : { update: { photosDeletedAt: new Date().toISOString() }, log: "Deleted this order’s photos from their account. The order is kept for the shop’s records." },
+  );
 }
+
+/* ---- Leaving ----------------------------------------------------------- */
 
 /**
  * The orders' side of deleting an account (`deleteAccount` in auth.ts), once
@@ -256,7 +290,7 @@ export async function releaseOrders(uid: string): Promise<{ ok: true } | { error
   if (busy.length) return { error: stillOnTheWay(busy.map((o) => o.ref)) };
 
   try {
-    for (let i = 0; i < list.length; i += DELETING) await Promise.all(list.slice(i, i + DELETING).map((o) => deleteOrderPhotos(o.ref)));
+    for (let i = 0; i < list.length; i += AT_ONCE) await Promise.all(list.slice(i, i + AT_ONCE).map((o) => deleteOrderPhotos(o.ref)));
   } catch (e) {
     console.error("Account photos not deleted", uid, e);
     return { error: "We couldn’t delete your photos just now, so nothing has changed. Try again in a few minutes." };
@@ -265,7 +299,7 @@ export async function releaseOrders(uid: string): Promise<{ ok: true } | { error
   const now = new Date().toISOString();
   const note: LogEntry = { at: now, by: "The customer", text: "Deleted their account. This order’s photos were deleted with it; the order is kept for the shop’s records." };
   const batch = db().batch();
-  for (const o of list) batch.update(orders().doc(o.ref), { uid: null, updatedAt: now, log: FieldValue.arrayUnion(note) });
+  for (const o of list) batch.update(orders().doc(o.ref), { uid: null, updatedAt: now, log: FieldValue.arrayUnion(note), ...(holdsPhotos(o) ? { photosDeletedAt: now } : {}) });
   await batch.commit();
   return { ok: true };
 }

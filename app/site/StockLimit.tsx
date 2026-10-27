@@ -1,6 +1,6 @@
 "use client";
 
-import { whatsapp } from "./data";
+import { useWhatsApp } from "./ContactContext";
 import { WhatsApp } from "./icons";
 
 /**
@@ -32,9 +32,12 @@ export function StockLimit({
   takeLabel: string;
   onTake: () => void;
 }) {
+  const wa = useWhatsApp();
   const message = `Hi! I'd like ${wanted} × ${what} (code ${sku}), but the site says only ${max} ${max === 1 ? "is" : "are"} available right now. Could you get more for me, and by when?`;
+  // An alert, not a status: the block is added to the page with its words in it,
+  // which a polite region often leaves unannounced, and checkout waits on the answer.
   return (
-    <div className="limit" role="status">
+    <div className="limit" role="alert">
       <p className="limit__say">
         <strong>Only {max} available right now.</strong>{" "}
         {room > 0 ? `You asked for ${wanted}.` : `${max === 1 ? "It’s" : "They’re all"} in your cart already.`}
@@ -45,7 +48,7 @@ export function StockLimit({
             {takeLabel}
           </button>
         ) : null}
-        <a className="limit__ask" href={whatsapp(message)} target="_blank" rel="noopener">
+        <a className="limit__ask" href={wa(message)} target="_blank" rel="noopener">
           <WhatsApp size={19} />
           Ask on WhatsApp
         </a>

@@ -3,7 +3,8 @@
 import { headers } from "next/headers";
 
 import { createAccount, currentCustomer, detailsFrom } from "@/lib/account/auth";
-import { priceDeals } from "@/lib/catalog/campaigns";
+import { priceDeals, type LiveCampaign } from "@/lib/catalog/campaigns";
+import { codeDeal, dealsWithCode } from "@/lib/campaignCodes";
 import { getLiveDeals } from "@/lib/campaigns";
 import { rands } from "@/lib/catalog/listing";
 import { clampQuantity } from "@/lib/catalog/purchase";
@@ -11,8 +12,8 @@ import type { Availability } from "@/lib/catalog/stock";
 import { getProducts } from "@/lib/catalog/queries";
 import { packCart, quote } from "@/lib/checkout/courier";
 import { addressErrors, cleanAddress, hasErrors, readAddress } from "@/lib/checkout/details";
-import { readOrderInput, type Checkout, type Quote } from "@/lib/checkout/order";
-import { priceOrder, startAttempt } from "@/lib/checkout/orders";
+import { readOrderInput, receiptPath, type Checkout, type Quote } from "@/lib/checkout/order";
+import { priceOrder, reportPaid, startAttempt } from "@/lib/checkout/orders";
 import { payfastReady, startPayment } from "@/lib/checkout/payfast";
 import { POLICIES_VERSION } from "@/lib/legal";
 import { callerIp, rateLimit } from "@/lib/rateLimit";
@@ -40,12 +41,31 @@ const payAllowed = rateLimit(30, 10 * 60 * 1000);
  */
 const quoteAllowed = rateLimit(40, 10 * 60 * 1000);
 
-/** Courier services to an address, for the cart as it stands: its worth after the live deals, for the cover, and the parcels it packs into. */
-export async function quoteDelivery(rawAddress: unknown, lines: { sku: string; quantity: number }[]): Promise<Quote> {
+/**
+ * Each try at a code reads the shop's records. A code is 50 bits, so guessing
+ * one is hopeless; this keeps the guesses from costing the shop reads.
+ */
+const codeAllowed = rateLimit(15, 10 * 60 * 1000);
+
+export type CodeResult = { ok: true; code: string; deal: LiveCampaign } | { ok: false; error: string };
+
+/**
+ * Whether a one-time code can be used now, and the campaign it brings, for
+ * the cart to price with. Placing the order checks it again; nothing is used
+ * up until the order is paid.
+ */
+export async function checkCodeAction(raw: unknown): Promise<CodeResult> {
+  if (!codeAllowed(callerIp(await headers()) ?? "unknown")) return { ok: false, error: "That’s a lot of tries. Wait a few minutes, then try again." };
+  return codeDeal(raw);
+}
+
+/** Courier services to an address, for the cart as it stands: its worth after the live deals (and the code's), for the cover, and the parcels it packs into. */
+export async function quoteDelivery(rawAddress: unknown, lines: { sku: string; quantity: number }[], code?: unknown): Promise<Quote> {
   const address = readAddress(rawAddress);
   if (!address || hasErrors(addressErrors(address)) || !Array.isArray(lines)) return { ok: false, reason: "no-service" };
   if (!quoteAllowed(callerIp(await headers()) ?? "unknown")) return { ok: false, reason: "unavailable" };
-  const [products, deals] = await Promise.all([getProducts(), getLiveDeals()]);
+  const [products, shown] = await Promise.all([getProducts(), getLiveDeals()]);
+  const deals = await dealsWithCode(shown, code);
   const bySku = new Map(products.flatMap((p) => p.variants.map((v) => [v.sku, { p, v }] as const)));
   const known = lines.slice(0, 100).flatMap((l) => {
     const found = bySku.get(String(l?.sku));
@@ -59,12 +79,11 @@ export async function quoteDelivery(rawAddress: unknown, lines: { sku: string; q
 export type PlaceResult =
   | { ok: true; ref: string; token: string; checkout: Checkout }
   /**
-   * `skip`: campaigns this customer has had already (once each), for the cart
-   * to leave out. `total`: the server's own total when it differs from the one
-   * shown, which the customer then sees and can pay: so a difference between
-   * the browser's pricing and the server's can never leave them unable to.
+   * `total`: the server's own total when it differs from the one shown, which
+   * the customer then sees and can pay: so a difference between the browser's
+   * pricing and the server's can never leave them unable to.
    */
-  | { ok: false; error: string; field?: string; paid?: true; limits?: Availability; skip?: string[]; total?: number };
+  | { ok: false; error: string; field?: string; paid?: true; receipt?: string; limits?: Availability; total?: number };
 
 /**
  * Prices and saves the order as pending, then starts the payment. When the
@@ -97,15 +116,10 @@ export async function placeOrder(raw: unknown, onsite: boolean, password?: unkno
   const [priced, customer] = await Promise.all([priceOrder(input, signedIn.then((c) => c?.uid ?? null)), signedIn]);
   if (!priced.ok) return priced;
   if (priced.order.total !== input.shownTotal) {
-    const { skipped } = priced;
-    const once = skipped.length
-      ? `${new Intl.ListFormat("en-ZA").format(skipped.map((c) => c.name))} ${skipped.length === 1 ? "is" : "are"} once per customer, and ${priced.order.contact.email} has had ${skipped.length === 1 ? "it" : "them"} already. `
-      : "";
     return {
       ok: false,
-      error: `${once}We’ve checked the prices again: your total is now ${rands(priced.order.total)}. Check it, then pay.`,
+      error: `We’ve checked the prices again: your total is now ${rands(priced.order.total)}. Check it, then pay.`,
       field: "total",
-      skip: skipped.map((c) => c.id),
       total: priced.order.total,
     };
   }
@@ -121,11 +135,21 @@ export async function placeOrder(raw: unknown, onsite: boolean, password?: unkno
   }
 
   const started = await startAttempt(priced.order, uid, input.key, POLICIES_VERSION);
-  if (!started.ok && started.reason === "paid") return { ok: false, error: "This order has already been paid.", paid: true };
+  // Paid from this browser, which never saw the receipt (closed while PayFast confirmed it, say): the receipt starts the next order.
+  // Or PayFast's window said it was paid and its notice is still to come: the receipt waits for it, rather than Pay taking a second payment.
+  if (!started.ok && (started.reason === "paid" || started.reason === "reported")) {
+    return { ok: false, error: "This order has already been paid.", paid: true, ...(started.token ? { receipt: receiptPath(priced.order.ref, started.token) } : {}) };
+  }
   if (!started.ok && started.reason === "too-many") return { ok: false, error: "This order has been tried too many times. Call the shop and we’ll sort it out." };
   if (!started.ok) return { ok: false, error: "This order number belongs to another order. Call the shop and we’ll sort it out." };
 
   const checkout = await startPayment(started.attempt, started.order.token, onsite);
   if (!checkout) return { ok: false, error: PAYMENT_OFF };
   return { ok: true, ref: started.order.ref, token: started.order.token, checkout };
+}
+
+/** PayFast's Onsite window said the payment went through: the order waits for its notice instead of offering Pay again (`reportPaid`). */
+export async function reportPaidAction(ref: unknown, token: unknown): Promise<void> {
+  if (typeof ref !== "string") return;
+  await reportPaid(ref, token).catch((e) => console.error("Onsite payment not noted", ref, e));
 }

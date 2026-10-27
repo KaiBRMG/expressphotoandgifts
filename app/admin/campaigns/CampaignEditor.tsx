@@ -56,7 +56,7 @@ function phaseNote(c: Campaign | null, phase: Phase, now: string): string {
  * does in the shop, what it stacks with and the stock behind it. Changes wait
  * in the save bar; moving it along (schedule, pause, resume, end) saves first.
  */
-export function CampaignEditor({ campaign, initial, ctx, others }: { campaign: Campaign | null; initial: CampaignDraft; ctx: CampaignContext; others: Campaign[] }) {
+export function CampaignEditor({ campaign, initial, ctx, others, codesSent = 0 }: { campaign: Campaign | null; initial: CampaignDraft; ctx: CampaignContext; others: Campaign[]; /** One-time codes its emails carried. */ codesSent?: number }) {
   const router = useRouter();
   // A fresh read after a conflict remounts the editor (the page keys it on the version), so these start from it.
   const [saved, setSaved] = useState<Campaign | null>(campaign);
@@ -264,8 +264,14 @@ export function CampaignEditor({ campaign, initial, ctx, others }: { campaign: C
 
       {used && phase !== "draft" ? (
         <dl className="camp__results" aria-label="Results, from paid orders">
+          {saved?.caps.code ? (
+            <div>
+              <dt>Codes emailed</dt>
+              <dd className="mono">{codesSent}</dd>
+            </div>
+          ) : null}
           <div>
-            <dt>Orders</dt>
+            <dt>{saved?.caps.code ? "Codes used" : "Orders"}</dt>
             <dd className="mono">{used.orders}</dd>
           </div>
           <div>
@@ -402,10 +408,10 @@ export function CampaignEditor({ campaign, initial, ctx, others }: { campaign: C
               </div>
               <Switch
                 size="md"
-                label="Once per customer"
-                description="By email address. A customer who has had it is told so at checkout, with the new total."
-                checked={draft.caps.perCustomer}
-                onChange={(e) => update({ caps: { ...draft.caps, perCustomer: e.currentTarget.checked } })}
+                label="Needs a one-time code"
+                description="The deal is kept off the shop. It applies only when a customer enters a code at checkout. Press Email all with this campaign chosen and each customer gets their own code in their email; each works once, on one order."
+                checked={draft.caps.code}
+                onChange={(e) => update({ caps: { ...draft.caps, code: e.currentTarget.checked }, ...(e.currentTarget.checked ? { featured: false } : {}) })}
               />
             </section>
 
@@ -415,14 +421,23 @@ export function CampaignEditor({ campaign, initial, ctx, others }: { campaign: C
                   On the shop
                 </h2>
                 <p className="hint">
-                  <span className="where__lead">In the shop:</span> while it’s live, what it covers is on the Specials shelf, with the deal on its photo, its product page and in the cart.
+                  {draft.caps.code ? (
+                    <>
+                      <span className="where__lead">Not on the shop:</span> it needs a code, so it isn’t on the Specials shelf, a photo, a product page or the storefront. The deal shows at checkout once a customer’s code is applied.
+                    </>
+                  ) : (
+                    <>
+                      <span className="where__lead">In the shop:</span> while it’s live, what it covers is on the Specials shelf, with the deal on its photo, its product page and in the cart.
+                    </>
+                  )}
                 </p>
               </div>
               <Switch
                 size="md"
                 label="Feature on the storefront"
-                description="The specials band on the shop’s front page takes its name and line. The newest featured campaign leads."
+                description={draft.caps.code ? "Not for a deal that needs a code." : "The specials band on the shop’s front page takes its name and line. The newest featured campaign leads."}
                 checked={draft.featured}
+                disabled={draft.caps.code}
                 onChange={(e) => update({ featured: e.currentTarget.checked })}
               />
               {draft.featured ? (

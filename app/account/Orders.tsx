@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { rands } from "@/lib/catalog/listing";
@@ -11,11 +12,13 @@ import { Alert, Check, Rotate } from "@/app/site/icons";
 import { Note } from "@/app/checkout/Field";
 import { ProductImage } from "@/app/site/ProductImage";
 import { photos } from "@/app/checkout/photoStore";
-import { reorderAction } from "./actions";
+import { deletePhotosAction, reorderAction } from "./actions";
 import { OFFLINE } from "./Panels";
 
 /** One row of the history, as the server hands it over: no token, no tracking, and the date written out ("20 Oct 2026"). */
 export type OrderRow = Omit<AccountOrder, "at" | "live" | "tracking" | "token" | "updatedAt"> & { when: string };
+
+const photosWord = (n: number) => (n === 1 ? "1 photo" : `${n} photos`);
 
 /** Rows shown at first, and added by each "Show older". */
 const PAGE = 10;
@@ -31,7 +34,22 @@ export function OrderList({ orders }: { orders: OrderRow[] }) {
   const [shown, setShown] = useState(PAGE);
   const [busy, setBusy] = useState<string | null>(null);
   const [said, setSaid] = useState<Said | null>(null);
+  const [asking, setAsking] = useState<string | null>(null);
+  const locked = busy !== null || undefined;
   const { lines } = useCart();
+  const router = useRouter();
+
+  async function forget(ref: string) {
+    if (busy) return;
+    setBusy(ref);
+    setSaid(null);
+    const r = await deletePhotosAction(ref).catch(() => OFFLINE);
+    setBusy(null);
+    if ("error" in r) return setSaid({ ref, text: r.error, error: true });
+    setAsking(null);
+    setSaid({ ref, text: "Your photos for this order are deleted." });
+    router.refresh();
+  }
 
   async function again(ref: string) {
     if (busy) return;
@@ -90,17 +108,35 @@ export function OrderList({ orders }: { orders: OrderRow[] }) {
                 <StandingMark tone={o.standing.tone} />
                 {o.standing.label}
               </p>
+              {o.deleted ? <p className="aorder__items">Photos deleted. The order is kept as the shop’s record.</p> : null}
+              {o.kept > 0 ? <p className="aorder__items">The shop is keeping {photosWord(o.kept)} for this order until you delete them.</p> : null}
             </div>
             <p className="aorder__total">{rands(o.total)}</p>
             <div className="aorder__acts">
-              <button type="button" className="pillbtn" aria-disabled={busy !== null || undefined} onClick={() => again(o.ref)}>
+              <button type="button" className="pillbtn" aria-disabled={locked} onClick={() => again(o.ref)}>
                 <Rotate size={18} />
                 {busy === o.ref ? "Adding…" : "Order again"}
               </button>
               <Link className="inline-link" href={o.receipt}>
                 Receipt<span className="visually-hidden"> for {o.ref}</span>
               </Link>
+              {o.kept > 0 ? (
+                <button type="button" className="inline-link" aria-disabled={locked} onClick={() => setAsking(asking === o.ref ? null : o.ref)} aria-expanded={asking === o.ref}>
+                  Delete photos<span className="visually-hidden"> for {o.ref}</span>
+                </button>
+              ) : null}
             </div>
+            {asking === o.ref ? (
+              <p className="aorder__ask" role="group" aria-label={`Delete the photos for ${o.ref}`}>
+                Delete the {photosWord(o.kept)} kept for {o.ref}? This can’t be undone, and Order again won’t be able to bring them back. The order and its receipt stay.{" "}
+                <button type="button" className="inline-link" aria-disabled={locked} onClick={() => forget(o.ref)}>
+                  {busy === o.ref ? "Deleting…" : "Yes, delete them"}
+                </button>{" "}
+                <button type="button" className="inline-link" onClick={() => setAsking(null)}>
+                  Keep them
+                </button>
+              </p>
+            ) : null}
             {said?.ref === o.ref ? (
               <Note error={said.error} className="anote">
                 {said.text}

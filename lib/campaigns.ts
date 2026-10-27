@@ -44,7 +44,8 @@ export function campaignFromDoc(id: string, d: DocumentData): Campaign {
     startsAt: d.startsAt ?? null,
     endsAt: d.endsAt ?? null,
     rules: Array.isArray(d.rules) ? d.rules : [],
-    caps: { ...NO_CAPS, ...d.caps },
+    // Picked by name: a campaign from before codes may still carry the old once-per-customer cap, which no longer does anything.
+    caps: { orders: d.caps?.orders ?? NO_CAPS.orders, units: d.caps?.units ?? NO_CAPS.units, code: d.caps?.code === true },
     featured: d.featured === true,
     blurb: d.blurb ?? "",
     used: { ...NO_USE, ...d.used },
@@ -59,7 +60,12 @@ export function campaignFromDoc(id: string, d: DocumentData): Campaign {
 /** Switched on or paused: the only ones the shop could show, live or soon. */
 const readOn = async () => (await campaignDocs().where("status", "==", "on").get()).docs.map((d) => campaignFromDoc(d.id, d.data()));
 
-const getOnCampaigns = unstable_cache(readOn, ["campaigns-on"], { tags: [CAMPAIGNS_TAG], revalidate: 3600 });
+/**
+ * The switched-on campaigns the shop may show. One that needs a code is never
+ * among them: it is on no shelf, card, page, feed or cart until a customer
+ * enters their code at checkout (`lib/campaignCodes.ts`).
+ */
+const getOnCampaigns = unstable_cache(async () => (await readOn()).filter((c) => !c.caps.code), ["campaigns-on"], { tags: [CAMPAIGNS_TAG], revalidate: 3600 });
 
 /** How a target is named on the shop, from the shop's own categories and terms. */
 export async function shopNames(): Promise<Names> {
@@ -75,7 +81,7 @@ export async function shopNames(): Promise<Names> {
 }
 
 /** Campaigns as the engine takes them, against the shop's catalogue. */
-async function resolveAll(cs: Campaign[], soldOut: Availability): Promise<LiveCampaign[]> {
+export async function resolveAll(cs: Campaign[], soldOut: Availability): Promise<LiveCampaign[]> {
   if (cs.length === 0) return [];
   const [products, names] = await Promise.all([getProducts(), shopNames()]);
   return stackOrder(cs).map((c) => resolveCampaign(c, products, names, soldOut));
@@ -105,50 +111,36 @@ export async function getCartDeals(): Promise<LiveCampaign[]> {
   return resolveAll(soon, soldOut);
 }
 
-/** "kai@example.com" → its SHA-256: how a once-per-customer deal knows a customer, without keeping their email twice. */
+/** "kai@example.com" → its SHA-256: how the shop knows a customer by email, without keeping it twice. */
 export const customerKey = (email: string) => createHash("sha256").update(email.trim().toLowerCase()).digest("hex");
 
-/**
- * The campaigns live now, read fresh, for pricing an order, without any this
- * customer has had already where a campaign is once per customer. `skipped`
- * names those, so checkout can say why the total changed.
- */
-export async function orderDeals(email: string, soldOut: Availability): Promise<{ deals: LiveCampaign[]; skipped: { id: string; name: string }[] }> {
+/** The campaigns live now, read fresh, for pricing an order: the ones the shop shows, without any that need a code. */
+export const readLiveDeals = async (): Promise<Campaign[]> => {
   const now = Date.now();
-  const live = (await readOn()).filter((c) => phaseOf(c, now) === "live");
-  const once = live.filter((c) => c.caps.perCustomer);
-  const key = customerKey(email);
-  const had = once.length ? await db().getAll(...once.map((c) => campaignDocs().doc(c.id).collection("customers").doc(key))) : [];
-  const skip = new Set(had.filter((s) => s.exists).map((s) => s.ref.parent.parent!.id));
-  return {
-    deals: await resolveAll(live.filter((c) => !skip.has(c.id)), soldOut),
-    skipped: live.filter((c) => skip.has(c.id)).map((c) => ({ id: c.id, name: c.name })),
-  };
-}
+  return (await readOn()).filter((c) => phaseOf(c, now) === "live" && !c.caps.code);
+};
 
 /**
  * In the transaction that marks an order paid: counts its use of each
- * campaign (orders, units, rand off, and the goods it sold), and notes the
- * customer for a once-per-customer one. Writes only, so it can follow the
- * transaction's reads. Returns the campaigns it counted, whose cached copy
- * `campaignsUsed` then clears, so one that reached its cap stops showing.
+ * campaign (orders, units, rand off, and the goods it sold). Writes only, so
+ * it can follow the transaction's reads. Returns the campaigns it counted,
+ * whose cached copy `campaignsUsed` then clears, so one that reached its cap
+ * stops showing.
  */
-export function countUse(tx: Transaction, savings: readonly Saving[] | undefined, order: { ref: string; email: string; goods: number; at: string }): string[] {
+export function countUse(tx: Transaction, savings: readonly Saving[] | undefined, goods: number): string[] {
   const by = new Map<string, { units: number; discount: number }>();
   for (const s of savings ?? []) {
     const u = by.get(s.campaign) ?? { units: 0, discount: 0 };
     by.set(s.campaign, { units: u.units + s.units, discount: u.discount + s.amount });
   }
-  const key = customerKey(order.email);
   for (const [id, u] of by) {
     const ref = campaignDocs().doc(id);
     // A merge, not an update: a payment must go through even if its campaign has gone since.
     tx.set(
       ref,
-      { used: { orders: FieldValue.increment(1), units: FieldValue.increment(u.units), discount: FieldValue.increment(u.discount), sales: FieldValue.increment(order.goods) } },
+      { used: { orders: FieldValue.increment(1), units: FieldValue.increment(u.units), discount: FieldValue.increment(u.discount), sales: FieldValue.increment(goods) } },
       { merge: true },
     );
-    tx.set(ref.collection("customers").doc(key), { orders: FieldValue.increment(1), last: order.ref, at: order.at }, { merge: true });
   }
   return [...by.keys()];
 }

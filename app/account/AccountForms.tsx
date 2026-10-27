@@ -3,9 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 
+import { PASSWORD_MIN } from "@/lib/checkout/details";
 import { Alert, Check, SignOut } from "@/app/site/icons";
 import { Field, inputProps } from "@/app/checkout/Field";
-import { resetPasswordAction, signInAction, signOutAction, type AccountState } from "./actions";
+import { makeAccountAction, resetPasswordAction, signInAction, signOutAction, type AccountState } from "./actions";
 
 export function SignInForm() {
   const [state, action, pending] = useActionState(signInAction, null);
@@ -51,6 +52,34 @@ export function SignInForm() {
         </button>
         <button type="button" className="inline-link" onClick={async () => setReset(await resetPasswordAction(email))}>
           Forgot your password?
+        </button>
+      </p>
+    </form>
+  );
+}
+
+/** Make an account with no order: an email and a password, and the customer is signed in. */
+export function MakeAccountForm() {
+  const [state, action, pending] = useActionState(makeAccountAction, null);
+  return (
+    <form className="signin" action={action}>
+      <div className="fields">
+        <Field id="ma-email" label="Email">
+          <input {...inputProps("ma-email", undefined)} name="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} />
+        </Field>
+        <Field id="ma-password" label="Choose a password" hint={`${PASSWORD_MIN} characters or more`}>
+          <input {...inputProps("ma-password", undefined)} name="password" type="password" autoComplete="new-password" minLength={PASSWORD_MIN} />
+        </Field>
+      </div>
+      {state?.error ? (
+        <p className="field__error" role="alert">
+          <Alert size={18} />
+          {state.error}
+        </p>
+      ) : null}
+      <p className="acct__acts">
+        <button type="submit" className="btn btn--blue" aria-disabled={pending || undefined}>
+          {pending ? "Making your account…" : "Make my account"}
         </button>
       </p>
     </form>

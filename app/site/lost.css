@@ -1,0 +1,104 @@
+/*
+ * The pages for when something isn't there (not-found.tsx) or didn't load
+ * (error.tsx): one column on white, under the site's blue bar.
+ */
+
+.lost {
+  padding-block: clamp(2.5rem, 7vw, 6rem) clamp(3rem, 8vw, 7rem);
+}
+
+.lost__inner {
+  display: grid;
+  justify-items: start;
+  gap: 1.1rem;
+}
+
+/* The status as a mark, the way the shop sets its other marks. */
+.lost__mark {
+  margin: 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.lost__title {
+  margin: 0;
+  max-width: 20ch;
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.lost__text {
+  margin: 0;
+  max-width: 52ch;
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  line-height: 1.62;
+  color: var(--ink-soft);
+}
+
+.lost__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem 1.6rem;
+  margin-top: 0.6rem;
+}
+
+.lost__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.lost__ref {
+  margin: 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.lost__shelves {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: clamp(1.2rem, 3vw, 2.2rem);
+}
+
+.lost__shelvesTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.lost__shelves ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lost__shelves a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 1.1rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .lost__shelves a:hover {
+    border-color: var(--ink);
+  }
+}

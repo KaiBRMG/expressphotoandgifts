@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { cart } from "@/app/site/cartStore";
 import { Check } from "@/app/site/icons";
 import { createAccountFromOrder, type AccountState } from "@/app/account/actions";
-import { clearDraft } from "../draft";
+import { clearDraft, forgetPaid } from "../draft";
 import { NewPasswordField } from "../Field";
 import { photos, usePhotos } from "../photoStore";
 import { receiptStamp, receiptStatus } from "./actions";
@@ -29,6 +29,7 @@ export function Finish({ ref_ }: { ref_: string }) {
     cart.clear();
     photos.finish();
     clearDraft();
+    forgetPaid();
   }, [store.ref, ref_]);
   return (
     <p className="receipt__paid" role="status">

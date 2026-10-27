@@ -11,7 +11,9 @@ import { SHOP_TZ } from "@/lib/shopTime";
 import { tag, termCounts } from "@/lib/catalog/tags";
 import { ProductImage } from "@/app/site/ProductImage";
 import { ArrowRight, WhatsApp } from "@/app/site/icons";
-import { CUSTOMER_PHOTOS, SHOP, whatsapp } from "@/app/site/data";
+import { CUSTOMER_PHOTOS, SHOP } from "@/app/site/data";
+import { shopContact } from "@/lib/settings";
+import { whatsappLink } from "@/lib/contact";
 import { ProductCard, Shelf } from "./ProductCard";
 import { SizeChart } from "./SizeChart";
 import { ShelfRail } from "./ShelfRail";
@@ -22,6 +24,7 @@ export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Shop",
+  alternates: { canonical: "/shop" },
   description:
     "Mugs, puzzles, keyrings, snow globes and more printed with your own photo, plus frames, easels and albums — from a real photo shop in Scottburgh.",
 };
@@ -55,7 +58,7 @@ const until = (iso: string) =>
   `Until ${new Date(Date.parse(iso) - 1).toLocaleDateString("en-ZA", { timeZone: SHOP_TZ, day: "numeric", month: "long" })}`;
 
 export default async function ShopPage() {
-  const [products, listings, vocabulary, deals] = await Promise.all([getProducts(), getListings(), getVocabulary(), getLiveDeals()]);
+  const [products, listings, vocabulary, deals, contact] = await Promise.all([getProducts(), getListings(), getVocabulary(), getLiveDeals(), shopContact()]);
   // Already in the featured order, which opens on the lede's own products.
   const yours = listings.filter((l) => l.personalisable);
   const specials = listings.filter((l) => l.special);
@@ -320,7 +323,7 @@ export default async function ShopPage() {
             </p>
             <a
               className="btn btn--blue"
-              href={whatsapp("Hi! I'd like to order photo prints.")}
+              href={whatsappLink(contact, "Hi! I'd like to order photo prints.")}
             >
               <WhatsApp size={18} />
               Order prints on WhatsApp

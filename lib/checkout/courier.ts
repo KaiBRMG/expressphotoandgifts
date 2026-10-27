@@ -1,12 +1,13 @@
 import "server-only";
 
 import { SHOP } from "@/app/site/data";
-import { shippingBoxes } from "@/lib/settings";
+import type { ShopContact } from "@/lib/contact";
+import { shippingBoxes, shopContact } from "@/lib/settings";
 import type { SizedParcel } from "./boxes";
 import { sizeOf } from "@/lib/catalog/measures";
 import type { Product } from "@/lib/catalog/types";
 import { pack } from "./packing";
-import { nationalPhone, type Address, type Contact, type Recipient } from "./details";
+import { type Address, type Contact, type Recipient } from "./details";
 import type { DeliveryOption, Quote, TrackingEvent } from "./order";
 
 /**
@@ -253,7 +254,7 @@ function readShipment(x: unknown): Booked | null {
 /** The reference a waybill carries at TCG: the order's, with "-R" for its return, so the two are never confused. */
 export const tcgReference = (ref: string, direction: Direction) => (direction === "return" ? `${ref}-R` : ref);
 
-const shopContact = () => ({ name: SHOP.name, mobile_number: nationalPhone(SHOP.phoneDisplay) ?? SHOP.phoneDisplay, email: SHOP.email });
+const shopParty = (c: ShopContact) => ({ name: SHOP.name, mobile_number: c.phone, email: c.email });
 
 /** The person at the customer's door: the driver calls them and TCG's SMS (and any PIN) goes to them. A gift's recipient has no email here, so TCG's emails don't reach them. */
 const customerContact = (b: Pick<Booking, "contact" | "recipient">) =>
@@ -299,13 +300,14 @@ const NOT_MADE = new Set([400, 401, 403, 404, 405, 412, 422, 423, 429]);
 export async function createShipment(b: Booking): Promise<BookResult> {
   if (!courierReady()) return { kind: "refused", error: "The Courier Guy isn’t set up (TCG_API_KEY)." };
   const out = b.direction === "out";
+  const shop = await shopContact();
   const reply = await tcg("/shipments", {
     method: "POST",
     timeout: 30_000,
     body: {
       ...waybill(b),
-      collection_contact: out ? shopContact() : customerContact(b),
-      delivery_contact: out ? customerContact(b) : shopContact(),
+      collection_contact: out ? shopParty(shop) : customerContact(b),
+      delivery_contact: out ? customerContact(b) : shopParty(shop),
       ...(b.address.notes ? { [out ? "special_instructions_delivery" : "special_instructions_collection"]: b.address.notes } : {}),
       service_level_code: b.service.code,
       customer_reference: tcgReference(b.ref, b.direction),

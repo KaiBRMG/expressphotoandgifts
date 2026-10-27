@@ -2,7 +2,9 @@ import Link from "next/link";
 
 import { POLICY_LINKS } from "@/lib/legal";
 import { ArrowRight, Clock, Facebook, Instagram, Mail, Phone, Pin, WhatsApp } from "./icons";
-import { CHAT_HREF, HOURS, SHOP } from "./data";
+import { chatHref } from "@/lib/contact";
+import { shopContact } from "@/lib/settings";
+import { HOURS, SHOP } from "./data";
 import { Newsletter } from "./Newsletter";
 
 /**
@@ -15,7 +17,8 @@ import { Newsletter } from "./Newsletter";
  * docked pair comes to rest on the right of that row, so nothing has to move
  * it out of the way.
  */
-export function SiteFooter() {
+export async function SiteFooter() {
+  const contact = await shopContact();
   return (
     <footer className="footer on-dark" id="find-us">
       <div className="shell footer__top">
@@ -79,21 +82,21 @@ export function SiteFooter() {
             </h3>
             <ul className="contacts">
               <li>
-                <a href={CHAT_HREF}>
+                <a href={chatHref(contact)}>
                   <WhatsApp size={19} />
-                  WhatsApp {SHOP.phoneDisplay}
+                  WhatsApp {contact.phoneDisplay}
                 </a>
               </li>
               <li>
-                <a href={`tel:+${SHOP.phoneE164}`}>
+                <a href={`tel:+${contact.phoneE164}`}>
                   <Phone size={19} />
-                  Call {SHOP.phoneDisplay}
+                  Call {contact.phoneDisplay}
                 </a>
               </li>
               <li>
-                <a href={`mailto:${SHOP.email}`}>
+                <a href={`mailto:${contact.email}`}>
                   <Mail size={19} />
-                  {SHOP.email}
+                  {contact.email}
                 </a>
               </li>
               <li>
@@ -114,14 +117,14 @@ export function SiteFooter() {
         {/* The sign-up is the only thing down here that is not a detail of
             the shop, so it is the only thing held off by a rule. On a wide
             screen it is one row: what it is for on the left, the line to
-            write on to the right. */}
+            write on to the right. It subscribes to specials and nothing more;
+            an account is made at checkout or on /account. */}
         <div className="footer__base">
           <div className="footer__signup-copy" data-reveal>
-            <h3 className="footer__signup-title">Sign up</h3>
+            <h3 className="footer__signup-title">Email me specials</h3>
             <p className="footer__signup-sub">
-              To receive updates on our latest products, easily save your
-              information for future orders, and get access to exclusive
-              member-only loyalty deals.
+              Our latest products, specials and campaigns, by email. One tap on
+              a link we send confirms it&rsquo;s you.
             </p>
           </div>
           <div className="footer__signup" data-reveal>
@@ -144,7 +147,7 @@ export function SiteFooter() {
 
       <div className="shell footer__end">
         <p className="footer__colophon">
-          &copy;{new Date().getFullYear()}. All Rights Reserved.
+          &copy;{new Date().getFullYear()} {SHOP.name}
         </p>
       </div>
     </footer>

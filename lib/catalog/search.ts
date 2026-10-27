@@ -1,5 +1,5 @@
 import { shelfHref, type Listing } from "./listing";
-import { FACET_LABELS, FILTER_FACETS, tagValues, termCounts, termLabel, type Vocabulary } from "./tags";
+import { FACET_LABELS, FILTER_FACETS, tagValues, termCounts, termLabel, type FilterFacet, type Term, type Vocabulary } from "./tags";
 
 /**
  * Catalogue search: a product matches when every word typed starts a word in
@@ -81,6 +81,9 @@ export function searchItems<T extends Listing>(items: T[], query: string, vocab:
 /** A shelf or a tag filter the query names outright, offered above the products. */
 export type SearchShortcut = { label: string; kind: string; href: string };
 
+/** A term as a shortcut: its own shelf, filtered. A type is a slice of its one category; occasions and people cut across the shop. */
+const termShortcut = (facet: FilterFacet, t: Term): SearchShortcut => ({ label: t.label, kind: FACET_LABELS[facet], href: shelfHref(t.category ?? "all", facet, t.value) });
+
 /**
  * Categories and tag terms whose own name the query matches ("birthday" →
  * Birthday, "frames" → Frames & Display), but only those with something on
@@ -102,9 +105,24 @@ export function searchShortcuts(items: Listing[], query: string, vocab: Vocabula
   const terms = FILTER_FACETS.flatMap((facet) =>
     termCounts(vocab, items, facet)
       .filter((t) => t.count > 0 && named(t.label))
-      .map((t) => ({ label: t.label, kind: FACET_LABELS[facet], href: shelfHref(t.category ?? "all", facet, t.value) })),
+      .map((t) => termShortcut(facet, t)),
   );
 
   return [...categories, ...terms];
 }
 
+/** How many occasions the empty search window offers. */
+const SUGGESTED = 4;
+
+/**
+ * What to offer before anything is typed: the occasions with the most on them,
+ * as the same shortcuts a typed word would raise, so an empty window starts a
+ * search instead of describing one.
+ */
+export function suggestedShortcuts(items: Listing[], vocab: Vocabulary): SearchShortcut[] {
+  return termCounts(vocab, items, "occasion")
+    .filter((t) => t.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, SUGGESTED)
+    .map((t) => termShortcut("occasion", t));
+}

@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { lookup } from "node:dns/promises";
 
 import { SHOP } from "@/app/site/data";
+import { shopContact } from "@/lib/settings";
 import { safeEqual } from "@/lib/secure";
 import { receiptPath, type Attempt, type Checkout, type Notice } from "./order";
 import { siteUrl } from "./site";
@@ -92,6 +93,7 @@ const postForm = (url: string, body: string) =>
 export async function startPayment(attempt: Attempt, token: string, onsite: boolean): Promise<Checkout | null> {
   const c = config();
   if (!c) return null;
+  const { email: shopEmail } = await shopContact();
   const receipt = c.site + receiptPath(attempt.ref, token);
 
   const fields = (urls: boolean): [string, string][] =>
@@ -109,7 +111,7 @@ export async function startPayment(attempt: Attempt, token: string, onsite: bool
         ["amount", pfAmount(attempt.total)],
         ["item_name", `${SHOP.name} order ${attempt.ref}`],
         ["email_confirmation", "1"],
-        ["confirmation_address", SHOP.email],
+        ["confirmation_address", shopEmail],
       ] as [string, string][]
     )
       .map(([k, v]): [string, string] => [k, v.trim()])
@@ -194,6 +196,12 @@ async function confirmedByPayfast(host: string, params: string): Promise<boolean
   }
 }
 
+/** The fields only the shop's checkout form carries; a notice never does. */
+const CHECKOUT_ONLY = new Set(["merchant_key", "return_url", "cancel_url", "notify_url"]);
+
+/** A notice field as recorded: a value PayFast would send is short, so a long one is cut rather than stored whole. */
+const cap = (v: string | undefined) => (v ?? "").slice(0, 100);
+
 export type ReadNotice =
   | { ok: true; notice: Notice }
   /** `signed`: the signature held, so the notice is PayFast's (only it and the shop know the passphrase) and is worth recording; another check failed. */
@@ -211,20 +219,27 @@ export async function readNotice(body: string, ip: string | null): Promise<ReadN
   if (!c) return { ok: false, reason: "PayFast is not set up", signed: false };
 
   const pairs = [...new URLSearchParams(body)];
-  const fields = Object.fromEntries(pairs);
 
-  // Signed as posted: in PayFast's order, values untrimmed, blanks kept.
+  // Signed as posted: in PayFast's order, values untrimmed, blanks kept. The signature covers only the pairs before it, so only they are read: whatever follows is unsigned, and anyone could append it to a form the shop signed.
   const at = pairs.findIndex(([k]) => k === "signature");
-  const params = paramString(at === -1 ? pairs : pairs.slice(0, at));
-  if (!safeEqual(fields.signature, sign(params, c.passphrase))) return { ok: false, reason: "signature mismatch", signed: false };
+  if (at === -1) return { ok: false, reason: "no signature", signed: false };
+  const signedPairs = pairs.slice(0, at);
+  const params = paramString(signedPairs);
+  if (!safeEqual(pairs[at][1], sign(params, c.passphrase))) return { ok: false, reason: "signature mismatch", signed: false };
+
+  // A repeated key would let one value be signed and another read; and the checkout form (which the shop hands browsers, signed with the same passphrase) carries keys no notice does.
+  const keys = signedPairs.map(([k]) => k);
+  if (new Set(keys).size !== keys.length) return { ok: false, reason: "repeated fields", signed: false };
+  if (keys.some((k) => CHECKOUT_ONLY.has(k))) return { ok: false, reason: "a checkout form, not a notice", signed: false };
+  const fields = Object.fromEntries(signedPairs);
 
   const notice: Notice = {
-    attempt: fields.m_payment_id ?? "",
-    pfPaymentId: fields.pf_payment_id ?? "",
-    status: fields.payment_status ?? "",
-    amountGross: fields.amount_gross ?? "",
-    amountFee: fields.amount_fee ?? "",
-    amountNet: fields.amount_net ?? "",
+    attempt: cap(fields.m_payment_id),
+    pfPaymentId: cap(fields.pf_payment_id),
+    status: cap(fields.payment_status),
+    amountGross: cap(fields.amount_gross),
+    amountFee: cap(fields.amount_fee),
+    amountNet: cap(fields.amount_net),
   };
   if (fields.merchant_id !== c.merchantId) return { ok: false, reason: `for another merchant (${fields.merchant_id ?? "none"})`, signed: true, notice };
 

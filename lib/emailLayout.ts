@@ -1,4 +1,5 @@
 import { HOURS, SHOP } from "@/app/site/data";
+import type { ShopContact } from "@/lib/contact";
 import { escapeHtml as esc } from "@/lib/email";
 import { POLICY_LINKS } from "@/lib/legal";
 
@@ -24,7 +25,7 @@ export const C = {
   ground: "#e9edfa",
 } as const;
 
-const FONT = "'Helvetica Neue',Helvetica,Arial,sans-serif";
+export const FONT = "'Helvetica Neue',Helvetica,Arial,sans-serif";
 
 /** Where a link in an email goes; the logo is fetched from here too, so it shows only once SITE_URL is the public address. */
 export type Base = string;
@@ -34,37 +35,42 @@ type ShellInput = {
   /** The inbox preview line, before the email is opened. */
   preheader: string;
   body: string;
-  /** Leaves out the shop's address and hours, for the email that goes to the shop itself. */
-  internal?: boolean;
-};
+  /** The document's title, which some clients show in place of the subject; the shop's name when omitted. */
+  title?: string;
+} & (
+  | { internal?: false; /** How the public reaches the shop (Settings), for the footer. */ contact: ShopContact }
+  /** Leaves out the shop's address, hours and contact, for the email that goes to the shop itself. */
+  | { internal: true; contact?: undefined }
+);
 
-export function shell({ base, preheader, body, internal }: ShellInput): string {
+export function shell({ base, contact, preheader, body, internal, title }: ShellInput): string {
   const hours = HOURS.map((h) => `${esc(h.days)}: ${esc(h.time)}`).join("<br>");
   const footer = internal
     ? `<p style="margin:0;font:400 16px/1.5 ${FONT};color:${C.soft}">An automatic message from the shop’s website.</p>`
     : `<p style="margin:0 0 12px;font:600 16px/1.4 ${FONT};color:${C.ink}">${esc(SHOP.name)}</p>
        <p style="margin:0 0 12px;font:400 16px/1.55 ${FONT};color:${C.soft}"><a href="${esc(SHOP.mapsUrl)}" style="color:${C.soft};text-decoration:underline">${esc(SHOP.street)}, ${esc(SHOP.town)}, ${esc(SHOP.postcode)}</a><br>${hours}</p>
-       <p style="margin:0;font:400 16px/1.55 ${FONT};color:${C.soft}"><a href="tel:+${SHOP.phoneE164}" style="color:${C.blue};text-decoration:underline">${esc(SHOP.phoneDisplay)}</a> &nbsp;·&nbsp; <a href="mailto:${esc(SHOP.email)}" style="color:${C.blue};text-decoration:underline">${esc(SHOP.email)}</a></p>
+       <p style="margin:0;font:400 16px/1.55 ${FONT};color:${C.soft}"><a href="tel:+${contact.phoneE164}" style="color:${C.blue};text-decoration:underline">${esc(contact.phoneDisplay)}</a> &nbsp;·&nbsp; <a href="mailto:${esc(contact.email)}" style="color:${C.blue};text-decoration:underline">${esc(contact.email)}</a></p>
        <p style="margin:12px 0 0;font:400 16px/1.55 ${FONT};color:${C.soft}">${POLICY_LINKS.map((p) => `<a href="${esc(base)}${p.href}" style="color:${C.soft};text-decoration:underline">${esc(p.label)}</a>`).join(" &nbsp;·&nbsp; ")}</p>`;
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><title>${esc(SHOP.name)}</title></head>
+<html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"><title>${esc(title ?? SHOP.name)}</title>
+<style>@media (max-width:520px){.px{padding-left:18px!important;padding-right:18px!important}}</style></head>
 <body style="margin:0;padding:0;background:${C.ground};-webkit-text-size-adjust:100%">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${esc(preheader)}${"&nbsp;&zwnj;".repeat(40)}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.ground}"><tr><td align="center" style="padding:24px 12px">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;border-collapse:separate">
-      <tr><td bgcolor="${C.blue}" style="background:${C.blue};border-radius:14px 14px 0 0;padding:26px 28px 24px">
+      <tr><td class="px" bgcolor="${C.blue}" style="background:${C.blue};border-radius:14px 14px 0 0;padding:26px 28px 24px">
         <a href="${esc(base || SHOP.name)}" style="text-decoration:none"><img src="${esc(base)}/logo/email.png" width="280" height="18" alt="${esc(SHOP.name)}" style="display:block;border:0;width:280px;max-width:100%;height:auto;font:600 18px/1.2 ${FONT};color:#ffffff"></a>
       </td></tr>
       <tr><td style="height:5px;background:${C.gold};font-size:0;line-height:0">&nbsp;</td></tr>
-      <tr><td style="background:#ffffff;padding:32px 28px 36px;font:400 16px/1.6 ${FONT};color:${C.ink}">${body}</td></tr>
-      <tr><td style="background:${C.wash};border-radius:0 0 14px 14px;padding:24px 28px;border-top:1px solid ${C.rule}">${footer}</td></tr>
+      <tr><td class="px" style="background:#ffffff;padding:32px 28px 36px;font:400 16px/1.6 ${FONT};color:${C.ink}">${body}</td></tr>
+      <tr><td class="px" style="background:${C.wash};border-radius:0 0 14px 14px;padding:24px 28px;border-top:1px solid ${C.rule}">${footer}</td></tr>
     </table>
   </td></tr></table>
 </body></html>`;
 }
 
 /** The email's headline, in the brand blue. */
-export const heading = (text: string) => `<h1 style="margin:0 0 12px;font:700 28px/1.15 ${FONT};letter-spacing:-0.02em;color:${C.blue}">${esc(text)}</h1>`;
+export const heading = (text: string) => `<h1 style="margin:0 0 12px;font:700 28px/1.15 ${FONT};letter-spacing:-0.02em;overflow-wrap:break-word;color:${C.blue}">${esc(text)}</h1>`;
 
 export const subheading = (text: string) => `<h2 style="margin:32px 0 8px;font:700 19px/1.3 ${FONT};letter-spacing:-0.01em;color:${C.ink}">${esc(text)}</h2>`;
 
@@ -88,8 +94,8 @@ export const figure = (label: string, value: string) =>
   `<p style="margin:0 0 4px;font:600 16px/1.3 ${FONT};color:${C.soft}">${esc(label)}</p><p style="margin:0;font:700 30px/1.15 ${FONT};letter-spacing:-0.02em;color:${C.blue};word-break:break-all">${esc(value)}</p>`;
 
 /** The line under every customer email. */
-export const help = (ref?: string) =>
-  para(`Questions? Call ${SHOP.phoneDisplay} or reply to this email${ref ? `, and give your order number, ${ref}` : ""}.`, { soft: true });
+export const help = (contact: ShopContact, ref?: string) =>
+  para(`Questions? Call ${contact.phoneDisplay} or reply to this email${ref ? `, and give your order number, ${ref}` : ""}.`, { soft: true });
 
 /** A rule between groups. */
 export const rule = `<div style="height:1px;background:${C.rule};margin:24px 0;font-size:0;line-height:0">&nbsp;</div>`;

@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { after } from "next/server";
 
 import { currentCustomer } from "@/lib/account/auth";
 import { cartSavings } from "@/lib/catalog/campaigns";
 import { photoCount, rands, signedRands } from "@/lib/catalog/listing";
 import { addressLine, deliveryLabel, deliveryPrice } from "@/lib/checkout/details";
-import { fileCount, lineWhat, orderPhotos, type OrderLine } from "@/lib/checkout/order";
+import { fileCount, lineWhat, orderPhotos, reportedAt, type OrderLine } from "@/lib/checkout/order";
 import { fittedUrl, THUMB } from "@/lib/checkout/photoUrls";
-import { orderForReceipt } from "@/lib/checkout/orders";
+import { orderForReceipt, reportPaid } from "@/lib/checkout/orders";
 import { refreshIfStale } from "@/lib/checkout/shipments";
 import { trackOrder } from "@/lib/checkout/tracking";
 import { HOURS, SHOP } from "@/app/site/data";
+import { shopContact } from "@/lib/settings";
 import { ArrowRight } from "@/app/site/icons";
 import { CheckoutHead } from "../Head";
 import { Finish, LiveTracking, SaveAccount, Waiting } from "./Receipt";
@@ -53,7 +55,10 @@ export default async function DonePage({ searchParams }: PageProps<"/checkout/do
   const offerAccount = paid && !order.uid && !(await currentCustomer());
   const photos = orderPhotos(order);
   const tracking = trackOrder(order);
+  const contact = await shopContact();
   refreshIfStale(order);
+  // Reached unpaid only from PayFast's return (it sends the customer back once the payment is taken) or the Onsite window: hold Pay until the notice.
+  if (reportedAt(order) === null && !paid) after(() => reportPaid(order.ref, order.token).catch((e) => console.error("Payment return not noted", order.ref, e)));
 
   return (
     <>
@@ -93,7 +98,7 @@ export default async function DonePage({ searchParams }: PageProps<"/checkout/do
                   {l.frame?.quote ? <small>We&rsquo;ll quote you for the print</small> : null}
                   {l.note ? <small>Your note: &ldquo;{l.note}&rdquo;</small> : null}
                   {l.base ? <small>On special, was {rands(l.base * l.quantity)}</small> : null}
-                  <Proofs line={l} />
+                  {order.photosDeletedAt ? null : <Proofs line={l} />}
                 </span>
                 <span>{rands(l.price * l.quantity)}</span>
               </li>
@@ -161,7 +166,7 @@ export default async function DonePage({ searchParams }: PageProps<"/checkout/do
           )}
           <p className="receipt__soft">
             {photos > 0 ? `Your ${photoCount(photos)} ${photos === 1 ? "is" : "are"} with the shop. ` : ""}
-            Questions? Call {SHOP.phoneDisplay} or email {SHOP.email}, and give your order number.
+            Questions? Call {contact.phoneDisplay} or email {contact.email}, and give your order number.
           </p>
         </section>
 

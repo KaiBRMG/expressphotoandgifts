@@ -106,7 +106,7 @@ export function RuleCard({
         </Tooltip>
       </header>
 
-      <p className="sentence">
+      <div className="sentence">
         {rule.kind === "price" ? (
           <>
             <span>The products below are</span>
@@ -148,7 +148,7 @@ export function RuleCard({
             <OffControl off={rule.off} kinds={OFFS_FOR.spend} labels={SPEND_OFF_LABELS} onChange={(off) => set({ off })} label={name} />
           </>
         )}
-      </p>
+      </div>
 
       {rule.kind === "pair" ? (
         <div className="rule__sides">

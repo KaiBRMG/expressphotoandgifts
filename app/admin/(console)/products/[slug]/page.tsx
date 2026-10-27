@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdmin } from "@/lib/admin/auth";
 import { getVocabulary } from "@/lib/catalog/queries";
 import { notFound } from "next/navigation";
 import { getProductForEdit, listCategories, listProducts, tagSuggestions } from "@/lib/admin/products";
@@ -10,11 +11,13 @@ import { ProductEditor } from "@/app/admin/editor/ProductEditor";
 import { shippingBoxes } from "@/lib/settings";
 
 export async function generateMetadata({ params }: PageProps<"/admin/products/[slug]">): Promise<Metadata> {
+  await requireAdmin();
   const product = await getProductForEdit((await params).slug);
   return { title: product?.name ?? "Product" };
 }
 
 export default async function EditProductPage({ params }: PageProps<"/admin/products/[slug]">) {
+  await requireAdmin();
   const { slug } = await params;
   const [product, categories, all, vocabulary, boxes] = await Promise.all([getProductForEdit(slug), listCategories(), listProducts(), getVocabulary(), shippingBoxes()]);
   if (!product) notFound();

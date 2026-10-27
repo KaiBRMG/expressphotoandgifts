@@ -23,20 +23,21 @@ import {
   type Contact,
   type Recipient,
 } from "@/lib/checkout/details";
-import { MIN_PAYMENT, type DeliveryOption, type OrderInput, type Quote } from "@/lib/checkout/order";
+import { MIN_PAYMENT, receiptPath, type DeliveryOption, type OrderInput, type Quote } from "@/lib/checkout/order";
 import type { SavedDetails } from "@/lib/account/auth";
 import { POLICIES_VERSION, policyTitle, type PolicyPath } from "@/lib/legal";
-import { cart, usePricedCart } from "@/app/site/cartStore";
+import { cart, useCart, usePricedCart } from "@/app/site/cartStore";
 import { HOURS, SHOP } from "@/app/site/data";
 import { Alert, ArrowRight, Parcel, Pin } from "@/app/site/icons";
 import { track } from "@/app/site/track";
 import { signInForCheckout, signOutAction } from "@/app/account/actions";
-import { clearDraft, DRAFT_KEY, useDockHeight } from "../draft";
+import { clearDraft, DRAFT_KEY, paidReceipt, rememberPaid, useDockHeight } from "../draft";
 import { CheckoutHead } from "../Head";
 import { problems, progress, rowsFor, useHydrated } from "../model";
 import { orderLines } from "../order";
 import { usePhotos } from "../photoStore";
-import { placeOrder, quoteDelivery } from "./actions";
+import { placeOrder, quoteDelivery, reportPaidAction } from "./actions";
+import { CodeBox } from "./CodeBox";
 import { Field, inputProps, NewPasswordField } from "../Field";
 import { pay } from "./pay";
 import { Review } from "./Review";
@@ -93,6 +94,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
   const router = useRouter();
   // The lines the shop can sell, priced with the live campaigns as the server will price them.
   const { live, priced, unit } = usePricedCart();
+  const { code } = useCart();
   const store = usePhotos();
 
   // The draft on this device fills the form first, then the account's saved details.
@@ -138,6 +140,12 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
     cart.checkPrices();
   }, []);
 
+  // Back here after PayFast's window said this order was paid: its receipt, not a second payment.
+  useEffect(() => {
+    const receipt = store.ref ? paidReceipt(store.ref) : null;
+    if (receipt) router.replace(receipt);
+  }, [store.ref, router]);
+
   const reached = live.length > 0;
   useEffect(() => {
     if (reached) track({ step: "details" });
@@ -148,6 +156,8 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
   const photoIssues = problems(prog);
   const takesPhotos = rows.some((r) => r.needs?.photo);
   const savings = cartSavings(priced);
+  // What the code's campaign takes off this cart, at every stage: 0 when nothing in the cart is part of its deal.
+  const codeSaved = code ? priced.savings.filter((s) => s.campaign === code.deal.id).reduce((n, s) => n + s.amount, 0) : 0;
 
   const cErrors = contactErrors(contact);
   const aErrors = addressErrors(address);
@@ -155,19 +165,19 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
   const makingAccount = saveAccount && !account;
 
   // A courier price for the address as typed, once it is complete; asked again when the cart changes. The driver's note doesn't change the price.
-  const quoteKey = JSON.stringify([address.street, address.suburb, address.city, address.province, address.code, live.map((l) => [l.sku, l.quantity])]);
+  const quoteKey = JSON.stringify([address.street, address.suburb, address.city, address.province, address.code, live.map((l) => [l.sku, l.quantity]), code?.code ?? null]);
   useEffect(() => {
     if (method !== "courier" || !courier || !addressDone) return;
     if (quoted?.key === quoteKey) return;
     const timer = setTimeout(async () => {
       setQuoted({ key: quoteKey, status: "loading" });
-      const q = await quoteDelivery(address, live.map((l) => ({ sku: l.sku, quantity: l.quantity }))).catch(
+      const q = await quoteDelivery(address, live.map((l) => ({ sku: l.sku, quantity: l.quantity })), code?.code).catch(
         (): Quote => ({ ok: false, reason: "unavailable" }),
       );
       setQuoted((now) => (now?.key === quoteKey ? { key: quoteKey, status: "done", quote: q } : now));
     }, 600);
     return () => clearTimeout(timer);
-  }, [method, courier, addressDone, quoteKey, quoted?.key, address, live]);
+  }, [method, courier, addressDone, quoteKey, quoted?.key, address, live, code?.code]);
 
   const current = quoted?.key === quoteKey ? quoted : null;
   const options: DeliveryOption[] = current?.status === "done" && current.quote.ok ? current.quote.options : [];
@@ -234,6 +244,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
           : { method: "collect" },
       lines: orderLines(rows, store.photos, store.bakes),
       shownTotal: total,
+      code: code?.code ?? null,
       accepted: agreed ? POLICIES_VERSION : "",
     };
     const placed = await placeOrder(input, onsite && window.location.protocol === "https:", makingAccount ? password : undefined).catch(() => null);
@@ -242,12 +253,17 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
       setError("We couldn’t reach the shop’s server. Check your connection and try again.");
       return;
     }
+    if (!placed.ok && placed.receipt) return router.push(placed.receipt);
     if (!placed.ok) {
       setBusy(false);
       setError(placed.error);
       if (placed.paid) setPaidAlready(true);
+      // The code can't be used (used since, or its offer ended): off the order, and the total the customer sees is without it.
+      if (placed.field === "code") {
+        cart.removeCode();
+        setQuoted(null);
+      }
       if (placed.field === "total") {
-        cart.skip(placed.skip ?? []);
         if (placed.total !== undefined) setChecked({ key: orderKey, total: placed.total });
         cart.checkPrices(true);
         setQuoted(null);
@@ -270,8 +286,12 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
     }
     const outcome = await pay(placed.checkout);
     if (outcome === "paid") {
+      const receipt = receiptPath(placed.ref, placed.token);
       clearDraft();
-      router.push(`/checkout/done?ref=${placed.ref}&t=${placed.token}`);
+      rememberPaid(placed.ref, receipt);
+      // The server holds the order too, so no device can pay for it again before PayFast's notice; never held up by it.
+      await Promise.race([reportPaidAction(placed.ref, placed.token).catch(() => undefined), new Promise((r) => setTimeout(r, 3000))]);
+      router.push(receipt);
     } else {
       setBusy(false);
       setNotice(CANCELLED);
@@ -597,13 +617,14 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
               Check your order
             </h2>
             <Review rows={rows} photos={store.photos} />
+            <CodeBox applied={code} saved={codeSaved} />
             {/* The agreement, at the end of the review it covers. Its links open
                 beside checkout, so reading them never loses the form. */}
             <label className="check coagree">
               <input id="co-agree" type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
               <span>
-                I agree to the <Policy path="/terms" /> and <Policy path="/refunds-cancellations" />, including that I have the right to print the photos
-                I&rsquo;ve added. The <Policy path="/privacy" /> says how my details are used.
+                I agree to the <Policy path="/terms" />, including its returns, cancellations and refunds and the notices marked with a gold dot that limit the
+                shop&rsquo;s liability, and that I have the right to print the photos I&rsquo;ve added. The <Policy path="/privacy" /> says how my details are used.
               </span>
             </label>
           </section>

@@ -5,9 +5,12 @@ import { db } from "@/lib/firebase";
 import { applyNotice, changeOrder, flagOnce, getOrder, orders } from "@/lib/checkout/orders";
 import { afterPaid } from "@/lib/checkout/paid";
 import { amountMatches, pfAmount } from "@/lib/checkout/payfast";
-import { cardPayment, transactionHistory, type ApiResult, type HistoryRow } from "@/lib/checkout/payfastApi";
-import { ATTEMPT, DAY_MS, SWEEP_AFTER_DAYS, type Attempt, type Notice, type NoticeOutcome, type NoticeRecord, type Order, type OrderActionResult } from "@/lib/checkout/order";
+import { cardPayment, paymentRefunds, refundedTotal, transactionHistory, type ApiResult, type HistoryRow } from "@/lib/checkout/payfastApi";
+import { ATTEMPT, DAY_MS, reportedAt, SWEEP_AFTER_DAYS, type Attempt, type Notice, type NoticeOutcome, type NoticeRecord, type Order, type OrderActionResult } from "@/lib/checkout/order";
+import { unrecordedRefund } from "@/lib/checkout/refunds";
 import { shopDate } from "@/lib/shopTime";
+import { at } from "@/app/admin/when";
+import { cleanNote } from "@/lib/admin/orders";
 
 /**
  * The shop's payments set beside PayFast's own record of them. PayFast's
@@ -38,10 +41,14 @@ export type Match =
   /** Anything else PayFast lists (payouts, fees): shown, never an exception. */
   | { kind: "other" };
 
-export type LedgerRow = HistoryRow & { match: Match };
+/** Staff saying an exception was looked at, and what was done. It stays on the page, no longer counted. */
+export type Review = { at: string; by: string; note: string };
+
+/** `key`: what a review of this line is kept under. `review`: set once staff have looked at an exception. */
+export type LedgerRow = HistoryRow & { match: Match; key: string; review?: Review };
 
 /** A paid order whose payment PayFast's history doesn't have (after a day's grace, since its history can lag). */
-export type Unrecorded = { ref: string; name: string; total: number; paidAt: string; pfPaymentId: string };
+export type Unrecorded = { ref: string; name: string; total: number; paidAt: string; pfPaymentId: string; key: string; review?: Review };
 
 export type Ledger = {
   /** Exceptions first, then newest first. */
@@ -55,6 +62,16 @@ export type Ledger = {
 
 const EXCEPTIONS = new Set<Match["kind"]>(["missed", "amount", "duplicate", "no-order"]);
 export const isException = (m: Match) => EXCEPTIONS.has(m.kind);
+
+/** A missed payment is settled by accepting it, not by saying it was looked at: that would leave a customer's money taken and the order unpaid. */
+export const canReview = (m: Match) => isException(m) && m.kind !== "missed";
+
+/** Still waiting for the shop: an exception nobody has looked at. */
+const isOpen = (r: { match: Match; review?: Review }) => isException(r.match) && !r.review;
+
+const reviews = () => db().collection("paymentReviews");
+const rowKey = (r: HistoryRow) => `pf-${r.pfPaymentId}`;
+const unrecordedKey = (pfPaymentId: string) => `none-${pfPaymentId}`;
 
 const isPayment = (r: HistoryRow) => /^FUNDS_RECEIVED$/i.test(r.type) && r.gross > 0;
 const isRefund = (r: HistoryRow) => /REFUND/i.test(r.type);
@@ -76,6 +93,9 @@ function judge(r: HistoryRow, order: Order | undefined, attempt: Attempt | undef
   return { kind: "missed", ...who };
 }
 
+/** What matching reads of an order: never its lines, log or notices, which a month of orders would make heavy. */
+const MATCHED = ["ref", "status", "contact", "total", "paidAt", "payment"] as const;
+
 /**
  * Sets PayFast's history beside our orders, reading each order and attempt it
  * names once. With `window`, also finds paid orders in it that PayFast has no
@@ -86,12 +106,12 @@ export async function matchHistory(rows: HistoryRow[], window?: { from: string; 
   const refOf = (a: string) => ATTEMPT.exec(a)?.[1];
   const paidInWindow = window
     ? // By `paidAt` alone, a range on the field it orders by: no composite index.
-      (await orders().where("paidAt", ">=", `${window.from}T00:00:00`).where("paidAt", "<=", `${window.to}T23:59:59.999Z`).orderBy("paidAt").get()).docs.map((d) => d.data() as Order)
+      (await orders().where("paidAt", ">=", `${window.from}T00:00:00`).where("paidAt", "<=", `${window.to}T23:59:59.999Z`).orderBy("paidAt").select(...MATCHED).get()).docs.map((d) => d.data() as Order)
     : [];
   const orderOf = new Map(paidInWindow.map((o) => [o.ref, o]));
   const toRead = [...new Set(attempts.map((a) => refOf(a)!))].filter((r) => !orderOf.has(r));
   const [orderSnaps, attemptSnaps] = await Promise.all([
-    toRead.length ? db().getAll(...toRead.map((r) => orders().doc(r))) : [],
+    toRead.length ? db().getAll(...toRead.map((r) => orders().doc(r)), { fieldMask: [...MATCHED] }) : [],
     attempts.length ? db().getAll(...attempts.map((a) => orders().doc(refOf(a)!).collection("attempts").doc(a))) : [],
   ]);
   for (const s of orderSnaps) if (s.exists) orderOf.set(s.id, s.data() as Order);
@@ -99,22 +119,30 @@ export async function matchHistory(rows: HistoryRow[], window?: { from: string; 
 
   const ledger: LedgerRow[] = rows.map((r) => {
     const ref = refOf(r.attempt);
-    return { ...r, match: judge(r, ref ? orderOf.get(ref) : undefined, attemptOf.get(r.attempt), ref) };
+    return { ...r, key: rowKey(r), match: judge(r, ref ? orderOf.get(ref) : undefined, attemptOf.get(r.attempt), ref) };
   });
 
   const seen = new Set(rows.filter(isPayment).map((r) => r.pfPaymentId));
   const graceEnds = Date.now() - DAY_MS;
-  const unrecorded = paidInWindow
+  const unrecorded: Unrecorded[] = paidInWindow
     .filter((o) => o.payment && !seen.has(o.payment.pfPaymentId) && Date.parse(o.paidAt!) < graceEnds)
-    .map((o) => ({ ref: o.ref, name: customer(o), total: o.total, paidAt: o.paidAt!, pfPaymentId: o.payment!.pfPaymentId }));
+    .map((o) => ({ ref: o.ref, name: customer(o), total: o.total, paidAt: o.paidAt!, pfPaymentId: o.payment!.pfPaymentId, key: unrecordedKey(o.payment!.pfPaymentId) }));
+
+  // Reviews are read only for the lines that could have one.
+  const reviewable = [...ledger.filter((r) => canReview(r.match)), ...unrecorded];
+  if (reviewable.length) {
+    const snaps = await db().getAll(...reviewable.map((r) => reviews().doc(r.key)));
+    const reviewOf = new Map(snaps.filter((s) => s.exists).map((s) => [s.id, s.data() as Review]));
+    for (const r of reviewable) r.review = reviewOf.get(r.key);
+  }
 
   const payments = ledger.filter(isPayment);
   const byDate = (a: LedgerRow, b: LedgerRow) => b.date.localeCompare(a.date);
-  const flagged = ledger.filter((r) => isException(r.match));
+  const open = ledger.filter(isOpen);
   return {
-    rows: [...flagged.sort(byDate), ...ledger.filter((r) => !isException(r.match)).sort(byDate)],
-    unrecorded,
-    exceptions: flagged.length + unrecorded.length,
+    rows: [...open.sort(byDate), ...ledger.filter((r) => !isOpen(r)).sort(byDate)],
+    unrecorded: [...unrecorded.filter((u) => !u.review), ...unrecorded.filter((u) => u.review)],
+    exceptions: open.length + unrecorded.filter((u) => !u.review).length,
     payments: {
       count: payments.length,
       gross: payments.reduce((n, r) => n + r.gross, 0),
@@ -150,8 +178,13 @@ export async function monthLedger(month: string): Promise<ApiResult<Ledger>> {
 
 /* ---- The check: daily, and on demand ----------------------------------- */
 
-/** The last check's outcome, for the dashboard and the Payments page. */
-export type CheckRecord = { at: string; by: string; from: string; to: string } & ({ ok: true; payments: number; exceptions: number } | { ok: false; error: string });
+/**
+ * The last check's outcome, for the dashboard and the Payments page.
+ * `covered`: the last day a check that succeeded read PayFast's history to,
+ * kept through failures, so the next check reads on from there and the photo
+ * sweep knows which unpaid orders PayFast's record has been checked for.
+ */
+export type CheckRecord = { at: string; by: string; from: string; to: string; covered?: string } & ({ ok: true; payments: number; exceptions: number } | { ok: false; error: string });
 
 const checkDoc = () => db().collection("meta").doc("payfastCheck");
 
@@ -160,26 +193,122 @@ export async function lastCheck(): Promise<CheckRecord | null> {
   return snap.exists ? (snap.data() as CheckRecord) : null;
 }
 
-/** How far back the daily check looks: long enough for a notice PayFast retried for days, or a weekend nobody checked. */
+/** How far back the daily check looks at least: long enough for a notice PayFast retried for days, or a weekend nobody checked. */
 const CHECK_DAYS = 7;
 
+/** How far back it reads at most, catching up after checks that failed: PayFast's history pages past 1000 rows, so this stays a few calls. */
+export const CATCH_UP_DAYS = 45;
+
+/** The day before `date` (YYYY-MM-DD). */
+const dayBefore = (date: string) => new Date(Date.parse(`${date}T00:00:00Z`) - DAY_MS).toISOString().slice(0, 10);
+
 /**
- * Reads PayFast's history for the window (the last week by default), flags
- * each exception on its order once, and records the outcome. `by` is "daily
- * check" from the cron, or the member of staff who pressed Check now.
+ * Reads PayFast's history for the window, flags each exception on its order
+ * once, and records the outcome. By default the window is the last week, or
+ * back to the day before the last check that succeeded when that is longer
+ * (up to `CATCH_UP_DAYS`), so a run of failed checks loses nothing. `by` is
+ * "daily check" from the cron, or the member of staff who pressed Check now.
  */
 export async function runCheck(by: string, window?: { from: string; to: string }): Promise<CheckRecord> {
-  const range = window ?? { from: shopDate(Date.now() - CHECK_DAYS * DAY_MS), to: shopDate() };
+  const last = await lastCheck();
+  const week = shopDate(Date.now() - CHECK_DAYS * DAY_MS);
+  const catchUp = shopDate(Date.now() - CATCH_UP_DAYS * DAY_MS);
+  // Dates as YYYY-MM-DD compare as strings: the earlier of a week back and the day before the last good check, never past the catch-up limit.
+  const from = last?.covered ? [week, [dayBefore(last.covered), catchUp].sort()[1]].sort()[0] : week;
+  const range = window ?? { from, to: shopDate() };
   const at = new Date().toISOString();
   const history = await transactionHistory(range.from, range.to);
   let record: CheckRecord;
   if (history.ok) {
     const ledger = await matchHistory(history.data, range);
-    await Promise.all([...ledger.rows.map(flagFromHistory), ...ledger.unrecorded.map(flagUnrecorded)]);
-    record = { at, by, ...range, ok: true, payments: ledger.payments.count, exceptions: ledger.exceptions };
-  } else record = { at, by, ...range, ok: false, error: history.message };
+    await Promise.all([...ledger.rows.filter((r) => !r.review).map(flagFromHistory), ...ledger.unrecorded.filter((u) => !u.review).map(flagUnrecorded), flagUnrecordedRefunds(ledger.rows), flagUnconfirmed(ledger.rows)]);
+    // A window staff chose (an older month, say) says nothing about the days since the last check.
+    const covered = !window || !last?.covered || (range.from <= last.covered && range.to > last.covered) ? range.to : last.covered;
+    record = { at, by, ...range, covered, ok: true, payments: ledger.payments.count, exceptions: ledger.exceptions };
+  } else record = { at, by, ...range, ...(last?.covered ? { covered: last.covered } : {}), ok: false, error: history.message };
   await checkDoc().set(record);
   return record;
+}
+
+/**
+ * Staff saying an exception in the month's ledger was looked at, with what was
+ * done. Only a line that is an exception now, and not a missed payment, can be
+ * reviewed. The ledger stops counting it, and the dashboard's count, which was
+ * worked out at the last check, is worked out again for that check's window.
+ * An order's own issues are resolved on the order.
+ */
+export async function reviewException(month: string, key: string, note: unknown, by: string): Promise<OrderActionResult> {
+  const what = cleanNote(note);
+  if (!what) return { error: "Say what was done about it, for the record." };
+  const read = await monthLedger(month);
+  if (!read.ok) return { error: read.message };
+  const row = read.data.rows.find((r) => r.key === key && isPayment(r));
+  const line = row ?? read.data.unrecorded.find((u) => u.key === key);
+  if (!line) return { error: "That payment isn’t in this month’s record any more." };
+  if (line.review) return { error: "That payment has already been looked at." };
+  if (row && !canReview(row.match)) return { error: row.match.kind === "missed" ? "A payment PayFast took that the order never received is settled by accepting it on the order." : "That payment doesn’t need a look." };
+  const ref = row ? ("ref" in row.match ? row.match.ref : null) : (line as Unrecorded).ref;
+  await reviews().doc(key).create({ at: new Date().toISOString(), by, note: what, ...(ref ? { ref } : {}) });
+  await recountCheck();
+  return { ok: true };
+}
+
+/** Works out the last check's exceptions again over its own window, so the dashboard's count follows a review. */
+async function recountCheck() {
+  const last = await lastCheck();
+  if (!last?.ok) return;
+  const history = await transactionHistory(last.from, last.to);
+  if (!history.ok) return;
+  const { exceptions } = await matchHistory(history.data, { from: last.from, to: last.to });
+  await checkDoc().update({ exceptions });
+}
+
+/**
+ * Flags each order whose payment PayFast shows more refunded on than the
+ * order records: a refund made in PayFast's dashboard and never recorded, so
+ * the customer wasn't emailed and the books are out. Asked of PayFast for
+ * the orders its history's refunds name; once per refunded total.
+ */
+async function flagUnrecordedRefunds(rows: LedgerRow[]) {
+  const refs = [...new Set(rows.flatMap((r) => (r.match.kind === "refund" && r.match.ref ? [r.match.ref] : [])))];
+  if (!refs.length) return;
+  const snaps = await db().getAll(...refs.map((r) => orders().doc(r)), { fieldMask: ["ref", "status", "payment", "refunds"] });
+  const paid = snaps.map((s) => s.data() as Pick<Order, "ref" | "status" | "payment" | "refunds"> | undefined).filter((o) => o?.status === "paid" && o.payment);
+  await Promise.all(paid.map(async (o) => {
+    if (!o?.payment) return;
+    const pf = await paymentRefunds(o.payment.pfPaymentId);
+    if (!pf.ok) return;
+    const total = refundedTotal(pf.data);
+    const unrecorded = unrecordedRefund(o, total);
+    if (unrecorded <= 0) return;
+    const record: NoticeRecord = { attempt: o.payment.attempt, pfPaymentId: o.payment.pfPaymentId, status: "REFUNDED", amountGross: pfAmount(unrecorded), amountFee: "", amountNet: "", at: new Date().toISOString(), outcome: "refund", reason: "a refund PayFast made that the order doesn’t record" };
+    const text = `PayFast shows ${rands(unrecorded)} refunded on this order’s payment that the order doesn’t record. Record it on the Payment tab (It was refunded in PayFast’s dashboard), so the customer is emailed and the books match.`;
+    await flagOnce(o.ref, `refund-${o.payment.pfPaymentId}-${total}`, record, text);
+  }));
+}
+
+/**
+ * Flags each unpaid order whose customer PayFast's window told it was paid
+ * (`reportedPaid`) more than a day ago, when PayFast's history shows no
+ * payment for that attempt: the customer believes they paid, and Pay is held
+ * from them meanwhile. A payment the history does show is flagged as missed
+ * instead.
+ */
+async function flagUnconfirmed(rows: LedgerRow[]) {
+  const seen = new Set(rows.filter(isPayment).map((r) => r.attempt));
+  const snap = await orders().where("reportedPaid.at", ">=", new Date(Date.now() - SWEEP_AFTER_DAYS * DAY_MS).toISOString()).select("ref", "status", "attempts", "reportedPaid").get();
+  const graceEnds = Date.now() - DAY_MS;
+  await Promise.all(
+    snap.docs
+      .map((d) => d.data() as Pick<Order, "ref" | "status" | "attempts" | "reportedPaid">)
+      .filter((o) => (reportedAt(o) ?? Infinity) < graceEnds && !seen.has(o.reportedPaid!.attempt))
+      .map((o) => {
+        const { attempt, at: reported } = o.reportedPaid!;
+        const record: NoticeRecord = { attempt, pfPaymentId: "", status: "", amountGross: "", amountFee: "", amountNet: "", at: new Date().toISOString(), outcome: "unconfirmed", reason: "PayFast’s window said paid; no payment in its history" };
+        const text = `PayFast’s window told the customer attempt ${attempt} was paid (${at(reported)}), but no payment has reached the shop and PayFast’s history shows none for it. Check PayFast’s dashboard, then contact the customer: they may think they’ve paid.`;
+        return flagOnce(o.ref, `unconfirmed-${attempt}`, record, text);
+      }),
+  );
 }
 
 /** Flags an order for one history exception, once: the record's ID is the payment's, so the next day's check writes nothing. */

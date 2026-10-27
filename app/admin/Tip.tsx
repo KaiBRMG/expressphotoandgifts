@@ -20,3 +20,16 @@ export function Tip({ children, about }: { children: string; about: string }) {
     </Tooltip>
   );
 }
+
+/**
+ * The name of an icon-only control, on hover and keyboard focus. The control
+ * keeps its own aria-label, so a screen reader hears it once; on a touch screen
+ * the icon is all there is to press, so no tooltip opens.
+ */
+export function Hint({ label, children }: { label: string; children: React.ReactElement }) {
+  return (
+    <Tooltip label={label} openDelay={300} events={{ hover: true, focus: true, touch: false }}>
+      {children}
+    </Tooltip>
+  );
+}

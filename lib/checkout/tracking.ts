@@ -101,6 +101,12 @@ export function trackOrder(o: Order): Tracking | null {
   const made = making && stage !== "making";
   const paid = { key: "paid", label: "Paid", at: o.paidAt, note: "With the shop, and next in line to be made." };
 
+  // Refunded in full before it left the shop: nothing more is coming.
+  if (stage === "cancelled") {
+    const steps = settle([paid, { key: "cancelled", label: "Cancelled and refunded", at: at.cancelled }], [true, true]);
+    return { steps, headline: "Cancelled, and refunded in full to the card or account you paid with.", problem: false, finished: true };
+  }
+
   if (o.fulfilment.method === "collect") {
     const steps = settle(
       [
@@ -131,7 +137,7 @@ export function trackOrder(o: Order): Tracking | null {
         key: "making",
         label: "Being made",
         at: at.making,
-        note: made ? "Made, and being packed for the courier. We’ll email you the tracking number once it’s booked." : "The shop is printing and making your order.",
+        note: made ? "Made, and being packed for the courier. We’ll email you the tracking number once the courier has collected it." : "The shop is printing and making your order.",
       },
       { key: "booked", label: "Packed and booked", at: s?.at, note: "Booked with The Courier Guy. Waiting for them to collect it from the shop." },
       { key: "collected", label: "With The Courier Guy", at: firstAt(events, hasLeftShop) ?? (sentByHand ? at.done : undefined), note: "On its way to you." },

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 import { priceLabel, productHref } from "@/lib/catalog/listing";
-import { queryWords, searchItems, searchShortcuts } from "@/lib/catalog/search";
+import { queryWords, searchItems, searchShortcuts, suggestedShortcuts } from "@/lib/catalog/search";
 import type { SearchIndex } from "@/app/api/search/route";
 import { ArrowRight, Close, Search } from "./icons";
 import { ProductImage } from "./ProductImage";
@@ -81,6 +81,35 @@ export function HeaderSearch() {
     return () => document.removeEventListener("pointerdown", away);
   }, [open]);
 
+  // The open field is drawn over the bar's right end (all of the bar on a
+  // phone), so what lies under it is taken out of the tab order and the reading
+  // order until it closes, rather than leaving focus on something hidden.
+  useEffect(() => {
+    const bar = open ? root.current?.closest(".header__bar") : null;
+    if (!bar) return;
+    const covered = [...bar.querySelectorAll<HTMLElement>(".header__actions > :not(.search), .search__toggle")];
+    if (window.matchMedia("(max-width: 45.99rem)").matches) covered.push(...bar.querySelectorAll<HTMLElement>(".header__logo"));
+    covered.forEach((el) => (el.inert = true));
+    return () => covered.forEach((el) => (el.inert = false));
+  }, [open]);
+
+  // iOS leaves the layout viewport whole when the keyboard opens, so the window
+  // is told how much of the screen the keyboard covers and stops above it.
+  useEffect(() => {
+    const view = window.visualViewport;
+    if (!open || !view) return;
+    const root = document.documentElement;
+    const sync = () => root.style.setProperty("--keyboard", `${Math.max(0, window.innerHeight - view.height - view.offsetTop)}px`);
+    sync();
+    view.addEventListener("resize", sync);
+    view.addEventListener("scroll", sync);
+    return () => {
+      view.removeEventListener("resize", sync);
+      view.removeEventListener("scroll", sync);
+      root.style.removeProperty("--keyboard");
+    };
+  }, [open]);
+
   // Arriving on another page (back, forward) closes it, adjusted during render.
   const [page, setPage] = useState(pathname);
   if (page !== pathname) {
@@ -97,8 +126,22 @@ export function HeaderSearch() {
   );
   const top = products.slice(0, SHOWN);
   const typed = queryWords(query).length > 0;
+  // The window lists something to choose from only when there are results; every other state is a note.
+  const listed = loaded !== null && typed && products.length > 0;
+  const suggestions = useMemo(() => (loaded ? suggestedShortcuts(loaded.listings, loaded.vocabulary) : []), [loaded]);
 
   // A search that finds nothing, once the customer has stopped typing: what they wanted that the shop doesn't list.
+  // What a screen reader is told as the window changes. One region that is
+  // always there and only changes its words: a region added to the page with
+  // its text already in it is often not announced at all.
+  const announcement = failed
+    ? "Search isn’t loading right now."
+    : !loaded || !typed
+      ? ""
+      : products.length === 0
+        ? `Nothing matches ${query.trim()}.`
+        : `${products.length} ${products.length === 1 ? "product matches" : "products match"}`;
+
   const missed = loaded !== null && typed && products.length === 0 && shortcuts.length === 0;
   useEffect(() => {
     if (!missed) return;
@@ -148,6 +191,7 @@ export function HeaderSearch() {
         onClick={() => (open ? close() : openSearch())}
       >
         <Search size={21} />
+        <span className="header__label">Search</span>
       </button>
 
       {open ? (
@@ -169,8 +213,8 @@ export function HeaderSearch() {
               type="search"
               role="combobox"
               aria-label="Search products, categories and occasions"
-              aria-expanded
-              aria-controls={`${id}-results`}
+              aria-expanded={listed}
+              aria-controls={listed ? `${id}-results` : undefined}
               aria-autocomplete="list"
               aria-activedescendant={active >= 0 ? rowId(active) : undefined}
               placeholder="Mugs, frames, birthday…"
@@ -189,6 +233,9 @@ export function HeaderSearch() {
           </form>
 
           <div className="search__window on-light">
+            <p className="visually-hidden" role="status">
+              {announcement}
+            </p>
             {failed ? (
               <p className="search__note">
                 Search isn&rsquo;t loading right now.{" "}
@@ -197,22 +244,31 @@ export function HeaderSearch() {
                 </Link>
               </p>
             ) : !loaded ? (
-              <p className="search__note" aria-live="polite">
+              <p className="search__note">
                 Getting the shop ready…
               </p>
             ) : !typed ? (
-              <p className="search__note">Search by product, category or occasion.</p>
+              <>
+                <p className="search__note">Search by product, category or occasion{suggestions.length > 0 ? ", or start with an occasion." : "."}</p>
+                {suggestions.length > 0 ? (
+                  <ul className="search__shortcuts search__shortcuts--start" aria-label="Occasions">
+                    {suggestions.map((s) => (
+                      <li key={s.href}>
+                        <Link className="search__shortcut" href={s.href} onClick={() => close(false)}>
+                          {s.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </>
             ) : products.length === 0 ? (
-              <p className="search__note" aria-live="polite">
+              <p className="search__note">
                 Nothing matches &ldquo;{query.trim()}&rdquo;. Try a product, like <em>mug</em>, or an
                 occasion, like <em>birthday</em>.
               </p>
             ) : (
               <>
-                <p className="visually-hidden" aria-live="polite">
-                  {products.length} {products.length === 1 ? "product matches" : "products match"}
-                </p>
-
                 {/* Choosing any row leaves for its page: the click bubbles here. */}
                 <div id={`${id}-results`} role="listbox" aria-label="Search results" onClick={() => close(false)}>
                   {shortcuts.length > 0 ? (

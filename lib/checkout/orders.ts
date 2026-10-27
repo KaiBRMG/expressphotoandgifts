@@ -9,7 +9,8 @@ import { rands } from "@/lib/catalog/listing";
 import type { Availability } from "@/lib/catalog/stock";
 import { clampQuantity } from "@/lib/catalog/purchase";
 import { getProducts } from "@/lib/catalog/queries";
-import { campaignsUsed, countUse, orderDeals } from "@/lib/campaigns";
+import { campaignsUsed, countUse } from "@/lib/campaigns";
+import { dealsForOrder, readCode, redeemCode } from "@/lib/campaignCodes";
 import { db } from "@/lib/firebase";
 import { cleanAddress, cleanContact, cleanRecipient, addressErrors, contactErrors, hasErrors, LIMITS, recipientErrors } from "./details";
 import { fullCover, packCart, quote } from "./courier";
@@ -17,6 +18,8 @@ import { amountMatches, pfAmount } from "./payfast";
 import { liveAvailability, readStock, stockChanged, takeStock, unitsBySku } from "@/lib/stock";
 import {
   ATTEMPT,
+  awaitingNotice,
+  latestAttempt,
   MAX_ATTEMPTS,
   MIN_PAYMENT,
   orderFolder,
@@ -36,6 +39,7 @@ import {
   type OrderLine,
   type Payment,
   type Service,
+  type Snapshot,
 } from "./order";
 
 /**
@@ -48,9 +52,8 @@ import {
 export const orders = () => db().collection("orders");
 
 export type Priced =
-  /** `skipped`: once-per-customer campaigns this email has had already, left out of the price. */
-  | { ok: true; order: Omit<Order, "token" | "createdAt" | "updatedAt" | "uid" | "status">; skipped: { id: string; name: string }[] }
-  | { ok: false; error: string; field?: "contact" | "address" | "recipient" | "delivery" | "photos" | "cart" | "stock"; limits?: Availability };
+  | { ok: true; order: Omit<Order, "token" | "createdAt" | "updatedAt" | "uid" | "status"> }
+  | { ok: false; error: string; field?: "contact" | "address" | "recipient" | "delivery" | "photos" | "cart" | "stock" | "code"; limits?: Availability };
 
 /**
  * Checks and prices an order (already read by `readOrderInput`): every line
@@ -60,14 +63,17 @@ export type Priced =
  * still offers. Campaigns are read fresh and priced by the same engine the
  * cart uses (`priceDeals`), so a deal that ended or filled since the cart
  * was drawn is gone here, and the customer sees the new total before paying.
+ * A one-time code (`lib/campaignCodes.ts`) adds its campaign's deals; one that
+ * can't be used is refused, and the order is left as it was. A code whose deal
+ * saves nothing on this cart is left off the order, so it isn't used up.
  */
 export async function priceOrder(input: OrderInput, owner: Promise<string | null> | null = null): Promise<Priced> {
   if (!REF.test(input.ref)) return { ok: false, error: "This order’s reference is missing. Go back to your photos and try again.", field: "cart" };
   if (hasErrors(contactErrors(input.contact))) return { ok: false, error: "Some of your details need another look.", field: "contact" };
   if (input.lines.length === 0) return { ok: false, error: "Your cart is empty.", field: "cart" };
 
-  // The campaigns need only the customer's email, so they load while everything else is checked.
-  const dealsLoad = orderDeals(input.contact.email, {});
+  // The campaigns need only the code, so they load while everything else is checked.
+  const dealsLoad = dealsForOrder(input.code, {});
   dealsLoad.catch(() => {}); // awaited below; an early return mustn't leave it unhandled
   const folder = orderFolder(input.ref);
   const outside = input.lines.flatMap((l) => l.sets.flatMap((s) => s.files.map((f) => f.publicId))).filter((id) => !id.startsWith(folder));
@@ -112,7 +118,8 @@ export async function priceOrder(input: OrderInput, owner: Promise<string | null
   const items = lines.map((l) => ({ p: bySku.get(l.sku)!.p, sku: l.sku, quantity: l.quantity }));
   // Stock against the counts as they stand now, not the shop's cached copy; alongside the campaigns, read fresh too.
   const units = unitsBySku(lines);
-  const [limits, { deals, skipped }] = await Promise.all([liveAvailability(Object.keys(units)), dealsLoad]);
+  const [limits, { deals, code, error: codeError }] = await Promise.all([liveAvailability(Object.keys(units)), dealsLoad]);
+  if (codeError) return { ok: false, error: codeError, field: "code" };
   const over = Object.keys(units).filter((sku) => sku in limits && units[sku] > limits[sku]);
   if (over.length) {
     const names = over.map((sku) => lines.find((l) => l.sku === sku)!.name);
@@ -129,6 +136,7 @@ export async function priceOrder(input: OrderInput, owner: Promise<string | null
   dealt.lines.forEach((d, i) => {
     lines[i] = { ...lines[i], price: d.price, ...(d.price < d.base ? { base: d.base } : {}), ...(d.net < d.price * d.quantity ? { paid: d.net } : {}) };
   });
+  const coded = code !== null && dealt.savings.some((s) => s.campaign === code.campaign);
   // The courier's cover is for what the goods sold for.
   const priced = await priceFulfilment(input.fulfilment, dealt.total, items);
   if (!priced.ok) return priced;
@@ -137,7 +145,6 @@ export async function priceOrder(input: OrderInput, owner: Promise<string | null
 
   return {
     ok: true,
-    skipped,
     order: {
       ref: input.ref,
       contact: cleanContact(input.contact),
@@ -146,6 +153,7 @@ export async function priceOrder(input: OrderInput, owner: Promise<string | null
       subtotal: dealt.subtotal,
       ...(dealt.discount > 0 ? { discount: dealt.discount } : {}),
       ...(dealt.savings.length ? { savings: dealt.savings } : {}),
+      ...(coded ? { code: code.code } : {}),
       delivery: priced.delivery,
       total,
     },
@@ -188,7 +196,11 @@ async function priceFulfilment(
   return { ok: true, fulfilment: { method: "courier", address, recipient, service }, delivery: priced.price };
 }
 
-export type Started = { ok: true; order: Order; attempt: Attempt } | { ok: false; reason: "paid" | "taken" | "too-many" };
+/** What pricing an attempt sets on its order, so none of an earlier attempt's (its deals, say) outlives it. */
+const PRICED = new Set<string>(["contact", "fulfilment", "lines", "subtotal", "discount", "savings", "code", "delivery", "total"] satisfies (keyof Snapshot)[]);
+
+/** `token`: a paid order's receipt token, only for the browser that placed it, so it can be sent to its receipt. */
+export type Started = { ok: true; order: Order; attempt: Attempt } | { ok: false; reason: "paid" | "reported"; token?: string } | { ok: false; reason: "taken" | "too-many" };
 
 /**
  * Saves the order as pending and freezes it as a new payment attempt, in one
@@ -209,15 +221,19 @@ export async function startAttempt(priced: Extract<Priced, { ok: true }>["order"
   return db().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const was = snap.exists ? (snap.data() as Order) : null;
-    if (was?.status === "paid") return { ok: false, reason: "paid" } as const;
+    if (was?.status === "paid") return { ok: false, reason: "paid", ...(was.claim === claim ? { token: was.token } : {}) } as const;
+    // PayFast's window said the last attempt was paid: wait for its notice (or the daily check) rather than take a second payment.
+    if (was && awaitingNotice(was) && was.claim === claim) return { ok: false, reason: "reported", token: was.token } as const;
     if (was && was.claim !== claim) return { ok: false, reason: "taken" } as const;
     const n = (was?.attempts ?? 0) + 1;
     if (n > MAX_ATTEMPTS) return { ok: false, reason: "too-many" } as const;
 
     const now = new Date().toISOString();
     const terms = { version: policies, at: now };
+    // What the order keeps from before (its token, notices, issues…); everything priced comes from this attempt alone.
+    const kept = Object.fromEntries(Object.entries(was ?? {}).filter(([k]) => !PRICED.has(k))) as Partial<Order>;
     const order: Order = {
-      ...was,
+      ...kept,
       ...priced,
       token: was?.token ?? randomBytes(16).toString("hex"),
       status: "pending",
@@ -228,8 +244,8 @@ export async function startAttempt(priced: Extract<Priced, { ok: true }>["order"
       createdAt: was?.createdAt ?? now,
       updatedAt: now,
     };
-    const { contact, fulfilment, lines, subtotal, discount, savings, delivery, total } = priced;
-    const deals = { ...(discount ? { discount } : {}), ...(savings ? { savings } : {}) };
+    const { contact, fulfilment, lines, subtotal, discount, savings, code, delivery, total } = priced;
+    const deals = { ...(discount ? { discount } : {}), ...(savings ? { savings } : {}), ...(code ? { code } : {}) };
     const attempt: Attempt = { id: `${priced.ref}-${n}`, ref: priced.ref, contact, fulfilment, lines, subtotal, ...deals, delivery, total, createdAt: now, terms };
     tx.set(ref, order);
     tx.create(ref.collection("attempts").doc(attempt.id), attempt);
@@ -275,6 +291,24 @@ export async function changeOrder(ref: string, by: string, fn: (o: Order) => Cha
 export async function orderForReceipt(ref: string, token: string): Promise<Order | null> {
   const order = await getOrder(ref);
   return order && token.length === 32 && order.token === token ? order : null;
+}
+
+/**
+ * The customer's browser saying PayFast's Onsite window reported the order's
+ * latest attempt paid. Only for the holder of its receipt token, and only on
+ * a pending order: it marks nothing paid, takes no stock and sends nothing,
+ * and only stops `startAttempt` taking a second payment until the notice
+ * comes (`awaitingNotice`). Keyed to the attempt, so a later one never
+ * inherits it.
+ */
+export async function reportPaid(ref: string, token: unknown): Promise<void> {
+  await changeOrder(ref, "The customer", (o) => {
+    if (typeof token !== "string" || token.length !== 32 || o.token !== token) return { error: "Not this order’s." };
+    if (o.status !== "pending" || !o.attempts) return { error: "Nothing to wait for." };
+    const attempt = latestAttempt(o);
+    if (o.reportedPaid?.attempt === attempt) return { error: "Already reported." };
+    return { update: { reportedPaid: { attempt, at: new Date().toISOString() } }, log: `PayFast’s window told the customer attempt ${attempt} was paid. Waiting for PayFast’s notice; Pay isn’t offered again meanwhile.` };
+  });
 }
 
 /** A notice for an order that isn't there (its attempt ID names no order), or one already recorded. */
@@ -355,25 +389,31 @@ export async function applyNotice(n: Notice, opts: { refused?: string; acceptedB
     if (order.status === "paid") return flag("duplicate", `${paid} came in after the order was already paid by ${order.payment?.pfPaymentId}. The customer paid twice: refund one.`);
 
     // Read before any write, as a transaction must.
-    const shelf = await readStock(tx, attempt.lines);
+    const [shelf, code] = await Promise.all([readStock(tx, attempt.lines), attempt.code ? readCode(tx, attempt.code) : null]);
     record("paid");
     const { contact, fulfilment, lines, subtotal, delivery, total } = attempt;
     // The order takes on exactly what was paid for, deals included; an attempt from before campaigns had none.
-    const deals = { discount: attempt.discount ?? FieldValue.delete(), savings: attempt.savings ?? FieldValue.delete() };
+    const deals = { discount: attempt.discount ?? FieldValue.delete(), savings: attempt.savings ?? FieldValue.delete(), code: attempt.code ?? FieldValue.delete() };
     const payment: Payment = { provider: "payfast", ...n, at: now };
     const took = takeStock(tx, shelf, lines, order.ref, now);
     const { stock } = took;
     soldOutChanged = took.soldOutChanged;
-    used = countUse(tx, attempt.savings, { ref: order.ref, email: contact.email, goods: subtotal - (attempt.discount ?? 0), at: now });
+    used = countUse(tx, attempt.savings, subtotal - (attempt.discount ?? 0));
+    // The code is used up with the payment: a payment that failed or was never made leaves it as it was.
+    const codeIssue = code ? redeemCode(tx, code, attempt.code!, order.ref, now) : null;
     const update = { contact, fulfilment, lines, subtotal, delivery, total, status: "paid", stage: "new", payment, paidAt: now, updatedAt: now, ...(Object.keys(stock.taken).length ? { stock } : {}) } satisfies Partial<Order>;
     const log = acceptedBy ? { log: FieldValue.arrayUnion({ at: now, by: acceptedBy, text: `Marked paid from PayFast’s record of payment ${n.pfPaymentId} (R${n.amountGross}); its notice never arrived` } satisfies LogEntry) } : {};
-    // Two customers paid for the last one at once: the money is taken, so the shop decides (make more, or refund).
-    const oversold = stock.oversold.length
-      ? { flagged: true, issues: FieldValue.arrayUnion({ at: now, text: `Oversold: ${stock.oversold.map((sku) => lineWhat(lines.find((l) => l.sku === sku)!)).join(", ")}. Stock ran out before this payment came in. Make more, or refund the customer.` } satisfies Issue) }
-      : {};
-    tx.update(ref, { ...update, ...deals, ...log, ...oversold });
-    const { discount, savings } = attempt;
-    return { outcome: "paid", order: { ...order, ...update, discount, savings } };
+    // Two customers paid for the last one at once, or for the same code: the money is taken, so the shop decides (make more, or refund).
+    const problems: Issue[] = [
+      ...(stock.oversold.length
+        ? [{ at: now, text: `Oversold: ${stock.oversold.map((sku) => lineWhat(lines.find((l) => l.sku === sku)!)).join(", ")}. Stock ran out before this payment came in. Make more, or tell the customer and cancel it, or refund that item, from the Payment tab.` }]
+        : []),
+      ...(codeIssue ? [{ at: now, text: codeIssue }] : []),
+    ];
+    const flagged = problems.length ? { flagged: true, issues: FieldValue.arrayUnion(...problems) } : {};
+    tx.update(ref, { ...update, ...deals, ...log, ...flagged });
+    const { discount, savings, code: coupon } = attempt;
+    return { outcome: "paid", order: { ...order, ...update, discount, savings, code: coupon } };
   });
   if (applied.outcome === "paid" && applied.order.stock) stockChanged(soldOutChanged);
   if (applied.outcome === "paid") campaignsUsed(used);

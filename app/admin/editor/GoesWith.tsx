@@ -10,6 +10,7 @@ import { ProductImage } from "@/app/site/ProductImage";
 import { Alert, ArrowDown, ArrowUp, Camera, Check, Trash } from "@/app/site/icons";
 import type { CatalogueItem, ErrorOn, Suggestions, Update } from "./ProductEditor";
 import { Where } from "./Where";
+import { Hint } from "../Tip";
 
 /** In the shop, and can be bought: the only products the row ever shows. */
 const onSale = (p: CatalogueItem) => p.status === "active" && p.priceRange !== null;
@@ -28,10 +29,10 @@ export function goesWithRow(draft: Pick<ProductDraft, "tags" | "related">, catal
 }
 
 /**
- * "Goes with this", as staff think of it: the products to show, picked by
- * name and put in order, then whatever matches by size to fill the row. Each
- * product says whether it will show and, if not, why, so a pick that is
- * still hidden reads as waiting rather than broken.
+ * "Goes with this", as staff think of it: their picks, chosen by name and put
+ * in order, which always show, then whatever matches by size to fill the row
+ * up to GOES_WITH_ROW. Each product says whether it will show and, if not,
+ * why, so a pick that is still hidden reads as waiting rather than broken.
  */
 export function GoesWith({
   draft,
@@ -107,8 +108,8 @@ export function GoesWith({
           Goes with this
         </h2>
         <p className="hint">
-          <Where>the “Goes with this” row at the foot of its page.</Where> Pick the products to show there, in order. Space left, up to{" "}
-          {GOES_WITH_ROW}, is filled with products that match it by size.
+          <Where>the “Goes with this” row at the foot of its page.</Where> Your picks always show, in your order. If they come to fewer than{" "}
+          {GOES_WITH_ROW}, products that match by size fill the rest.
         </p>
       </div>
 
@@ -130,11 +131,12 @@ export function GoesWith({
 
       <div className="field">
         <p className="field__label">
-          Picked{" "}
+          Your picks{" "}
           <span className="hint">
             {draft.related.length} of {LIMITS.related}
           </span>
         </p>
+        {picked.length ? null : <p className="hint">None yet, so the row is only size matches. Search below to pick a product.</p>}
         {picked.length ? (
           <ol className="picks">
             {picked.map((p, i) => {
@@ -155,15 +157,21 @@ export function GoesWith({
                     ) : null}
                   </span>
                   <span className="pick__actions">
-                    <Button variant="subtle" size="sm" px={10} aria-label={`Move ${p.name} earlier`} onClick={() => move(i, i - 1)} disabled={i === 0}>
-                      <ArrowUp size={18} />
-                    </Button>
-                    <Button variant="subtle" size="sm" px={10} aria-label={`Move ${p.name} later`} onClick={() => move(i, i + 1)} disabled={i === picked.length - 1}>
-                      <ArrowDown size={18} />
-                    </Button>
-                    <Button variant="subtle" color="red" size="sm" px={10} aria-label={`Take ${p.name} off`} onClick={() => setRelated(draft.related.filter((s) => s !== p.slug))}>
-                      <Trash size={18} />
-                    </Button>
+                    <Hint label="Move earlier">
+                      <Button variant="subtle" size="sm" px={10} aria-label={`Move ${p.name} earlier`} onClick={() => move(i, i - 1)} disabled={i === 0}>
+                        <ArrowUp size={18} />
+                      </Button>
+                    </Hint>
+                    <Hint label="Move later">
+                      <Button variant="subtle" size="sm" px={10} aria-label={`Move ${p.name} later`} onClick={() => move(i, i + 1)} disabled={i === picked.length - 1}>
+                        <ArrowDown size={18} />
+                      </Button>
+                    </Hint>
+                    <Hint label="Remove">
+                      <Button variant="subtle" color="red" size="sm" px={10} aria-label={`Remove ${p.name} from your picks`} onClick={() => setRelated(draft.related.filter((s) => s !== p.slug))}>
+                        <Trash size={18} />
+                      </Button>
+                    </Hint>
                   </span>
                 </li>
               );
@@ -171,8 +179,8 @@ export function GoesWith({
           </ol>
         ) : null}
         <Select
-          aria-label="Add a product to Goes with this"
-          placeholder={full ? `${LIMITS.related} picked, the most a row takes` : "Add a product: search by name or code"}
+          aria-label="Pick a product for Goes with this"
+          placeholder={full ? `${LIMITS.related} picks, the most allowed` : "Pick a product: search by name or code"}
           data={options}
           value={null}
           searchable
@@ -208,10 +216,11 @@ export function GoesWith({
 
       <div className="field">
         <p className="field__label">Matched by size</p>
+        <p className="hint">Added on their own to fill any space your picks leave. Pick one to make sure it always shows.</p>
         {matches.length ? (
           <ul className="picks">
             {matches.map(({ product: p, on }) => {
-              const why = whyNot(p) ?? (shown.has(p.slug) ? null : "The row is full, so it won’t show");
+              const why = whyNot(p) ?? (shown.has(p.slug) ? null : "Your picks fill the row, so it won’t show");
               return (
                 <li key={p.slug} className="pick pick--matched">
                   <Thumb photo={p.photo} />
@@ -226,11 +235,11 @@ export function GoesWith({
                     ) : (
                       <span className="pick__ok">
                         <Check size={16} />
-                        Shows in the row
+                        Showing in the row now
                       </span>
                     )}
                   </span>
-                  <Button variant="subtle" size="sm" onClick={() => setRelated([...draft.related, p.slug])} disabled={full}>
+                  <Button variant="subtle" size="sm" aria-label={`Pick ${p.name}`} onClick={() => setRelated([...draft.related, p.slug])} disabled={full}>
                     Pick
                   </Button>
                 </li>
@@ -238,7 +247,7 @@ export function GoesWith({
             })}
           </ul>
         ) : (
-          <p className="hint">Nothing matches it by size.</p>
+          <p className="hint">Nothing matches it by size. Set its sizes under “How it matches by size”, or pick products by name above.</p>
         )}
 
         <details className="goes__sizes">

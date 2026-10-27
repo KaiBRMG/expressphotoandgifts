@@ -4,6 +4,7 @@ import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, setCharacterSpacing, type Color, type PDFFont, type PDFPage } from "pdf-lib";
 import { HOURS, LEGAL, SHOP } from "@/app/site/data";
+import { shopContact } from "@/lib/settings";
 import { at } from "@/app/admin/when";
 import { cartSavings } from "@/lib/catalog/campaigns";
 import { photoCount, rands, signedRands } from "@/lib/catalog/listing";
@@ -157,7 +158,7 @@ class Sheet {
  * payment. An unpaid order prints as an order summary, never as a receipt.
  */
 export async function receiptPdf(o: Order): Promise<Uint8Array> {
-  const a = await loadAssets();
+  const [a, reach] = await Promise.all([loadAssets(), shopContact()]);
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   // Tabular figures, so every column of rands lines up digit under digit.
@@ -205,7 +206,7 @@ export async function receiptPdf(o: Order): Promise<Uint8Array> {
   const lh = 27;
   s.page.drawImage(logo, { x: M + 22, y: bandMid - lh / 2, width: (lh * logo.width) / logo.height, height: lh });
   s.text(SHOP.name, W - M - 22, bandMid + 10, T.bandStrong, "right");
-  [`${SHOP.street}, ${SHOP.town} ${SHOP.postcode}`, `${SHOP.phoneDisplay}  ·  ${SHOP.email}`].forEach((l, i) => s.text(l, W - M - 22, bandMid - 4 - i * T.band.lead, T.band, "right"));
+  [`${SHOP.street}, ${SHOP.town} ${SHOP.postcode}`, `${reach.phoneDisplay}  ·  ${reach.email}`].forEach((l, i) => s.text(l, W - M - 22, bandMid - 4 - i * T.band.lead, T.band, "right"));
   s.y = bandTop - bandH - 46;
 
   // What this is, in one sentence.
@@ -348,7 +349,7 @@ export async function receiptPdf(o: Order): Promise<Uint8Array> {
   const sumH = sumRows.reduce((n, r) => n + r.lines.length * r.st.lead + (r.line ? 20 : 4), 0);
   // The thanks closes the sums, so the two never part across a page.
   const legal = [LEGAL.registeredName, LEGAL.registrationNumber && `Reg. no. ${LEGAL.registrationNumber}`, LEGAL.vatNumber && `VAT no. ${LEGAL.vatNumber}`].filter(Boolean).join("  ·  ");
-  const ask = s.wrap(`Questions? Call ${SHOP.phoneDisplay} or email ${SHOP.email}, and give your order number, ${o.ref}.`, CW, T.small);
+  const ask = s.wrap(`Questions? Call ${reach.phoneDisplay} or email ${reach.email}, and give your order number, ${o.ref}.`, CW, T.small);
   const thanksH = 30 + ask.length * T.small.lead + (legal ? 16 : 0);
   s.room(Math.max(payH, sumH) + 34 + thanksH);
   const top2 = s.y;

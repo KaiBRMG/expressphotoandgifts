@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, Plus, Trash } from "@/app/site/icons";
 import { GoesWith } from "./GoesWith";
 import type { CatalogueItem, ErrorOn, Suggestions, Update } from "./ProductEditor";
 import { Where } from "./Where";
+import { Hint } from "../Tip";
 
 /**
  * The words on its product page, in the order the page shows them: the
@@ -138,15 +139,21 @@ function Specifications({ specs, set }: { specs: string[]; set: (next: string[])
                 }}
                 className="specs__input"
               />
-              <Button variant="subtle" size="sm" px={10} aria-label={`Move line ${i + 1} up`} onClick={() => move(i, i - 1)} disabled={i === 0}>
-                <ArrowUp size={18} />
-              </Button>
-              <Button variant="subtle" size="sm" px={10} aria-label={`Move line ${i + 1} down`} onClick={() => move(i, i + 1)} disabled={i === specs.length - 1}>
-                <ArrowDown size={18} />
-              </Button>
-              <Button variant="subtle" color="red" size="sm" px={10} aria-label={`Remove line ${i + 1}`} onClick={() => set(specs.filter((_, j) => j !== i))}>
-                <Trash size={18} />
-              </Button>
+              <Hint label="Move up">
+                <Button variant="subtle" size="sm" px={10} aria-label={`Move line ${i + 1} up`} onClick={() => move(i, i - 1)} disabled={i === 0}>
+                  <ArrowUp size={18} />
+                </Button>
+              </Hint>
+              <Hint label="Move down">
+                <Button variant="subtle" size="sm" px={10} aria-label={`Move line ${i + 1} down`} onClick={() => move(i, i + 1)} disabled={i === specs.length - 1}>
+                  <ArrowDown size={18} />
+                </Button>
+              </Hint>
+              <Hint label="Remove">
+                <Button variant="subtle" color="red" size="sm" px={10} aria-label={`Remove line ${i + 1}`} onClick={() => set(specs.filter((_, j) => j !== i))}>
+                  <Trash size={18} />
+                </Button>
+              </Hint>
             </li>
           ))}
         </ol>

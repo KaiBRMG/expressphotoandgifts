@@ -10,29 +10,21 @@ import { SHOP } from "./data";
  * The icon links after search, in the order they read left to right; the cart
  * follows them as a button (`HeaderCart`), since it opens the drawer.
  *
- * At the very narrow end the wordmark and three 44px targets are wider than the
- * screen, and something has to give. The account is what goes: search and the
- * basket are what a shopper comes to a phone's bar for, and an account is
- * only made after a first order.
+ * Below 360px the wordmark and three 44px targets leave the wordmark too small
+ * to read, and something has to give. The account is what goes: search and the
+ * basket are what a shopper comes to a phone's bar for, and the footer's
+ * sign-in line reaches the account on every page.
  */
-const HEADER_ICONS = [
-  { label: "Account", Icon: Profile, narrow: false, href: "/account" },
-];
+const HEADER_ICONS = [{ label: "Account", Icon: Profile, narrow: false, href: "/account" }];
 
 export type NavItem = { href: string; label: string };
 
 /**
- * The bar every page opens on. `nav` is the page's own short list of places;
- * `shopAction` is the gold Shop now, which only belongs on pages that are not
- * already the shop.
+ * The bar every page opens on. `nav` is the page's own short list of places.
+ * The gold Shop now is not here: the dock carries it on every page that isn't
+ * the shop, and a second one on the same screen was the same tap twice.
  */
-export function SiteHeader({
-  nav,
-  shopAction = true,
-}: {
-  nav: NavItem[];
-  shopAction?: boolean;
-}) {
+export function SiteHeader({ nav }: { nav: NavItem[] }) {
   return (
     <>
       <a className="skip" href="#main">
@@ -55,6 +47,8 @@ export function SiteHeader({
                  100px narrower than the one that actually paints. */
               width={1400}
               height={200}
+              /* Painted at most 560px wide (280px below 62rem), not the file's 1400. */
+              sizes="(min-width: 62rem) 560px, 280px"
               loading="eager"
               fetchPriority="high"
             />
@@ -69,12 +63,6 @@ export function SiteHeader({
           </nav>
 
           <div className="header__actions">
-            {shopAction ? (
-              <Link className="btn btn--gold on-gold header__shop" href="/shop">
-                Shop now
-              </Link>
-            ) : null}
-
             {/* The controls that survive to the narrow end: on a phone the bar
                 is the wordmark and these, because search and a basket are what
                 a shopper reaches for and a section link is what the page
@@ -89,6 +77,7 @@ export function SiteHeader({
                 aria-label={label}
               >
                 <Icon size={21} />
+                <span className="header__label">{label}</span>
               </a>
             ))}
             <HeaderCart />

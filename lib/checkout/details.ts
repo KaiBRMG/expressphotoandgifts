@@ -75,7 +75,7 @@ export function nationalPhone(raw: string): string | null {
 }
 
 /** Why a typed number isn't a mobile, in the customer's terms, or nothing when it is one. */
-function phoneProblem(raw: string, landline = "We need a mobile, so we can SMS you about your order."): string | undefined {
+export function phoneProblem(raw: string, landline = "We need a mobile, so we can SMS you about your order."): string | undefined {
   const n = national(raw);
   if (MOBILE.test(n)) return undefined;
   if (!/^\d+$/.test(n)) return "Use digits only, like 076 491 2300.";

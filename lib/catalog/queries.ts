@@ -45,6 +45,20 @@ const getActiveProducts = unstable_cache(
   CACHE,
 );
 
+/**
+ * The products staff hold back from the shop (no confirmed price yet, or still
+ * being edited): no page and no order, so only the range `/llms.txt` tells
+ * assistants to ask the shop about. Archived ones are withdrawn and left out.
+ */
+export const getDraftProducts = unstable_cache(
+  async (): Promise<Product[]> => {
+    const snap = await db().collection("products").where("status", "==", "draft").get();
+    return snap.docs.map((doc) => productFromDoc(doc.data())).sort((a, b) => a.name.localeCompare(b.name));
+  },
+  ["catalog-products", "draft"],
+  CACHE,
+);
+
 export const getCategories = unstable_cache(
   async (): Promise<Category[]> => {
     const snap = await db().collection("categories").orderBy("position").get();

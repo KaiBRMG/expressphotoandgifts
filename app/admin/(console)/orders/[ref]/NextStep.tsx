@@ -1,20 +1,22 @@
 import { Suspense } from "react";
 import { cartUnits } from "@/lib/catalog/cart";
-import { itemCount, photoCount, rands } from "@/lib/catalog/listing";
+import { itemCount, photoCount, plural, rands } from "@/lib/catalog/listing";
 import { missedPayments } from "@/lib/admin/payments";
 import { quotedParcels, type Boxes } from "@/lib/checkout/boxes";
 import type { Direction } from "@/lib/checkout/courier";
-import { hasLeftShop, needsLookUp, orderPhotos, statusText, SWEEP_AFTER_DAYS, type Order, type OrderStage } from "@/lib/checkout/order";
+import { hasLeftShop, holdsWaybill, needsLookUp, orderPhotos, statusText, SWEEP_AFTER_DAYS, type Order, type OrderStage } from "@/lib/checkout/order";
+import { unitsToReturn } from "@/lib/catalog/stock";
 import { dayText, estimateText } from "@/lib/checkout/tracking";
 import { Alert, ArrowRight, Check, Clock, External, Printer } from "@/app/site/icons";
 import { at } from "../../../when";
-import { WaybillForm, SettleShipment } from "./CourierActions";
+import { SettleShipment } from "./CourierActions";
+import { PackForm } from "./PackForm";
 import { AcceptPayfastRecord, AdvanceStage, ResolveIssues } from "./OrderActions";
 
-type Act = { stage: OrderStage; label: string } | { href: string; label: string; print?: boolean };
+type Act = { stage: OrderStage; label: string } | { href: string; label: string; print?: boolean; here?: boolean };
 
 /** What the panel holds under its head: the task itself, done in place. */
-type Task = { kind: "book" } | { kind: "settle"; which: Direction } | { kind: "issues" } | { kind: "payment" };
+type Task = { kind: "pack"; saved: boolean } | { kind: "settle"; which: Direction } | { kind: "issues" } | { kind: "payment" };
 
 /** `act`: staff have something to do. `wait`: someone else does. `alert`: something's wrong. `done`: nothing left. */
 type Next = { tone: "act" | "wait" | "alert" | "done"; title: string; facts: string[]; acts: Act[]; task?: Task };
@@ -37,6 +39,12 @@ export function nextStep(o: Order): Next {
   }
   if (o.status !== "paid") {
     return { tone: "wait", title: "Waiting for payment", facts: ["Nothing to make yet", `Photos deleted ${SWEEP_AFTER_DAYS} days after the last change`], acts: [], task: { kind: "payment" } };
+  }
+  if (o.refunding) return { tone: "alert", title: "Check the refund", facts: ["It may or may not have reached PayFast", "On the Payment tab"], acts: [] };
+  if (stage === "cancelled") {
+    // Cancelled with a waybill still standing: the courier would collect a parcel nobody paid for.
+    if (holdsWaybill(s) && !hasLeftShop(s?.status)) return { tone: "alert", title: "Cancel the waybill", facts: ["The order is cancelled and refunded", "In the Courier tab"], acts: [] };
+    return { tone: "done", title: "Cancelled and refunded", facts: [...(o.stagedAt?.cancelled ? [`Refunded ${at(o.stagedAt.cancelled)}`] : []), ...(unitsToReturn(o.stock) ? ["Put its stock back on the Payment tab if unused"] : [])], acts: [] };
   }
   for (const [which, w] of [["out", s], ["return", r]] as const) {
     if (needsLookUp(w)) return { tone: "alert", title: which === "out" ? "Look up the booking" : "Look up the return", facts: ["It may already be at TCG", "Booking again could charge twice"], acts: [], task: { kind: "settle", which } };
@@ -71,7 +79,7 @@ export function nextStep(o: Order): Next {
   if (stage === "making") {
     return collect
       ? { tone: "act", title: "Mark ready to collect", facts: ["Once it's made", "Emails the customer"], acts: [{ stage: "ready", label: "Ready to collect" }] }
-      : { tone: "act", title: "Pack it, then mark ready", facts: ["Booking the courier comes next"], acts: [{ stage: "ready", label: "Ready to send" }] };
+      : { tone: "act", title: "Pack it, then mark ready", facts: ["Boxes and weights", "Booked later, with the day’s other orders"], acts: [], task: { kind: "pack", saved: false } };
   }
   if (collect && stage === "ready") {
     return {
@@ -81,9 +89,19 @@ export function nextStep(o: Order): Next {
       acts: [{ stage: "done", label: "Mark collected" }],
     };
   }
-  // Ready to send, or sent with no waybill standing (failed or cancelled): book one.
+  // Ready to send, or sent with no waybill standing (failed or cancelled): waiting for the day's collection, which is booked from the Dashboard.
   if (!collect && (!s || s.state === "failed" || s.state === "cancelled")) {
-    return { tone: "act", title: s?.state === "cancelled" ? "Book a new waybill" : "Book The Courier Guy", facts: s?.error ? [s.error] : ["Emails the customer the tracking number"], acts: [], task: { kind: "book" } };
+    const failed = s?.error ? [`The last booking failed: ${s.error}`] : [];
+    if (!o.packed) {
+      return { tone: "act", title: "Enter the parcels", facts: ["The courier booking leaves this order out until they’re saved", ...failed], acts: [], task: { kind: "pack", saved: false } };
+    }
+    return {
+      tone: "wait",
+      title: "Ready for the courier",
+      facts: [plural(o.packed.parcels.length, "parcel", "parcels"), "Booked from the Dashboard, with the other orders that are ready", ...failed],
+      acts: [{ href: "/admin", label: "Book the courier", here: true }],
+      task: { kind: "pack", saved: true },
+    };
   }
   return { tone: "done", title: collect ? "Collected" : "Sent", facts: ["Nothing left to do"], acts: [] };
 }
@@ -96,12 +114,13 @@ export function NextStep({ order: o, boxes }: { order: Order; boxes: Boxes }) {
   const Icon = ICONS[n.tone];
   const f = o.fulfilment;
   return (
-    <section className={`onext onext--${n.tone}${n.task ? " onext--task" : ""}`} aria-labelledby="next-title" aria-live="polite">
+    <section className={`onext onext--${n.tone}${n.task ? " onext--task" : ""}`} aria-labelledby="next-title">
       <div className="onext__head">
         <span className="onext__icon" aria-hidden="true">
           <Icon size={22} />
         </span>
-        <div className="onext__text">
+        {/* Live, so a change of step is announced; the task under it (a form pricing as it's edited) is not. */}
+        <div className="onext__text" aria-live="polite">
           <h2 id="next-title" className="onext__title">
             {n.title}
           </h2>
@@ -117,10 +136,10 @@ export function NextStep({ order: o, boxes }: { order: Order; boxes: Boxes }) {
               "stage" in a ? (
                 <AdvanceStage key={a.label} ref_={o.ref} stage={a.stage} label={a.label} />
               ) : (
-                <a key={a.label} href={a.href} target="_blank" rel="noopener" className={`onext__btn${i > 0 ? " onext__btn--quiet" : ""}`}>
+                <a key={a.label} href={a.href} {...(a.here ? {} : { target: "_blank", rel: "noopener" })} className={`onext__btn${i > 0 ? " onext__btn--quiet" : ""}`}>
                   {a.print ? <Printer size={18} /> : null}
                   {a.label}
-                  {a.print ? null : <External size={16} />}
+                  {a.print ? null : a.here ? <ArrowRight size={16} /> : <External size={16} />}
                 </a>
               ),
             )}
@@ -130,8 +149,8 @@ export function NextStep({ order: o, boxes }: { order: Order; boxes: Boxes }) {
 
       {n.task ? (
         <div className="onext__task">
-          {n.task.kind === "book" && f.method === "courier" ? (
-            <WaybillForm ref_={o.ref} which="out" parcels={quotedParcels(boxes, f.service)} boxes={boxes} />
+          {n.task.kind === "pack" && f.method === "courier" ? (
+            <PackForm ref_={o.ref} parcels={o.packed?.parcels ?? quotedParcels(boxes, f.service)} boxes={boxes} saved={n.task.saved} />
           ) : n.task.kind === "settle" ? (
             <SettleShipment ref_={o.ref} which={n.task.which} />
           ) : n.task.kind === "issues" ? (

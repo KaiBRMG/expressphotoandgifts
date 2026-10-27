@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdmin } from "@/lib/admin/auth";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCustomer, type CustomerDetail, type Tally } from "@/lib/admin/customers";
@@ -11,12 +12,13 @@ import type { ConsentSource } from "@/lib/account/auth";
 import { at, when, whenDay as day } from "../../../when";
 
 export async function generateMetadata({ params }: PageProps<"/admin/customers/[key]">): Promise<Metadata> {
+  await requireAdmin();
   const c = await getCustomer((await params).key);
   return { title: c ? c.row.name || c.row.email : "Customer" };
 }
 
 /** Where a change of mind about marketing email was made, as `setMarketing`'s callers name it. */
-const SOURCES: Record<ConsentSource, string> = { footer: "the footer’s sign-up", account: "their account page" };
+const SOURCES: Record<ConsentSource, string> = { footer: "the footer’s sign-up (confirmed by email)", account: "their account page", email: "an email’s unsubscribe link" };
 
 /** A WhatsApp chat with a South African mobile, or null for anything else. */
 function chat(phone: string): string | null {
@@ -30,6 +32,7 @@ function chat(phone: string): string | null {
  * agreed to. Read-only: every change to an order happens on the order.
  */
 export default async function CustomerPage({ params }: PageProps<"/admin/customers/[key]">) {
+  await requireAdmin();
   const c = await getCustomer((await params).key);
   if (!c) notFound();
   const now = new Date().toISOString();
@@ -78,7 +81,7 @@ export default async function CustomerPage({ params }: PageProps<"/admin/custome
                   </thead>
                   <tbody>
                     {c.orders.map((o) => (
-                      <tr key={o.ref} className="plist__row">
+                      <tr key={o.ref} className="plist__row olist__row">
                         <td className="plist__main">
                           <Link href={`/admin/orders/${o.ref}`} className="plist__name">
                             {o.what || "Order"}
@@ -96,11 +99,11 @@ export default async function CustomerPage({ params }: PageProps<"/admin/custome
                           ) : null}
                         </td>
                         <td className="plist__wide plist__date">{o.paid ? when(o.at, now) : "Not paid"}</td>
-                        <td className="plist__num">
+                        <td className="plist__num olist__total">
                           {rands(o.total)}
                           {o.refunded ? <span className="olist__refund">{o.refunded >= o.total ? "Refunded" : `${rands(o.refunded)} refunded`}</span> : null}
                         </td>
-                        <td>
+                        <td className="olist__stage">
                           {o.paid && o.stage ? (
                             <span className={`status ostage--${o.stage}`}>{stageLabel(o.stage, o.method)}</span>
                           ) : (
@@ -329,7 +332,7 @@ function Marketing({ c, now }: { c: CustomerDetail; now: string }) {
             ? "They withdrew. Don’t send them specials or campaigns unless they agree again."
             : c.account
               ? "They haven’t agreed to marketing email. Order emails still reach them."
-              : "Guests can’t agree to marketing email. Order emails still reach them."}
+              : "They haven’t agreed to marketing email (a guest can, from the footer’s sign-up). Order emails still reach them."}
       </p>
       {m ? (
         <ol className="crows" aria-label="Consent history, newest first">

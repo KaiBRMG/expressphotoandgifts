@@ -13,13 +13,13 @@ const NAV: NavItem[] = [
 
 /**
  * Every page under /shop shares the site's bar and counter. The gold Shop now
- * would point at the shop from inside it, so here the bar and the dock leave
- * it out and the dock is the WhatsApp mark alone.
+ * would point at the shop from inside it, so here the dock leaves it out and
+ * is the WhatsApp mark alone.
  */
 export default function ShopLayout({ children }: LayoutProps<"/shop">) {
   return (
     <>
-      <SiteHeader nav={NAV} shopAction={false} />
+      <SiteHeader nav={NAV} />
       <main id="main" className="shop">
         {children}
       </main>

@@ -19,7 +19,7 @@ import { Alert, External } from "@/app/site/icons";
 import { useOrderAction } from "./OrderActions";
 
 /** Half-hours across the courier's working day, for the collection window. */
-const TIMES = Array.from({ length: 23 }, (_, i) => {
+export const TIMES = Array.from({ length: 23 }, (_, i) => {
   const h = 7 + Math.floor(i / 2);
   return `${String(h).padStart(2, "0")}:${i % 2 ? "30" : "00"}`;
 });
@@ -27,7 +27,7 @@ const TIMES = Array.from({ length: 23 }, (_, i) => {
 const TZ = "Africa/Johannesburg";
 
 /** The shop's date, `YYYY-MM-DD`, some days from now. */
-const shopDay = (daysAhead = 0) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date(Date.now() + daysAhead * 864e5));
+export const shopDay = (daysAhead = 0) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date(Date.now() + daysAhead * 864e5));
 
 /** "Mon 26 Oct", in the shop's time zone. */
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-ZA", { timeZone: TZ, weekday: "short", day: "numeric", month: "short" });
@@ -62,13 +62,7 @@ export function WaybillForm({ ref_, which, parcels: first, boxes }: { ref_: stri
   const [preview, setPreview] = useState<Preview | null>(null);
   const [limits] = useState(() => ({ min: shopDay(), max: shopDay(30) }));
 
-  const set = (i: number, p: Parcel) => setParcels(parcels.map((q, j) => (j === i ? p : q)));
-  // Another box keeps the weight entered; its own packaging starts at the size of the box it was in.
-  const setBox = (p: Parcel, v: string): Parcel =>
-    isBox(v) ? { box: v, weight: p.weight } : { ...(p.box === OWN ? p : boxes[p.box]), box: OWN, weight: p.weight };
-  const parcelsOk = parcels.every(
-    (p) => p.weight > 0 && p.weight <= MAX_PARCEL_KG && (p.box !== OWN || SIDES.every(([side]) => p[side] > 0 && p[side] <= MAX_BOX_CM)),
-  );
+  const parcelsOk = parcelsValid(parcels);
   const options: BookingOptions = { collectionDate: collectionDate || null, after, before, extras: chosen };
   const key = JSON.stringify([parcels, options]);
 
@@ -109,56 +103,7 @@ export function WaybillForm({ ref_, which, parcels: first, boxes }: { ref_: stri
     >
       {which === "return" ? <p className="hint">TCG collects from the delivery address and brings it back to the shop.</p> : null}
 
-      <fieldset className="waybill__group">
-        <legend className="osec__sub">Parcels</legend>
-        {parcels.map((p, i) => (
-          <div key={i} className="row">
-            <Select
-              label={parcels.length > 1 ? `Parcel ${i + 1}` : "Box"}
-              data={[...BOX_IDS.map((id) => ({ value: id, label: boxLabel(boxes[id]) })), { value: OWN, label: `${OWN_LABEL}, its own size` }]}
-              value={p.box}
-              allowDeselect={false}
-              onChange={(v) => v && set(i, setBox(p, v))}
-            />
-            {p.box === OWN
-              ? SIDES.map(([side, label]) => (
-                  <NumberInput
-                    key={side}
-                    label={label}
-                    suffix=" cm"
-                    decimalScale={1}
-                    min={1}
-                    max={MAX_BOX_CM}
-                    value={p[side]}
-                    onChange={(v) => set(i, { ...p, [side]: Number(v) || 0 })}
-                    className="waybill__side"
-                    required
-                  />
-                ))
-              : null}
-            <NumberInput
-              label="Weight packed"
-              suffix=" kg"
-              decimalScale={2}
-              min={0.1}
-              max={MAX_PARCEL_KG}
-              value={p.weight}
-              onChange={(v) => set(i, { ...p, weight: Number(v) || 0 })}
-              required
-            />
-            {parcels.length > 1 ? (
-              <Button variant="subtle" onClick={() => setParcels(parcels.filter((_, j) => j !== i))} disabled={pending}>
-                Remove
-              </Button>
-            ) : null}
-          </div>
-        ))}
-        {parcels.length < MAX_PARCELS ? (
-          <button type="button" className="admin-link osec__more" onClick={() => setParcels([...parcels, parcels.at(-1) ?? parcelFor(boxes, DEFAULT_BOX)])}>
-            Add another parcel
-          </button>
-        ) : null}
-      </fieldset>
+      <ParcelFields parcels={parcels} onChange={setParcels} boxes={boxes} disabled={pending} />
 
       <fieldset className="waybill__group">
         <legend className="osec__sub">Collection</legend>
@@ -208,6 +153,71 @@ export function WaybillForm({ ref_, which, parcels: first, boxes }: { ref_: stri
         </Button>
       </div>
     </form>
+  );
+}
+
+/** Whether every parcel has a weight within the courier's limit and, if in its own packaging, a size within it. */
+export const parcelsValid = (parcels: Parcel[]) =>
+  parcels.every((p) => p.weight > 0 && p.weight <= MAX_PARCEL_KG && (p.box !== OWN || SIDES.every(([side]) => p[side] > 0 && p[side] <= MAX_BOX_CM)));
+
+/** The boxes a courier order was packed into: a box (or its own packaging) and its packed weight for each, and more parcels to add. */
+export function ParcelFields({ parcels, onChange, boxes, disabled }: { parcels: Parcel[]; onChange: (parcels: Parcel[]) => void; boxes: Boxes; disabled?: boolean }) {
+  const set = (i: number, p: Parcel) => onChange(parcels.map((q, j) => (j === i ? p : q)));
+  // Another box keeps the weight entered; its own packaging starts at the size of the box it was in.
+  const setBox = (p: Parcel, v: string): Parcel =>
+    isBox(v) ? { box: v, weight: p.weight } : { ...(p.box === OWN ? p : boxes[p.box]), box: OWN, weight: p.weight };
+
+  return (
+    <fieldset className="waybill__group">
+      <legend className="osec__sub">Parcels</legend>
+      {parcels.map((p, i) => (
+        <div key={i} className="row">
+          <Select
+            label={parcels.length > 1 ? `Parcel ${i + 1}` : "Box"}
+            data={[...BOX_IDS.map((id) => ({ value: id, label: boxLabel(boxes[id]) })), { value: OWN, label: `${OWN_LABEL}, its own size` }]}
+            value={p.box}
+            allowDeselect={false}
+            onChange={(v) => v && set(i, setBox(p, v))}
+          />
+          {p.box === OWN
+            ? SIDES.map(([side, label]) => (
+                <NumberInput
+                  key={side}
+                  label={label}
+                  suffix=" cm"
+                  decimalScale={1}
+                  min={1}
+                  max={MAX_BOX_CM}
+                  value={p[side]}
+                  onChange={(v) => set(i, { ...p, [side]: Number(v) || 0 })}
+                  className="waybill__side"
+                  required
+                />
+              ))
+            : null}
+          <NumberInput
+            label="Weight packed"
+            suffix=" kg"
+            decimalScale={2}
+            min={0.1}
+            max={MAX_PARCEL_KG}
+            value={p.weight}
+            onChange={(v) => set(i, { ...p, weight: Number(v) || 0 })}
+            required
+          />
+          {parcels.length > 1 ? (
+            <Button variant="subtle" onClick={() => onChange(parcels.filter((_, j) => j !== i))} disabled={disabled}>
+              Remove
+            </Button>
+          ) : null}
+        </div>
+      ))}
+      {parcels.length < MAX_PARCELS ? (
+        <button type="button" className="admin-link osec__more" onClick={() => onChange([...parcels, parcels.at(-1) ?? parcelFor(boxes, DEFAULT_BOX)])}>
+          Add another parcel
+        </button>
+      ) : null}
+    </fieldset>
   );
 }
 

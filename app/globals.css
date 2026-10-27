@@ -18,6 +18,10 @@
   /* Brand, exactly as supplied (blue revised by the client to #0126ba). */
   --blue: #0126ba;
   --gold: #ffb72a;
+  /* The same two as channels, for the tints and scrims that let them through
+     at an alpha: `rgb(var(--blue-rgb) / 0.08)`. One place to change a brand colour. */
+  --blue-rgb: 1 38 186;
+  --gold-rgb: 255 183 42;
 
   /* Grounds: brand blue or white, nothing between. */
   --leather: #0126ba;
@@ -28,20 +32,25 @@
      same blue let through to the white under it (6.6:1 and 5.3:1), and on
      blue the soft step is white let through to the blue (7.2:1). */
   --ink: #0126ba;
-  --ink-soft: rgb(1 38 186 / 0.8);
-  --ink-faint: rgb(1 38 186 / 0.72);
+  --ink-soft: rgb(var(--blue-rgb) / 0.8);
+  --ink-faint: rgb(var(--blue-rgb) / 0.72);
   --on-leather: #ffffff;
   --on-leather-soft: rgb(255 255 255 / 0.8);
 
-  --rule-paper: rgb(1 38 186 / 0.12);
+  --rule-paper: rgb(var(--blue-rgb) / 0.12);
   --rule-leather: rgb(255 255 255 / 0.22);
+  /* The edge of a field on the blue: white let through at 60% is 4.6:1 there, over the 3:1 an input's boundary needs. */
+  --rule-leather-strong: rgb(255 255 255 / 0.6);
   /* The card hairlines. `--rule-card` is the border around a door, `--rule-hair`
      the heavier line on a chip or an outline control, `--rule-card-inner` the
      line between a card's picture and its words. They were literals repeated at
      every use site, which is how a fourth value gets typed. */
-  --rule-card: rgb(1 38 186 / 0.1);
-  --rule-hair: rgb(1 38 186 / 0.2);
-  --rule-card-inner: rgb(1 38 186 / 0.08);
+  --rule-card: rgb(var(--blue-rgb) / 0.1);
+  --rule-hair: rgb(var(--blue-rgb) / 0.2);
+  --rule-card-inner: rgb(var(--blue-rgb) / 0.08);
+  /* The edge of a field on white (a quantity, a count to type into): 3.4:1,
+     over the 3:1 a control's boundary needs, where the hairline is 1.5:1. */
+  --rule-field: rgb(var(--blue-rgb) / 0.55);
   --rule-dark: rgb(255 255 255 / 0.32);
 
   /*
@@ -51,12 +60,12 @@
    * is no grey or black shadow in this world, and no elevation ladder — these
    * five are the whole set.
    */
-  --shadow-gold: 0 18px 38px -20px rgb(255 183 42 / 0.95);
-  --shadow-gold-hover: 0 22px 44px -20px rgb(255 183 42 / 1);
-  --shadow-blue: 0 18px 40px -22px rgb(1 38 186 / 0.9);
-  --shadow-blue-hover: 0 24px 48px -22px rgb(1 38 186 / 0.95);
-  --shadow-card: 0 22px 44px -32px rgb(1 38 186 / 0.4);
-  --shadow-card-hover: 0 30px 54px -30px rgb(1 38 186 / 0.5);
+  --shadow-gold: 0 18px 38px -20px rgb(var(--gold-rgb) / 0.95);
+  --shadow-gold-hover: 0 22px 44px -20px rgb(var(--gold-rgb) / 1);
+  --shadow-blue: 0 18px 40px -22px rgb(var(--blue-rgb) / 0.9);
+  --shadow-blue-hover: 0 24px 48px -22px rgb(var(--blue-rgb) / 0.95);
+  --shadow-card: 0 22px 44px -32px rgb(var(--blue-rgb) / 0.4);
+  --shadow-card-hover: 0 30px 54px -30px rgb(var(--blue-rgb) / 0.5);
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -68,10 +77,35 @@
 
   --header-h: 66px;
 
+  /* The small print, set finer where a desktop reading distance carries it.
+     On a phone every one of them is 16px (the owner's floor, and the size
+     under which mobile Safari zooms a field on tap): the override below lifts
+     the tokens, so no rule has to be listed twice. */
+  --fs-btn: 0.95rem;
+  --fs-text: 15.5px;
+  --fs-ui: 15px;
+  --fs-small: 14.5px;
+  --fs-fine: 13.5px;
+  --fs-label: 13px;
+  --track-label: 0.14em;
+
   /* What the docked order action occupies at the foot of the viewport, so
      the last thing on the page can clear it. Phone: the full strip plus the
      home indicator. Above 46rem: the floating pill plus its offset. */
   --dock-h: calc(79px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 45.99rem) {
+  :root {
+    --fs-btn: 1rem;
+    --fs-text: 1rem;
+    --fs-ui: 1rem;
+    --fs-small: 1rem;
+    --fs-fine: 1rem;
+    --fs-label: 1rem;
+    /* The mono labels lose some tracking as they grow, so they stay a label. */
+    --track-label: 0.1em;
+  }
 }
 
 @media (min-width: 46rem) {
@@ -142,7 +176,7 @@ body {
 
 :root {
   caret-color: var(--blue);
-  scrollbar-color: rgb(1 38 186 / 0.45) transparent;
+  scrollbar-color: rgb(var(--blue-rgb) / 0.45) transparent;
   scrollbar-width: thin;
 }
 
@@ -156,7 +190,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgb(1 38 186 / 0.42);
+  background: rgb(var(--blue-rgb) / 0.42);
   border: 3px solid var(--paper);
   border-radius: 99px;
 }

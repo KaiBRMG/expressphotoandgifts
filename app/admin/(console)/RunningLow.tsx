@@ -3,6 +3,7 @@ import { campaignsFor, type LiveCampaign } from "@/lib/catalog/campaigns";
 import { orderWhat } from "@/lib/catalog/purchase";
 import { stockState, STATE_LABELS } from "@/lib/catalog/stock";
 import type { StockRow } from "@/lib/admin/stock";
+import { Hint } from "../Tip";
 import { Alert, ArrowRight, Check, Tag } from "@/app/site/icons";
 
 /** How many sizes the card lists before it points to the page. */
@@ -26,10 +27,12 @@ export function RunningLow({ rows, deals = [] }: { rows: StockRow[]; deals?: Liv
           Running low
         </h2>
         {low.length ? (
-          <Link href="/admin/stock?show=low" className="widget__total" aria-label={`${low.length} ${low.length === 1 ? "size" : "sizes"} low or sold out, see them all`}>
-            {low.length}
-            <ArrowRight size={18} />
-          </Link>
+          <Hint label={`${low.length} ${low.length === 1 ? "size" : "sizes"} low or sold out. See them all`}>
+            <Link href="/admin/stock?show=low" className="widget__total" aria-label={`${low.length} ${low.length === 1 ? "size" : "sizes"} low or sold out, see them all`}>
+              {low.length}
+              <ArrowRight size={18} />
+            </Link>
+          </Hint>
         ) : null}
       </header>
 

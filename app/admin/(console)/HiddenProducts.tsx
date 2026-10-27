@@ -2,6 +2,7 @@ import Link from "next/link";
 import { NEED_LABELS, productNeeds, type Need } from "@/lib/catalog/edit";
 import type { Vocabulary } from "@/lib/catalog/tags";
 import type { Product } from "@/lib/catalog/types";
+import { Hint } from "../Tip";
 import { Alert, ArrowRight, Check } from "@/app/site/icons";
 
 type Reason = { key: string; label: string; fix: string; count: number; href: string; ready?: boolean };
@@ -57,10 +58,12 @@ export function HiddenProducts({ products, vocabulary }: { products: Product[]; 
           Hidden from the shop
         </h2>
         {hidden.length ? (
-          <Link href={ready.length === hidden.length ? "/admin/products?status=ready" : LIST} className="widget__total" aria-label={`${hidden.length} hidden ${hidden.length === 1 ? "product" : "products"}, see them all`}>
-            {hidden.length}
-            <ArrowRight size={18} />
-          </Link>
+          <Hint label={`${hidden.length} hidden ${hidden.length === 1 ? "product" : "products"}. See them all`}>
+            <Link href={ready.length === hidden.length ? "/admin/products?status=ready" : LIST} className="widget__total" aria-label={`${hidden.length} hidden ${hidden.length === 1 ? "product" : "products"}, see them all`}>
+              {hidden.length}
+              <ArrowRight size={18} />
+            </Link>
+          </Hint>
         ) : null}
       </header>
 

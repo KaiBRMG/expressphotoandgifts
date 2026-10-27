@@ -8,7 +8,7 @@ import { rands } from "@/lib/catalog/listing";
 import type { ProductOption, ProductVariant } from "@/lib/catalog/types";
 import { Plus, Trash } from "@/app/site/icons";
 import type { ErrorOn, Update } from "./ProductEditor";
-import { Tip } from "./Tip";
+import { Tip } from "../Tip";
 import { Where } from "./Where";
 
 /** The choices the catalogue already uses, offered first. */

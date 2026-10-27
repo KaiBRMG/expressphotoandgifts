@@ -4,10 +4,13 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { ArrowRight, WhatsApp } from "@/app/site/icons";
-import { SHOP, whatsapp } from "@/app/site/data";
+import { SHOP } from "@/app/site/data";
+import { shopContact } from "@/lib/settings";
+import { whatsappLink } from "@/lib/contact";
 import { Catalogue, CatalogueFallback } from "../Catalogue";
+import { ShelfJsonLd } from "../ShelfJsonLd";
 import { ShelfRail } from "../ShelfRail";
-import { getShelf, shelfSlugs, type Shelf } from "../shelves";
+import { getListings, getShelf, shelfSlugs, type Shelf } from "../shelves";
 import { getVocabulary } from "@/lib/catalog/queries";
 
 /** Five minutes: a campaign starts and ends on its own time, so the prices it sets can't wait an hour. */
@@ -23,6 +26,8 @@ export async function generateMetadata({ params }: PageProps<"/shop/[category]">
   if (!shelf) return {};
   return {
     title: shelf.name,
+    // Its filters, sort and search are views of the same shelf.
+    alternates: { canonical: `/shop/${shelf.slug}` },
     description:
       shelf.listings.length > 0
         ? `${shelf.name} at ${SHOP.name}, ${SHOP.town}: ${shelf.listings.length} products with prices, to collect in store or have delivered.`
@@ -32,11 +37,12 @@ export async function generateMetadata({ params }: PageProps<"/shop/[category]">
 
 export default async function ShelfPage({ params }: PageProps<"/shop/[category]">) {
   const { category } = await params;
-  const [shelf, vocabulary] = await Promise.all([getShelf(category), getVocabulary()]);
+  const [shelf, vocabulary, everything] = await Promise.all([getShelf(category), getVocabulary(), getListings()]);
   if (!shelf) notFound();
 
   return (
     <>
+      {shelf.listings.length > 0 ? <ShelfJsonLd slug={shelf.slug} name={shelf.name} listings={shelf.listings} /> : null}
       {/* The bar's blue carries on into the shelf's name, so the header and
           the title read as one ground and the white below is all products. */}
       <header className="shelfhead on-dark">
@@ -69,7 +75,7 @@ export default async function ShelfPage({ params }: PageProps<"/shop/[category]"
               />
             }
           >
-            <Catalogue listings={shelf.listings} shelfName={shelf.name} byType={shelf.kind === "category"} vocabulary={vocabulary} />
+            <Catalogue listings={shelf.listings} everything={shelf.kind === "all" ? undefined : everything} shelfName={shelf.name} byType={shelf.kind === "category"} vocabulary={vocabulary} />
           </Suspense>
         ) : (
           <EmptyShelf shelf={shelf} />
@@ -83,7 +89,8 @@ export default async function ShelfPage({ params }: PageProps<"/shop/[category]"
  * A shelf with nothing priced online. It is not a 404 — the homepage sends
  * people here — so it says what is true and hands over to what works today.
  */
-function EmptyShelf({ shelf }: { shelf: Shelf }) {
+async function EmptyShelf({ shelf }: { shelf: Shelf }) {
+  const contact = await shopContact();
   const specials = shelf.kind === "specials";
   return (
     <div className="catalog__main">
@@ -100,7 +107,7 @@ function EmptyShelf({ shelf }: { shelf: Shelf }) {
           {specials ? null : (
             <a
               className="btn btn--blue"
-              href={whatsapp(`Hi! What do you have in ${shelf.name.toLowerCase()}?`)}
+              href={whatsappLink(contact, `Hi! What do you have in ${shelf.name.toLowerCase()}?`)}
             >
               <WhatsApp size={18} />
               Ask on WhatsApp

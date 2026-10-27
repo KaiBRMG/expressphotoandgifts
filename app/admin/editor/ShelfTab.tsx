@@ -8,7 +8,7 @@ import { findTerm, tagValues, withFacet, type AddedTerm, type Facet, type Vocabu
 import type { Category } from "@/lib/catalog/types";
 import type { Update } from "./ProductEditor";
 import { AddTerm } from "./AddTerm";
-import { Tip } from "./Tip";
+import { Tip } from "../Tip";
 import { Where } from "./Where";
 
 /**

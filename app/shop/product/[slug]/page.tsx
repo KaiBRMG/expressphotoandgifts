@@ -22,6 +22,7 @@ import type { Product } from "@/lib/catalog/types";
 import { getSoldOut } from "@/lib/stock";
 import { getLiveDeals } from "@/lib/campaigns";
 import { SHOP } from "@/app/site/data";
+import { JsonLdScript } from "@/app/site/JsonLdScript";
 import { ProductImage } from "@/app/site/ProductImage";
 import { Shelf } from "../../ProductCard";
 import { getListings } from "../../shelves";
@@ -284,9 +285,9 @@ function Details({
 }
 
 /**
- * Structured data for search: the product, its price or price range in rand,
- * and where it sits in the shop. Availability is left out, because the shop
- * has not said what is in stock.
+ * Structured data for search: the product, its price or price range in rand
+ * and whether it is in stock, who sells it (the shop's Organization, on the
+ * homepage), and where it sits in the shop.
  */
 function JsonLd({
   product,
@@ -301,11 +302,12 @@ function JsonLd({
   range: { min: number; max: number } | null;
 }) {
   const availability = `https://schema.org/${soldOut ? "OutOfStock" : "InStock"}`;
-  const base = "https://expressphotoandgifts.com";
+  const base = SHOP.url;
   const url = `${base}/shop/product/${product.slug}`;
   const range = paid ?? product.priceRange;
   const price = (cents: number) => (cents / 100).toFixed(2);
   const image = imageUrl(product);
+  const sold = { availability, itemCondition: "https://schema.org/NewCondition", seller: { "@id": `${base}/#organization` }, url };
 
   const data = [
     {
@@ -314,6 +316,7 @@ function JsonLd({
       name: product.name,
       description: product.description,
       sku: product.code,
+      ...(categoryName ? { category: categoryName } : {}),
       url,
       ...(image ? { image } : {}),
       brand: { "@type": "Brand", name: SHOP.name },
@@ -324,8 +327,7 @@ function JsonLd({
                 "@type": "Offer",
                 price: price(range.min),
                 priceCurrency: product.currency,
-                availability,
-                url,
+                ...sold,
               }
             : {
                 "@type": "AggregateOffer",
@@ -334,8 +336,7 @@ function JsonLd({
                 offerCount: product.variants.filter((v) => v.price !== null)
                   .length,
                 priceCurrency: product.currency,
-                availability,
-                url,
+                ...sold,
               },
       }),
     },
@@ -352,12 +353,5 @@ function JsonLd({
     },
   ];
 
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{
-        __html: JSON.stringify(data).replace(/</g, "\\u003c"),
-      }}
-    />
-  );
+  return <JsonLdScript data={data} />;
 }

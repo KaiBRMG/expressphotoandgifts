@@ -4,11 +4,12 @@ import type { PrintSpec } from "@/lib/admin/printSpecs";
 import type { Boxes } from "@/lib/checkout/boxes";
 import { customerKey } from "@/lib/campaigns";
 import { cartSavings } from "@/lib/catalog/campaigns";
+import { formatCode } from "@/lib/catalog/codes";
 import { rands, signedRands } from "@/lib/catalog/listing";
 import { addressLine, deliveryPrice } from "@/lib/checkout/details";
 import { EMAIL_NAMES, type OrderEmail } from "@/lib/checkout/emails";
-import { COURIER_TROUBLE, lineWhat, refundedOf, statusText, type NoticeRecord, type Order, type OrderStage } from "@/lib/checkout/order";
-import { ArrowLeft, Mail, Phone, Printer } from "@/app/site/icons";
+import { COURIER_TROUBLE, fileCount, lineWhat, refundedOf, statusText, type NoticeRecord, type Order, type OrderStage } from "@/lib/checkout/order";
+import { ArrowLeft, ArrowRight, Mail, Phone, Printer } from "@/app/site/icons";
 import { at, short } from "../../../when";
 import { Courier } from "./Courier";
 import { NextStep } from "./NextStep";
@@ -25,6 +26,12 @@ function trackSteps(o: Order): TrackStep[] {
   const stage = o.stage ?? "new";
   const collect = o.fulfilment.method === "collect";
   const delivered = o.shipment?.state === "booked" && o.shipment.status === "delivered";
+  if (stage === "cancelled") {
+    return [
+      { key: "new", label: "Paid", at: stamp(o.paidAt), state: "done" },
+      { key: "done", label: "Cancelled and refunded", at: stamp(o.stagedAt?.cancelled), state: "done" },
+    ];
+  }
   const steps: { key: OrderStage | "delivered"; label: string; at: string | null }[] = [
     { key: "new", label: "Paid", at: stamp(o.paidAt) },
     { key: "making", label: "Being made", at: stamp(o.stagedAt?.making) },
@@ -44,13 +51,13 @@ function sheetLines(o: Order, specs: (PrintSpec | null)[]): SheetLine[] {
     sku: l.sku,
     // What it really cost after every deal, which is what refunding it alone gives back.
     price: l.paid !== undefined ? `${rands(l.paid)} after deals (listed ${rands(l.price * l.quantity)})` : rands(l.price * l.quantity),
-    notes: [...(l.frame?.empty ? ["Frame only, no print"] : []), ...(l.frame?.quote ? ["Quote the print"] : []), ...(l.note ? [`“${l.note}”`] : [])],
+    notes: [...(o.photosDeletedAt && fileCount(l) > 0 ? ["Customer photos deleted"] : []), ...(l.frame?.empty ? ["Frame only, no print"] : []), ...(l.frame?.quote ? ["Quote the print"] : []), ...(l.note ? [`“${l.note}”`] : [])],
     print: specs[i]?.print ?? null,
     shape: specs[i]?.shape ?? null,
     sets: l.sets.map((s, si) => ({
       title: l.sets.length > 1 ? `Unit ${si + 1}` : l.quantity > 1 ? `Same on all ${l.quantity}` : null,
       words: s.words,
-      files: s.files,
+      files: o.photosDeletedAt ? [] : s.files,
     })),
   }));
 }
@@ -59,9 +66,10 @@ function sheetLines(o: Order, specs: (PrintSpec | null)[]): SheetLine[] {
  * One order as a workbench: where it is, the one thing to do next (done in
  * place), everything to print, and, beside it, who it's for, how it leaves
  * and what was paid. The records (courier, payment, emails, history) sit in
- * tabs under the work.
+ * tabs under the work. `next` is the order waiting longest after this one, so
+ * a morning's orders can be worked through without going back to the list.
  */
-export function OrderView({ order: o, notices, boxes, specs }: { order: Order; notices: NoticeRecord[]; boxes: Boxes; specs: (PrintSpec | null)[] }) {
+export function OrderView({ order: o, notices, boxes, specs, next }: { order: Order; notices: NoticeRecord[]; boxes: Boxes; specs: (PrintSpec | null)[]; next: { ref: string; name: string } | null }) {
   const paid = o.status === "paid";
   const f = o.fulfilment;
   const s = f.method === "courier" ? o.shipment : undefined;
@@ -150,10 +158,18 @@ export function OrderView({ order: o, notices, boxes, specs }: { order: Order; n
 
   return (
     <div className="page order">
-      <Link href="/admin/orders" className="back">
-        <ArrowLeft size={18} />
-        Orders
-      </Link>
+      <div className="order__flip">
+        <Link href="/admin/orders" className="back">
+          <ArrowLeft size={18} />
+          Orders
+        </Link>
+        {next ? (
+          <Link href={`/admin/orders/${next.ref}`} className="back back--next">
+            Next order: {next.name}
+            <ArrowRight size={18} />
+          </Link>
+        ) : null}
+      </div>
 
       <header className="ohead">
         <h1 className="page__title">
@@ -171,7 +187,7 @@ export function OrderView({ order: o, notices, boxes, specs }: { order: Order; n
         </p>
       </header>
 
-      {paid ? <StageTrack ref_={o.ref} steps={trackSteps(o)} stage={o.stage ?? "new"} method={f.method} /> : null}
+      {paid ? <StageTrack ref_={o.ref} steps={trackSteps(o)} stage={o.stage ?? "new"} method={f.method} readyEmailed={!!o.emails?.ready?.ok} waybill={o.shipment?.state === "booked"} /> : null}
 
       <div className="order__grid">
         <div className="order__main">
@@ -270,6 +286,12 @@ export function OrderView({ order: o, notices, boxes, specs }: { order: Order; n
                   <dd>{signedRands(-s.amount)}</dd>
                 </div>
               ))}
+              {o.code ? (
+                <div>
+                  <dt>One-time code</dt>
+                  <dd>{formatCode(o.code)}</dd>
+                </div>
+              ) : null}
               <div>
                 <dt>{f.method === "collect" ? "Collect" : "Delivery"}</dt>
                 <dd>{deliveryPrice(o.delivery)}</dd>
@@ -286,7 +308,7 @@ export function OrderView({ order: o, notices, boxes, specs }: { order: Order; n
               ) : null}
               {refunded ? (
                 <div className="glance__minus">
-                  <dt>Refunded outside PayFast</dt>
+                  <dt>{o.stage === "cancelled" ? "Cancelled, refunded" : "Refunded"}</dt>
                   <dd>−{rands(refunded)}</dd>
                 </div>
               ) : null}

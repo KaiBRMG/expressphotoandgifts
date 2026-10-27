@@ -1,7 +1,8 @@
 import { CartDrawer, DockAction } from "./Cart";
 import { DockFrame } from "./DockFrame";
 import { WhatsApp } from "./icons";
-import { CHAT_HREF } from "./data";
+import { shopContact } from "@/lib/settings";
+import { chatHref } from "@/lib/contact";
 
 /**
  * The persistent action, docked to the foot of the viewport.
@@ -29,7 +30,8 @@ import { CHAT_HREF } from "./data";
  *
  * It steps aside while a product's buy column passes under it (`DockFrame`).
  */
-export function OrderDock({ shopAction = true }: { shopAction?: boolean }) {
+export async function OrderDock({ shopAction = true }: { shopAction?: boolean }) {
+  const chat = chatHref(await shopContact());
   return (
     <>
       <DockFrame>
@@ -38,7 +40,7 @@ export function OrderDock({ shopAction = true }: { shopAction?: boolean }) {
 
           <a
             className="dock__chat"
-            href={CHAT_HREF}
+            href={chat}
             aria-label="Message the shop on WhatsApp"
           >
             <WhatsApp size={21} />

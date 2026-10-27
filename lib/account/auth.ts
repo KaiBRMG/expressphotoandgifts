@@ -5,11 +5,13 @@ import { FieldValue } from "firebase-admin/firestore";
 import { after } from "next/server";
 import { cache } from "react";
 import { auth, db } from "@/lib/firebase";
-import { checkPassword, isStaffEmail, sendPasswordReset, sessionCookie } from "@/lib/identity";
+import { checkPassword, CUSTOMER_CLAIMS, isStaffEmail, sendPasswordReset, sessionCookie } from "@/lib/identity";
 import { sendEmail } from "@/lib/email";
+import { customerKey } from "@/lib/campaigns";
 import { passwordError, type Address, type Contact } from "@/lib/checkout/details";
 import { checkEmail, sendWelcome } from "@/lib/checkout/emails";
 import { siteUrl } from "@/lib/checkout/site";
+import { shopContact } from "@/lib/settings";
 import type { Order } from "@/lib/checkout/order";
 import { claimGuestOrders, releaseOrders } from "./orders";
 
@@ -20,7 +22,8 @@ import { claimGuestOrders, releaseOrders } from "./orders";
  *
  * An account is made by the server with the Admin SDK (Firebase Auth's
  * public sign-up stays off; see `lib/admin/auth.ts`), never for an address on
- * the admin allowlist. Signing in follows the admin's pattern through
+ * the admin allowlist, and marked as a customer's (`CUSTOMER_CLAIMS`) so the
+ * allowlist can never open the admin for it. Signing in follows the admin's pattern through
  * `lib/identity.ts`, with its own cookie on every path. The saved details
  * live in `customers/{uid}`, beside the proof that the account's email is
  * the customer's; the orders an account holds are `lib/account/orders.ts`.
@@ -56,7 +59,7 @@ export const detailsFrom = (order: Pick<Order, "contact" | "fulfilment">): Saved
 /**
  * Makes an account and signs the customer in: from checkout as they pay or
  * from the receipt after (with the details from their order), or from the
- * footer's sign-up with only an email. Says plainly when the email already
+ * sign-in page with only an email. Says plainly when the email already
  * has one (`exists`); each caller adds what to do next in its own place.
  */
 export async function createAccount(rawEmail: string, password: string, details: SavedDetails | null): Promise<{ error: string; exists?: true } | { uid: string }> {
@@ -69,6 +72,11 @@ export async function createAccount(rawEmail: string, password: string, details:
     const name = details ? `${details.contact.firstName} ${details.contact.lastName}`.trim() : "";
     const user = await auth().createUser({ email, password, ...(name ? { displayName: name } : {}) });
     uid = user.uid;
+    // Marked before the first sign-in, so no token of this account ever lacks it.
+    await auth().setCustomUserClaims(uid, CUSTOMER_CLAIMS).catch(async (e) => {
+      await auth().deleteUser(uid).catch(() => {});
+      throw e;
+    });
   } catch (e) {
     const code = (e as { code?: string }).code;
     if (code === "auth/email-already-exists") return { error: "There’s already an account with this email.", exists: true };
@@ -77,30 +85,31 @@ export async function createAccount(rawEmail: string, password: string, details:
     console.error("Account not made", e);
     return { error: "We couldn’t make your account just now. Try again in a little while." };
   }
-  const [, signedIn] = await Promise.all([details ? saveDetails(uid, details) : null, signIn(email, password)]);
+  const [, signedIn] = await Promise.all([details ? saveDetails(uid, details) : null, signIn(email, password), adoptSubscription(email, uid).catch((e) => console.error("Subscription not carried to the account", uid, e))]);
   // The welcome goes after the response, so signing up doesn't wait on the mail.
   after(() => sendWelcome(email, details?.contact.firstName.trim() || null, uid));
   return "error" in signedIn ? signedIn : { uid };
 }
 
-/**
- * Whether an email already has a customer account, for the footer's sign-up
- * to ask for the right password. An allowlisted staff address answers as
- * taken, the way `createAccount` treats it.
- */
-export async function accountExists(email: string): Promise<boolean> {
-  if (isStaffEmail(email)) return true;
+/** Carries an email-only subscription (`lib/subscribers.ts`) across to the account just made with the same address, so the account page's switch shows what the shop will do. */
+async function adoptSubscription(email: string, uid: string): Promise<void> {
+  const record = await db().collection("subscribers").doc(customerKey(email)).get();
+  if (record.data()?.status === "subscribed") await setMarketing(uid, true, "footer");
+}
+
+/** The uid of the customer account an email belongs to, or null for none (and for staff, who are never customers). */
+export async function accountUid(email: string): Promise<string | null> {
+  if (isStaffEmail(email)) return null;
   try {
-    await auth().getUserByEmail(email.trim().toLowerCase());
-    return true;
+    return (await auth().getUserByEmail(email.trim().toLowerCase())).uid;
   } catch (e) {
-    if ((e as { code?: string }).code === "auth/user-not-found") return false;
+    if ((e as { code?: string }).code === "auth/user-not-found") return null;
     throw e;
   }
 }
 
-/** Where a customer can change their mind about marketing email. */
-export type ConsentSource = "footer" | "account";
+/** Where a customer can change their mind about marketing email: the footer's sign-up, their account page, or the unsubscribe link in an email. */
+export type ConsentSource = "footer" | "account" | "email";
 
 /** One change of mind about marketing email: when, which way, and where it was made. */
 export type ConsentChange = { at: string; optedIn: boolean; source: ConsentSource };
@@ -194,6 +203,8 @@ export async function deleteAccount(c: Customer, password: string): Promise<{ ok
   const batch = db().batch();
   batch.delete(customers().doc(c.uid));
   batch.delete(db().collection("marketing").doc(c.uid));
+  // The same address's email-only subscription goes with it: deleting the account is withdrawing everything.
+  batch.delete(db().collection("subscribers").doc(customerKey(c.email)));
   await batch.commit();
   await auth().deleteUser(c.uid);
   await signOut();
@@ -250,7 +261,7 @@ export async function startEmailCheck(c: Customer): Promise<{ ok: true } | { err
   const until = new Date(Date.now() + CHECK_HOURS * 3_600_000).toISOString();
   await customers().doc(c.uid).set({ emailCheck: { hash: sha(token), until } satisfies EmailCheck }, { merge: true });
   const link = `${site}/account/verify?u=${encodeURIComponent(c.uid)}&t=${token}`;
-  const sent = await sendEmail(checkEmail(c.email, link, `account-check/${c.uid}/${sha(token).slice(0, 12)}`));
+  const sent = await sendEmail(checkEmail(c.email, link, `account-check/${c.uid}/${sha(token).slice(0, 12)}`, await shopContact()));
   if (!sent.ok) {
     console.error("Email check not sent", c.uid, sent.error);
     return { error: "We couldn’t send the email just now. Try again in a few minutes." };

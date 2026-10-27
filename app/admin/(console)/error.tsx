@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { Button } from "@mantine/core";
 
-/** A console page that couldn't load, most often the catalogue read failing. Nothing was changed by it. */
+/** A console page that couldn't load, on any of them. A page only reads, so nothing was changed by it. */
 export default function ConsoleError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   useEffect(() => {
     console.error(error);
@@ -13,7 +13,7 @@ export default function ConsoleError({ error, retry }: { error: Error & { digest
     <div className="page page--narrow empty" role="alert">
       <h1 className="empty__title">This page didn’t load.</h1>
       <p className="empty__lede">
-        The catalogue couldn’t be read just now, often a dropped connection. Nothing was changed. Try again, and if it keeps happening, note the
+        The page couldn’t read what it needed just now, often a dropped connection. Nothing was changed. Try again, and if it keeps happening, note the
         reference below for whoever looks after the site.
       </p>
       <div className="row">

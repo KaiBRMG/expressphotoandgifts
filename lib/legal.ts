@@ -1,22 +1,22 @@
 import { fromShopTime, SHOP_TZ } from "./shopTime";
 
 /**
- * The shop's three policies (`/terms`, `/privacy`, `/refunds-cancellations`),
- * as the code refers to them. Shared by the browser and the server: no
- * secrets here.
+ * The shop's two policies (`/terms`, which holds the website terms, the terms
+ * of sale with returns, cancellations and refunds, and the delivery terms;
+ * and `/privacy`), as the code refers to them. Shared by the browser and the
+ * server: no secrets here.
  *
  * `POLICIES_VERSION` is the date the policies last changed. Checkout sends it
  * with the customer's tick, the server refuses an order without it, and each
  * order and payment attempt keeps the version that was agreed to, so the shop
- * can show which terms an order was placed under. Change it whenever any of
- * the three pages changes in substance.
+ * can show which terms an order was placed under. Change it whenever either
+ * page changes in substance.
  */
-export const POLICIES_VERSION = "2026-10-22";
+export const POLICIES_VERSION = "2026-10-27";
 
 export const POLICY_LINKS = [
   { href: "/terms", label: "Terms & Conditions" },
   { href: "/privacy", label: "Privacy Policy" },
-  { href: "/refunds-cancellations", label: "Returns & Cancellations" },
 ] as const;
 
 export type PolicyPath = (typeof POLICY_LINKS)[number]["href"];

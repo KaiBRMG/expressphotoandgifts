@@ -1976,6 +1976,24 @@ html:has(.editor[open]) {
   font-size: 1rem;
 }
 
+/* The discount code: its email wrote it in capitals, so it reads and types as one. */
+.codebox__code {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+}
+
+.codebox .field__input {
+  max-width: 20rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.codebox > .field__error,
+.codebox > .receipt__saved {
+  margin-top: 0.5rem;
+}
+
 /* ---- Collect or deliver ------------------------------------------------ */
 
 .ways {
@@ -3394,6 +3412,14 @@ html:has(.editor[open]) {
 .aorder .anote {
   grid-area: said;
   margin-top: 0.75rem;
+}
+
+/* Asking before the photos go: plain words with the two answers in them. */
+.aorder__ask {
+  grid-area: said;
+  margin-top: 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 .aorders__more {

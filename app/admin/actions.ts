@@ -5,13 +5,16 @@ import { redirect } from "next/navigation";
 import { requireAdmin, sendPasswordReset, signIn, signOut } from "@/lib/admin/auth";
 import { uploadTicket, type UploadTicket } from "@/lib/admin/cloudinary";
 import * as campaigns from "@/lib/admin/campaigns";
+import * as mailings from "@/lib/admin/mailings";
 import * as orders from "@/lib/admin/orders";
 import * as payments from "@/lib/admin/payments";
+import * as refunds from "@/lib/admin/refunds";
 import * as stock from "@/lib/admin/stock";
 import type { StockEdit } from "@/lib/catalog/stock";
 import { returnStock } from "@/lib/stock";
 import type { Boxes } from "@/lib/checkout/boxes";
-import { saveOrderRecipients, saveShippingBoxes, SETTINGS_TAG } from "@/lib/settings";
+import type { ContactInput, SaveContactResult } from "@/lib/contact";
+import { saveOrderRecipients, saveShippingBoxes, saveShopContact, CONTACT_TAG, SETTINGS_TAG } from "@/lib/settings";
 import type { OrderActionResult } from "@/lib/checkout/order";
 import * as store from "@/lib/admin/products";
 import type { OrderEmail } from "@/lib/checkout/emails";
@@ -155,10 +158,28 @@ export async function setOrderStageAction(ref: string, stage: string) {
   return orders.setStage(String(ref), stage, admin.email);
 }
 
-/** `amount` in cents. The refund itself is made in PayFast's dashboard; this records it. */
-export async function recordRefundAction(ref: string, amount: number, note: string) {
+/** Refunds through PayFast's API, by the terms' rules (`lib/checkout/refunds.ts`): to the card or account the customer paid with. */
+export async function refundOrderAction(ref: string, input: unknown): Promise<OrderActionResult> {
   const admin = await requireAdmin();
-  return orders.recordRefund(String(ref), amount, note, admin.email);
+  return refunds.refundThroughPayfast(String(ref), input, admin.email);
+}
+
+/** Records a refund made in PayFast's dashboard, once PayFast's record shows it. */
+export async function recordDashboardRefundAction(ref: string, input: unknown): Promise<OrderActionResult> {
+  const admin = await requireAdmin();
+  return refunds.recordDashboardRefund(String(ref), input, admin.email);
+}
+
+/** Cancels a paid order from the shop's side, by the terms: refunded through PayFast (or as already refunded in its dashboard), its waybill cancelled and, when asked, its stock put back. */
+export async function cancelOrderAction(ref: string, input: unknown, via: "payfast" | "dashboard"): Promise<OrderActionResult> {
+  const admin = await requireAdmin();
+  return refunds.cancelOrder(String(ref), input, admin.email, via === "dashboard" ? "dashboard" : "payfast");
+}
+
+/** Settles a refund held on PayFast's answer, from PayFast's record now. */
+export async function checkRefundAction(ref: string): Promise<OrderActionResult> {
+  const admin = await requireAdmin();
+  return refunds.checkRefund(String(ref), admin.email);
 }
 
 /* ---- Stock: saving clears the shop's caches itself (`lib/stock.ts`). ---- */
@@ -190,6 +211,24 @@ export async function resendOrderEmailAction(ref: string, who: OrderEmail) {
   return orders.resendEmail(String(ref), who, admin.email);
 }
 
+/* ---- Customers: one message to everyone who agreed to marketing email. ---- */
+
+/** `campaignId`: a live or scheduled campaign whose deals, dates and products the email carries, or null for the message alone. */
+export async function emailAllCustomersAction(id: string, subject: string, message: string, campaignId: string | null) {
+  const admin = await requireAdmin();
+  return mailings.emailAll(id, subject, message, campaignId, admin.email);
+}
+
+export async function emailTestAction(subject: string, message: string, campaignId: string | null) {
+  const admin = await requireAdmin();
+  return mailings.sendTest(subject, message, campaignId, admin.email);
+}
+
+export async function emailPreviewAction(subject: string, message: string, campaignId: string | null) {
+  await requireAdmin();
+  return mailings.preview(subject, message, campaignId);
+}
+
 /* ---- PayFast: read only, except accepting a payment its history shows and its notice missed. ---- */
 
 /** Checks PayFast's history for a month ("2026-10"), flagging each exception on its order. */
@@ -199,6 +238,14 @@ export async function checkPaymentsAction(month: string): Promise<OrderActionRes
   if (!asked) return { error: "That isn’t a month that has started." };
   const check = await payments.runCheck(admin.email, payments.monthRange(asked));
   return check.ok ? { ok: true } : { error: check.error };
+}
+
+/** Marks an exception on the Payments page as looked at, with what was done. */
+export async function reviewPaymentAction(month: string, key: string, note: string) {
+  const admin = await requireAdmin();
+  const asked = payments.parseMonth(month);
+  if (!asked) return { error: "That isn’t a month that has started." };
+  return payments.reviewException(asked, String(key), note, admin.email);
 }
 
 export async function acceptPayfastRecordAction(ref: string) {
@@ -227,10 +274,23 @@ export async function previewShipmentAction(ref: string, which: Direction, parce
   return shipments.previewWaybill(String(ref), direction(which), parcels, options);
 }
 
-/** `parcels`: the boxes packed, each with its weight in kg; `options`: collection day, hours and extras; `service`: a return's service code. */
+/** A return's waybill. An order going out is booked only with the day's collection (`bookCollectionAction`). `parcels`: the boxes, each with its weight in kg; `options`: collection day, hours and extras; `service`: the return's service code. */
 export async function bookShipmentAction(ref: string, which: Direction, parcels: unknown, options: unknown, service?: string) {
   const admin = await requireAdmin();
-  return shipments.bookShipment(String(ref), direction(which), parcels, options, service, admin.email);
+  if (direction(which) !== "return") return { error: "An order is booked with the courier from the Dashboard, together with the others that are ready." };
+  return shipments.bookShipment(String(ref), "return", parcels, options, service, admin.email);
+}
+
+/** Saves the parcels a courier order was packed into and marks it ready to send. */
+export async function packOrderAction(ref: string, parcels: unknown) {
+  const admin = await requireAdmin();
+  return shipments.packOrder(String(ref), parcels, admin.email);
+}
+
+/** The Dashboard's Book courier collection: the orders its dialog listed, with the collection day and hours. */
+export async function bookCollectionAction(refs: unknown, window: unknown) {
+  const admin = await requireAdmin();
+  return shipments.bookCollection(refs, window, admin.email);
 }
 
 export async function lookUpShipmentAction(ref: string, which: Direction) {
@@ -271,6 +331,14 @@ export async function saveOrderRecipientsAction(emails: string[]): Promise<{ ok:
   const admin = await requireAdmin();
   const result = await saveOrderRecipients(emails, admin.email);
   if ("ok" in result) updateTag(SETTINGS_TAG);
+  return result;
+}
+
+/** Saves the email and mobile number the site gives the public. */
+export async function saveShopContactAction(input: ContactInput): Promise<SaveContactResult> {
+  const admin = await requireAdmin();
+  const result = await saveShopContact(input, admin.email);
+  if ("ok" in result) updateTag(CONTACT_TAG);
   return result;
 }
 

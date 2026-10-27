@@ -6,6 +6,7 @@ import type { PlacedFile } from "@/lib/checkout/order";
 import { fittedUrl, rawUrl, THUMB } from "@/lib/checkout/photoUrls";
 import type { PhotoShape } from "@/lib/catalog/tags";
 import { Download, Printer } from "@/app/site/icons";
+import { Hint } from "../../../Tip";
 
 export type SheetSet = { title: string | null; words: string; files: PlacedFile[] };
 
@@ -67,17 +68,21 @@ function DownloadButton({ items, label, variant = "light", fullWidth }: { items:
     setDone(null);
   };
   return (
-    <Button variant={variant} size="sm" fullWidth={fullWidth} leftSection={<Download size={18} />} disabled={done !== null} onClick={run}>
-      {done === null ? label : `${done + 1} of ${items.length}`}
-    </Button>
+    <Hint label={items.length > 1 ? "Saves these photos one after another, exactly as uploaded or placed, with no changes." : "Saves the photo exactly as uploaded or placed, with no changes."}>
+      <Button variant={variant} size="sm" fullWidth={fullWidth} leftSection={<Download size={18} />} disabled={done !== null} onClick={run}>
+        {done === null ? label : `${done + 1} of ${items.length}`}
+      </Button>
+    </Hint>
   );
 }
 
 function PrintButton({ href, label, variant = "light", fullWidth }: { href: string; label: string; variant?: "light" | "default"; fullWidth?: boolean }) {
   return (
-    <Button fullWidth={fullWidth} component="a" href={href} target="_blank" rel="noopener" variant={variant} size="sm" leftSection={<Printer size={18} />}>
-      {label}
-    </Button>
+    <Hint label="Opens the print page, with each photo at the print size and shape shown here.">
+      <Button fullWidth={fullWidth} component="a" href={href} target="_blank" rel="noopener" variant={variant} size="sm" leftSection={<Printer size={18} />}>
+        {label}
+      </Button>
+    </Hint>
   );
 }
 

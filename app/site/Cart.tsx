@@ -15,7 +15,7 @@ import { ArrowRight, Cart as CartIcon, Close, Plus, Tag, Upload, YourPhoto } fro
 import { ProductImage } from "./ProductImage";
 import { QuantityStepper } from "./QuantityStepper";
 import { StockLimit } from "./StockLimit";
-import { whatsapp } from "./data";
+import { useWhatsApp } from "./ContactContext";
 
 /**
  * The dock's pill. With something in the cart it is the cart, with the count
@@ -78,12 +78,15 @@ export function HeaderCart() {
       aria-label={`Cart, ${itemCount(units)}`}
       onClick={cart.open}
     >
-      <CartIcon size={21} />
-      {units > 0 ? (
-        <span key={units} className="header__count" aria-hidden="true">
-          {unitsLabel(units)}
-        </span>
-      ) : null}
+      <span className="header__glyph">
+        <CartIcon size={21} />
+        {units > 0 ? (
+          <span key={units} className="header__count" aria-hidden="true">
+            {unitsLabel(units)}
+          </span>
+        ) : null}
+      </span>
+      <span className="header__label">Cart</span>
     </button>
   );
 }
@@ -118,10 +121,11 @@ function useNeeds(open: boolean): Needs | null {
  * otherwise straight to the customer's details.
  */
 export function CartDrawer() {
-  const { lines, open, was, available } = useCart();
+  const { lines, open, was, available, removed } = useCart();
   const { live, priced, unit } = usePricedCart();
   const ref = useRef<HTMLDialogElement>(null);
   const needs = useNeeds(open);
+  const wa = useWhatsApp();
   const skus = new Set(lines.map((l) => l.sku));
 
   useEffect(() => {
@@ -140,6 +144,7 @@ export function CartDrawer() {
   const photos = live.some((l) => l.takes);
   // A line asking for more than there is waits on the customer's choice before checkout.
   const waiting = live.filter((l) => overStock(l, available) !== null);
+  const dateAsk = wa(`Hi! I'd like to order ${live.slice(0, 3).map((l) => orderWhat(l.name, l.variant)).join(", ")}${live.length > 3 ? " and more" : ""}. Could it be ready by `);
 
   return (
     <dialog
@@ -158,6 +163,7 @@ export function CartDrawer() {
             Your cart
             {units > 0 ? <span className="cart__units">{itemCount(units)}</span> : null}
           </h2>
+
           <button type="button" className="cart__close" aria-label="Close cart" onClick={cart.close}>
             <Close size={22} />
           </button>
@@ -165,25 +171,44 @@ export function CartDrawer() {
 
         {hasLines ? (
           <>
-            <ul className="cart__lines">
-              {lines.map((line) => (
-                <Line
-                  key={line.sku}
-                  line={line}
-                  unavailable={!live.includes(line)}
-                  available={available}
-                  was={was[line.sku]}
-                  now={unit(line)}
-                  frame={needs?.[line.sku]?.frame}
-                  inCart={skus}
-                />
-              ))}
-            </ul>
+            {/* What scrolls: the lines, the savings and the reassurance. The foot under it keeps only what must stay on screen. */}
+            <div className="cart__body">
+              <ul className="cart__lines">
+                {removed ? (
+                  <li className="cart__undo-row">
+                    <UndoNote removed={removed} />
+                  </li>
+                ) : null}
+                {lines.map((line) => (
+                  <Line
+                    key={line.sku}
+                    line={line}
+                    unavailable={!live.includes(line)}
+                    available={available}
+                    was={was[line.sku]}
+                    now={unit(line)}
+                    frame={needs?.[line.sku]?.frame}
+                    inCart={skus}
+                  />
+                ))}
+              </ul>
+              {live.length > 0 ? (
+                <>
+                  <Deals priced={priced} onGo={cart.close} />
+                  <p className="cart__note cart__assure">
+                    You review the whole order before you pay, and payment is secure, through PayFast. Need it by a date?{" "}
+                    <a className="inline-link" href={dateAsk} target="_blank" rel="noopener">
+                      Ask the shop
+                    </a>
+                    .
+                  </p>
+                </>
+              ) : null}
+            </div>
 
             <footer className="cart__foot">
               {live.length > 0 ? (
                 <>
-                  <Deals priced={priced} onGo={cart.close} />
                   <p className="slip__total" aria-live="polite">
                     <span>
                       Subtotal <span className="cart__excl">before delivery</span>
@@ -224,6 +249,7 @@ export function CartDrawer() {
           </>
         ) : (
           <div className="cart__empty">
+            {removed ? <UndoNote removed={removed} /> : null}
             <p>Your cart is empty.</p>
             <Link className="btn btn--gold on-gold" href="/shop" onClick={cart.close}>
               Browse the shop
@@ -233,6 +259,30 @@ export function CartDrawer() {
         )}
       </div>
     </dialog>
+  );
+}
+
+/**
+ * The line just taken out, and the way to put it back. Focus moves to Undo
+ * when it appears, because the Remove that was pressed has just left the page
+ * and a keyboard or screen-reader user would otherwise be dropped at the top.
+ */
+function UndoNote({ removed }: { removed: NonNullable<ReturnType<typeof useCart>["removed"]> }) {
+  const undo = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    undo.current?.focus();
+  }, [removed]);
+  const { name, variant } = removed.line;
+  return (
+    <p className="cart__undo">
+      <span>
+        Removed {name}
+        {variant ? `, ${variant}` : ""}.
+      </span>
+      <button ref={undo} type="button" className="inline-link cart__undo-btn" onClick={cart.undo}>
+        Undo
+      </button>
+    </p>
   );
 }
 
@@ -292,6 +342,7 @@ function Line({
   frame?: FrameNeeds;
   inCart: ReadonlySet<string>;
 }) {
+  const wa = useWhatsApp();
   const { sku, slug, name, variant, price, quantity, photo, takes } = line;
   const href = productHref(slug);
   const label = variant ? `${name}, ${variant}` : name;
@@ -323,7 +374,7 @@ function Line({
         {soldOut ? (
           <p className="cart__flag">
             Sold out, so it&rsquo;s left out of your order.{" "}
-            <a className="inline-link" href={whatsapp(`Hi! The ${what} (code ${sku}) is sold out on the site. When will you have more?`)} target="_blank" rel="noopener">
+            <a className="inline-link" href={wa(`Hi! The ${what} (code ${sku}) is sold out on the site. When will you have more?`)} target="_blank" rel="noopener">
               Ask when it&rsquo;s back
             </a>
           </p>
@@ -351,9 +402,6 @@ function Line({
           {unavailable ? null : (
             <QuantityStepper value={quantity} onChange={(n) => cart.setQuantity(sku, n)} label={label} max={max ?? undefined} />
           )}
-          <button type="button" className="inline-link cart__remove" onClick={() => cart.remove(sku)}>
-            Remove<span className="visually-hidden"> {label}</span>
-          </button>
           {unavailable ? null : (
             <p className="cart__price">
               {now !== undefined && now < price ? (
@@ -368,6 +416,10 @@ function Line({
               {rands((now ?? price) * quantity)}
             </p>
           )}
+          {/* After the price, and so after the stepper, with the room the row gives it: a thumb on + is never a thumb on Remove. */}
+          <button type="button" className="inline-link cart__remove" onClick={() => cart.remove(sku)}>
+            Remove<span className="visually-hidden"> {label}</span>
+          </button>
         </div>
       </div>
     </li>

@@ -1,24 +1,21 @@
 import "server-only";
 
-import { FieldValue, type Query } from "firebase-admin/firestore";
-
 import { cartUnits } from "@/lib/catalog/cart";
-import { rands } from "@/lib/catalog/listing";
 import { EMAIL_NAMES, orderEmails, type OrderEmail } from "@/lib/checkout/emails";
 import { contactName } from "@/lib/checkout/details";
 import { changeOrder, getOrder, orders } from "@/lib/checkout/orders";
-import { NOTE_MAX, REF, refundedOf, STAGES, stageLabel, stageUpdate, type NoticeRecord, type Order, type OrderActionResult, type OrderStage, type Refund } from "@/lib/checkout/order";
+import { hasLeftShop, holdsPhotos, NOTE_MAX, orderPhotos, REF, refundedOf, STAGES, stageLabel, stageUpdate, type NoticeRecord, type Order, type OrderActionResult, type OrderStage } from "@/lib/checkout/order";
 
 /**
  * Orders as the admin reads and works them, always fresh from Firestore.
  * The shop changes only its own side of an order: where it has got to, a
- * refund made in PayFast, and that an issue has been looked at. What was
+ * refund (`./refunds.ts`), and that an issue has been looked at. What was
  * bought and paid is never changed here. Each change is logged with who
  * made it.
  */
 
 /** The stages of an order still to work on. `stage` is only ever set on a paid order. */
-const OPEN: OrderStage[] = ["new", "making", "ready"];
+export const OPEN: OrderStage[] = ["new", "making", "ready"];
 
 /** How many of the latest paid orders the list reads besides the open ones, so recent finished orders show. Older ones open by their number. */
 const RECENT = 100;
@@ -34,11 +31,22 @@ export type OrderRow = {
   phone: string;
   method: "collect" | "courier";
   units: number;
+  /** What was in it ("Photo Mug, A4 Print and 2 more"), so the list can be read without opening each order. */
+  what: string;
+  /** The customer's photos the shop still holds for printing; 0 once they are deleted. */
+  photos: number;
   total: number;
   refunded: number;
   /** When it was paid, or for an unpaid order, last changed. */
   at: string;
 };
+
+/** The products in an order, named once each: "Photo Mug and A4 Print", or "Photo Mug, A4 Print and 2 more". */
+export function linesWhat(lines: Order["lines"]): string {
+  const names = [...new Set(lines.map((l) => l.name))];
+  if (names.length <= 2) return names.join(" and ");
+  return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
+}
 
 /** An order as its row: here, and on its customer's page. */
 export const orderRow = (o: Order): OrderRow => ({
@@ -51,6 +59,8 @@ export const orderRow = (o: Order): OrderRow => ({
   phone: o.contact.phone,
   method: o.fulfilment.method,
   units: cartUnits(o.lines),
+  what: linesWhat(o.lines),
+  photos: holdsPhotos(o) ? orderPhotos(o) : 0,
   total: o.total,
   refunded: refundedOf(o),
   at: o.paidAt ?? o.updatedAt,
@@ -62,7 +72,7 @@ export const orderRow = (o: Order): OrderRow => ({
  * reading the shop's whole history on each visit.
  */
 export async function listOrders(): Promise<OrderRow[]> {
-  const fields = ["ref", "status", "stage", "flagged", "contact", "fulfilment.method", "lines", "total", "refunds", "paidAt", "updatedAt"];
+  const fields = ["ref", "status", "stage", "flagged", "contact", "fulfilment.method", "lines", "total", "refunds", "paidAt", "updatedAt", "photosDeletedAt"];
   const snaps = await Promise.all([
     orders().where("stage", "in", OPEN).select(...fields).get(),
     orders().where("flagged", "==", true).select(...fields).get(),
@@ -73,11 +83,18 @@ export async function listOrders(): Promise<OrderRow[]> {
   return [...byRef.values()].sort((a, b) => b.at.localeCompare(a.at));
 }
 
-/** The dashboard's numbers: orders at each open stage, and how many need a look. One read each, however many orders there are. */
-export async function countOrders(): Promise<{ stages: Record<(typeof OPEN)[number], number>; flagged: number }> {
-  const count = async (q: Query) => (await q.count().get()).data().count;
-  const [flagged, ...stages] = await Promise.all([count(orders().where("flagged", "==", true)), ...OPEN.map((s) => count(orders().where("stage", "==", s)))]);
-  return { stages: Object.fromEntries(OPEN.map((s, i) => [s, stages[i]])) as Record<(typeof OPEN)[number], number>, flagged };
+/**
+ * The oldest paid order still to work on besides this one, for the "Next order"
+ * link: the one waiting longest, as the list reads. Open orders are few, so it
+ * reads their payment times only and sorts here, which needs no index.
+ */
+export async function nextOrder(ref: string): Promise<{ ref: string; name: string } | null> {
+  const snaps = await orders().where("stage", "in", OPEN).select("contact", "paidAt").get();
+  const next = snaps.docs
+    .filter((d) => d.id !== ref)
+    .map((d) => ({ ref: d.id, name: contactName(d.get("contact")), at: (d.get("paidAt") as string | null) ?? "" }))
+    .sort((a, b) => a.at.localeCompare(b.at))[0];
+  return next ? { ref: next.ref, name: next.name } : null;
 }
 
 /** One order with every PayFast notice it received, oldest first. */
@@ -90,16 +107,17 @@ export async function getOrderForAdmin(ref: string): Promise<{ order: Order; not
 export type { OrderActionResult };
 
 /** A note staff give, for the record: trimmed and held to `NOTE_MAX`, or null when too short to say anything. */
-const cleanNote = (note: unknown) => {
+export const cleanNote = (note: unknown) => {
   const s = typeof note === "string" ? note.trim().slice(0, NOTE_MAX) : "";
   return s.length >= 3 ? s : null;
 };
 
-/** Moves a paid order along: new, being made, ready, done. */
+/** Sets a paid order's stage (new, being made, ready, done): on with the work, or back or across by hand when the record is wrong. */
 export async function setStage(ref: string, stage: unknown, by: string): Promise<OrderActionResult> {
   const done = await changeOrder(ref, by, (o) => {
-    if (!STAGES.includes(stage as OrderStage)) return { error: "That isn’t a stage an order can be at." };
+    if (!(STAGES as readonly unknown[]).includes(stage)) return { error: "That isn’t a stage an order can be at." };
     if (o.status !== "paid") return { error: "Only a paid order can be worked on." };
+    if (o.stage === "cancelled") return { error: "This order was cancelled and refunded in full, so there’s no more work on it." };
     if (o.stage === stage) return { error: "The order is already there." };
     return { update: stageUpdate(stage as OrderStage), log: `Moved to ${stageLabel(stage as OrderStage, o.fulfilment.method)}` };
   });
@@ -108,25 +126,6 @@ export async function setStage(ref: string, stage: unknown, by: string): Promise
     const order = await getOrder(ref);
     if (order?.fulfilment.method === "collect" && !order.emails?.ready?.ok) await mailCustomer(ref, "ready", by);
   }
-  return done;
-}
-
-/**
- * Records a refund the shop has made in PayFast's dashboard. Never more,
- * across every refund, than the order's total.
- */
-export async function recordRefund(ref: string, amount: unknown, note: unknown, by: string): Promise<OrderActionResult> {
-  const done = await changeOrder(ref, by, (o) => {
-    if (o.status !== "paid") return { error: "Only a paid order can be refunded." };
-    if (typeof amount !== "number" || !Number.isSafeInteger(amount) || amount <= 0) return { error: "Enter the amount refunded, in rands." };
-    const left = o.total - refundedOf(o);
-    if (amount > left) return { error: `That’s more than is left to refund (${rands(left)}).` };
-    const why = cleanNote(note);
-    if (!why) return { error: "Say why it was refunded, for the record." };
-    const refund: Refund = { at: new Date().toISOString(), by, amount, note: why };
-    return { update: { refunds: FieldValue.arrayUnion(refund) }, log: `Recorded a refund of ${rands(amount)}: ${why}` };
-  });
-  if ("ok" in done) await mailCustomer(ref, "refund", by);
   return done;
 }
 
@@ -144,11 +143,12 @@ export const resolveIssues = (ref: string, note: unknown, by: string) =>
  * write as its log line. `again` is the admin's resend: a new key, so Resend
  * sends it even within a day of the first.
  */
-async function mailCustomer(ref: string, who: OrderEmail, by: string, again = false): Promise<OrderActionResult> {
+export async function mailCustomer(ref: string, who: OrderEmail, by: string, again = false): Promise<OrderActionResult> {
   const order = await getOrder(ref);
   if (!order) return { error: "There’s no such order." };
   if (order.status !== "paid") return { error: "Only a paid order has emails to send." };
   if (who === "shipped" && !order.shipment?.tracking) return { error: "The order has no waybill to tell the customer about." };
+  if (who === "shipped" && !hasLeftShop(order.shipment?.status)) return { error: "The courier hasn’t collected it yet. This email says it has." };
   if (who === "ready" && order.fulfilment.method !== "collect") return { error: "Only an order to collect has a ready email." };
   if (who === "refund" && !order.refunds?.length) return { error: "No refund has been recorded on this order." };
   const sent = (await orderEmails(order, who, again ? `/again-${Date.now()}` : ""))[who]!;

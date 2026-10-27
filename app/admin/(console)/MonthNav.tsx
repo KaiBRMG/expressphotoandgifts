@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { shiftMonth } from "@/lib/shopTime";
 import { ArrowLeft, ArrowRight } from "@/app/site/icons";
+import { Hint } from "../Tip";
 
 /** "October 2026". */
 export const monthName = (month: string) =>
@@ -19,17 +20,21 @@ export function MonthNav({ base, month, current, children }: { base: string; mon
   const next = shiftMonth(month, 1);
   return (
     <nav className="pay__months" aria-label="Month">
-      <Link className="pay__step" href={`${base}?month=${prev}`} aria-label={`Previous month, ${monthName(prev)}`}>
-        <ArrowLeft size={20} />
-      </Link>
+      <Hint label={monthName(prev)}>
+        <Link className="pay__step" href={`${base}?month=${prev}`} aria-label={`Previous month, ${monthName(prev)}`}>
+          <ArrowLeft size={20} />
+        </Link>
+      </Hint>
       <h2 className="pay__month">
         {monthName(month)}
         {children}
       </h2>
       {month < current ? (
-        <Link className="pay__step" href={`${base}?month=${next}`} aria-label={`Next month, ${monthName(next)}`}>
-          <ArrowRight size={20} />
-        </Link>
+        <Hint label={monthName(next)}>
+          <Link className="pay__step" href={`${base}?month=${next}`} aria-label={`Next month, ${monthName(next)}`}>
+            <ArrowRight size={20} />
+          </Link>
+        </Hint>
       ) : (
         <span className="pay__step pay__step--off" aria-hidden="true">
           <ArrowRight size={20} />

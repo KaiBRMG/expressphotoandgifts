@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { CloseButton, SegmentedControl, Select, TextInput } from "@mantine/core";
+import { useHotkeys } from "@mantine/hooks";
 import { rands } from "@/lib/catalog/listing";
 import { queryWords, startsWords, words } from "@/lib/catalog/search";
 import { REF } from "@/lib/checkout/order";
 import type { CustomerRow } from "@/lib/admin/customers";
 import { Download, Search } from "@/app/site/icons";
+import type { EmailableCampaign } from "@/lib/admin/mailingLimits";
+import { EmailAll } from "./EmailAll";
 import { when } from "../../when";
 
 /** Two paid orders or more: someone who came back. */
@@ -35,13 +38,17 @@ const LEDES: Record<View, string> = {
 const EMPTY: Record<View, { title: string; lede?: string }> = {
   all: { title: "No customers yet." },
   regulars: { title: "No one has come back for a second order yet." },
-  marketing: { title: "No one has agreed to marketing email yet.", lede: "Customers agree in the footer’s sign-up or on their account page." },
+  marketing: { title: "No one has agreed to marketing email yet.", lede: "Customers agree in the footer’s sign-up, once they tap the link emailed to them, or on their account page." },
 };
 
-export function CustomersTable({ rows, initial, now }: { rows: CustomerRow[]; initial: { q: string; view: string }; now: string }) {
+export function CustomersTable({ rows, campaigns, initial, now }: { rows: CustomerRow[]; campaigns: EmailableCampaign[]; initial: { q: string; view: string }; now: string }) {
   const [q, setQ] = useState(initial.q);
   const [view, setView] = useState<View>(() => VIEW_IDS.find((v) => v === initial.view) ?? "all");
   const query = useDeferredValue(q.trim());
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // "/" finds, as long as nothing is being typed.
+  useHotkeys([["/", () => searchRef.current?.focus()]]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -72,12 +79,15 @@ export function CustomersTable({ rows, initial, now }: { rows: CustomerRow[]; in
           <h1 className="page__title">Customers</h1>
           <p className="page__lede">{LEDES[view]}</p>
         </div>
-        {view === "marketing" ? (
-          <a className="obtn" href="/admin/customers/export" download>
-            <Download size={18} />
-            Download the email list
-          </a>
-        ) : null}
+        <div className="obtns">
+          <EmailAll count={rows.filter((r) => r.marketing).length} campaigns={campaigns} />
+          {view === "marketing" ? (
+            <a className="obtn" href="/admin/customers/export" download>
+              <Download size={18} />
+              Download the email list
+            </a>
+          ) : null}
+        </div>
       </header>
 
       <div className="plist__tools">
@@ -88,10 +98,19 @@ export function CustomersTable({ rows, initial, now }: { rows: CustomerRow[]; in
           leftSection={<Search size={20} />}
           value={q}
           onChange={(e) => setQ(e.currentTarget.value)}
+          ref={searchRef}
           onKeyDown={(e) => {
             if (e.key === "Escape" && q) setQ("");
           }}
-          rightSection={q ? <CloseButton aria-label="Clear search" onClick={() => setQ("")} /> : null}
+          rightSection={
+            q ? (
+              <CloseButton aria-label="Clear search" onClick={() => setQ("")} />
+            ) : (
+              <kbd className="plist__kbd" aria-hidden="true">
+                /
+              </kbd>
+            )
+          }
         />
         <SegmentedControl className="plist__status" aria-label="Show" value={view} onChange={(v) => setView(v as View)} data={viewData} />
         <Select className="plist__statusSelect" aria-label="Show" data={viewData} value={view} onChange={(v) => setView((v as View | null) ?? "all")} allowDeselect={false} />

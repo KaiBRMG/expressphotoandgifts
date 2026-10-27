@@ -6,7 +6,7 @@ import { accountOrders, claimGuestOrders } from "@/lib/account/orders";
 import { CheckoutHead } from "@/app/checkout/Head";
 import { SHOP } from "@/app/site/data";
 import { ArrowRight } from "@/app/site/icons";
-import { SignInForm } from "./AccountForms";
+import { MakeAccountForm, SignInForm } from "./AccountForms";
 import { AccountView, Banner } from "./AccountView";
 
 export const metadata: Metadata = {
@@ -28,8 +28,8 @@ function checked(claimed: string | undefined, check: string | undefined) {
  * the receipt does; then every order, each shown by the customer's own
  * photos, with its receipt and Order again; beside them on a wide screen,
  * what checkout fills in, the one marketing choice, the password and the way
- * out. Signed out, the way in. Accounts are made at checkout, from a
- * receipt, or by the sign-up at the foot of every page, so there is none here.
+ * out. Signed out, the way in, and the way to make an account with no order.
+ * Accounts are also made at checkout and from a receipt.
  */
 export default async function AccountPage({ searchParams }: PageProps<"/account">) {
   const q = await searchParams;
@@ -56,12 +56,21 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
               </Link>
             </section>
           ) : (
-            <section className="costep" aria-label="Sign in">
-              {said ? <Banner {...said} /> : null}
-              {said && !said.error ? <p className="receipt__soft">Sign in to see them.</p> : null}
-              <SignInForm />
-              <p className="receipt__soft">No account yet? Sign up at the foot of this page, or tick &ldquo;Save my details&rdquo; at checkout.</p>
-            </section>
+            <>
+              <section className="costep" aria-label="Sign in">
+                {said ? <Banner {...said} /> : null}
+                {said && !said.error ? <p className="receipt__soft">Sign in to see them.</p> : null}
+                <SignInForm />
+                <p className="receipt__soft">
+                  No account yet? Make one below, or tick &ldquo;Save my details&rdquo; at checkout.
+                </p>
+              </section>
+              <section className="costep" id="new" aria-label="Make an account">
+                <h2 className="costep__title">Make an account</h2>
+                <p className="receipt__soft">Saves your details for checkout, and keeps your orders, receipts and photos in one place.</p>
+                <MakeAccountForm />
+              </section>
+            </>
           )}
         </div>
       </>

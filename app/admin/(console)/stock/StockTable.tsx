@@ -13,6 +13,7 @@ import { ProductImage } from "@/app/site/ProductImage";
 import { Alert, Camera, Check, Clock, Search } from "@/app/site/icons";
 import { saveStockAction, stockHistoryAction } from "../../actions";
 import { useLeaveGuard } from "../../editor/useLeaveGuard";
+import { Tip } from "../../Tip";
 import { at, when } from "../../when";
 
 /** A row's edit as typed: each field only once touched; "" is a field cleared. */
@@ -250,11 +251,36 @@ export function StockTable({ rows, initial, now }: { rows: StockRow[]; initial: 
             <thead>
               <tr>
                 <th>Size</th>
-                <th>Track</th>
-                <th className="stk__numCol">Receive</th>
-                <th className="stk__numCol">On hand</th>
-                <th className="stk__numCol">Sold out at</th>
-                <th className="stk__numCol">Low at</th>
+                <th>
+                  <span className="label-tip">
+                    Track
+                    <Tip about="Track">Switch on to count this size. Until it is on, the size can always be ordered and nothing is taken off.</Tip>
+                  </span>
+                </th>
+                <th className="stk__numCol">
+                  <span className="label-tip">
+                    Receive
+                    <Tip about="Receive">Type what just arrived. It is added to On hand when you save.</Tip>
+                  </span>
+                </th>
+                <th className="stk__numCol">
+                  <span className="label-tip">
+                    On hand
+                    <Tip about="On hand">How many are on the shelf now. Type a number to correct it. A change is refused if someone else changed the count after this page loaded.</Tip>
+                  </span>
+                </th>
+                <th className="stk__numCol">
+                  <span className="label-tip">
+                    Sold out at
+                    <Tip about="Sold out at">Stock kept back. When On hand falls to this number the shop shows the size as Sold out. 0 means when none are left.</Tip>
+                  </span>
+                </th>
+                <th className="stk__numCol">
+                  <span className="label-tip">
+                    Low at
+                    <Tip about="Low at">When On hand falls to this number, the size appears under Running low on the dashboard and the shop is emailed once.</Tip>
+                  </span>
+                </th>
                 <th>Status</th>
                 <th>
                   <span className="visually-hidden">History</span>

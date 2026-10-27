@@ -1,0 +1,572 @@
+/*
+ * About: /about.
+ *
+ * The storefront's world, set for reading. It opens on the leaning sign the
+ * homepage and the shop open on, then white for the story, the range, the
+ * visit and the promises, with one full-bleed blue band (how an order works)
+ * as the page's focal moment. The page ends on white so it does not run into
+ * the footer's blue. Lists and ledgers are ruled, not boxed; the photographs
+ * stand bare, because they go nowhere. Amber is the highlighter and the step
+ * marks. Every text element is 16px or more at every width (The 16px Floor).
+ */
+
+/* ---- The sign ---------------------------------------------------------- */
+
+/* The storefront's device: a brand-blue band 124% of the screen leaning -4deg,
+   the lede on a slimmer band beneath. */
+.about__top {
+  overflow-x: clip;
+  padding-block: clamp(46px, 6vw, 92px) 0;
+}
+
+.about__sign {
+  width: 124%;
+  margin-left: -12%;
+  transform: rotate(-4deg);
+  color: var(--print);
+  text-align: center;
+  filter: drop-shadow(0 18px 28px rgb(1 38 186 / 0.28));
+}
+
+.about__signTitle {
+  margin: 0;
+  padding: clamp(16px, 2.2vw, 28px) var(--gutter) clamp(14px, 1.8vw, 22px);
+  background: var(--leather);
+  font-size: clamp(2rem, 8.4vw, 4.75rem);
+  font-weight: 600;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+}
+
+.about__signLine {
+  display: block;
+  white-space: nowrap;
+}
+
+.about__gold {
+  color: var(--gold);
+}
+
+/* The overhang is 12% of the screen each side, about 9.7% of the band, so the
+   lede's gutter is measured from the screen's edge, not the band's. */
+.about__signLede {
+  margin: 0;
+  padding: clamp(12px, 1.4vw, 18px) var(--gutter) clamp(14px, 1.6vw, 20px);
+  padding-inline: max(calc(9.7% + var(--gutter)), calc((100% - 46ch) / 2));
+  background: var(--leather);
+  border-top: 1px solid var(--rule-leather);
+  font-size: clamp(1rem, 1.45vw, 1.2rem);
+  line-height: 1.55;
+  color: var(--on-leather-soft);
+  text-wrap: balance;
+}
+
+/* ---- Where on the page ------------------------------------------------- */
+
+/* Clear of the band's low left end, which sits tan(4deg) × 62vw under its
+   middle, before the strip's own space starts. */
+.about__jump {
+  margin-top: calc(4.4vw + clamp(1.6rem, 3.4vw, 2.6rem));
+}
+
+.about__jump ul,
+.about__shelves {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about__jump ul {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.about__jump ul::-webkit-scrollbar {
+  display: none;
+}
+
+/* On a phone the strip runs off the right edge; fading it there says there is more to swipe to. */
+@media (max-width: 45.99rem) {
+  .about__jump ul {
+    mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+  }
+}
+
+@media (min-width: 46rem) {
+  .about__jump ul {
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow: visible;
+  }
+}
+
+.about__jump a,
+.about__shelves a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.55rem 1.05rem;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--print);
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background-color 0.25s var(--ease-out),
+    border-color 0.25s var(--ease-out),
+    color 0.25s var(--ease-out);
+}
+
+@media (hover: hover) {
+  .about__jump a:hover,
+  .about__shelves a:hover {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: var(--print);
+  }
+}
+
+/* ---- Sections ---------------------------------------------------------- */
+
+.about__sec {
+  padding-block: clamp(48px, 7vw, 104px);
+  /* Lands clear of the sticky header when a pill is pressed. */
+  scroll-margin-top: calc(var(--header-h) + 8px);
+}
+
+.about__how {
+  scroll-margin-top: var(--header-h);
+}
+
+/* The last thing before the footer: white to its edge, so the footer's blue is the page's close. */
+.about__business {
+  padding-bottom: clamp(62px, 9vw, 130px);
+}
+
+.about__h {
+  margin: 0 0 clamp(1.2rem, 2.4vw, 2rem);
+}
+
+/* The story and the promises hold their heading in a rail beside the text. */
+@media (min-width: 62rem) {
+  #story,
+  #promises {
+    display: grid;
+    grid-template-columns: 18rem minmax(0, 1fr);
+    column-gap: clamp(2.5rem, 5vw, 4.5rem);
+    align-items: start;
+  }
+
+  #story .about__h,
+  #promises .about__h {
+    position: sticky;
+    top: calc(var(--header-h) + 28px);
+    margin: 0;
+  }
+}
+
+.about__mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Prose is capped at its measure, however wide the shell. */
+.about__prose > p {
+  max-width: var(--measure);
+  margin: 0 0 1rem;
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  line-height: 1.62;
+  text-wrap: pretty;
+}
+
+.about__h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0.7rem;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.about__h3 svg {
+  flex: none;
+  color: var(--blue);
+}
+
+.about__prose .about__h3:not(:first-child) {
+  margin-top: 1.9rem;
+}
+
+/* ---- Our story --------------------------------------------------------- */
+
+@media (min-width: 62rem) {
+  .about__story {
+    display: grid;
+    grid-template-columns: minmax(0, var(--measure)) minmax(0, 26rem);
+    justify-content: space-between;
+    gap: clamp(2rem, 4vw, 4rem);
+    align-items: start;
+  }
+}
+
+.about__story > .about__prose {
+  display: block;
+}
+
+/* Who runs it and since when: a ruled ledger, like the business details. */
+.about__who {
+  display: grid;
+  max-width: 30rem;
+  margin: 1.6rem 0 0;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.about__who > div {
+  display: grid;
+  grid-template-columns: 10rem minmax(0, 1fr);
+  gap: 1rem;
+  padding-block: 0.7rem;
+  border-bottom: 1px solid var(--rule-paper);
+}
+
+.about__who dt {
+  color: var(--ink-soft);
+}
+
+.about__who dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* The shop's own photograph, a bare print: 18px corner and the card lift, no edge, because it goes nowhere. */
+.about__photo {
+  margin: 0;
+}
+
+.about__photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+/* ---- What we make ------------------------------------------------------ */
+
+.about__prints {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(14px, 2vw, 24px);
+  margin: clamp(1.8rem, 3.4vw, 2.8rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 46rem) {
+  .about__prints {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 75rem) {
+  .about__prints {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.about__prints img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius);
+  background: var(--print);
+  box-shadow: var(--shadow-card);
+}
+
+.about__prints span {
+  display: block;
+  margin-top: 0.7rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+.about__shelves {
+  flex-wrap: wrap;
+  margin-top: clamp(1.8rem, 3vw, 2.4rem);
+}
+
+/* ---- How an order works ------------------------------------------------ */
+
+.about__how {
+  background: var(--leather);
+  color: var(--print);
+  padding-block: clamp(56px, 8vw, 112px);
+}
+
+.about__howGrid {
+  display: grid;
+  gap: clamp(1.6rem, 3vw, 2.4rem);
+}
+
+@media (min-width: 62rem) {
+  .about__howGrid {
+    grid-template-columns: 20rem minmax(0, 1fr);
+    column-gap: clamp(2.5rem, 5vw, 4.5rem);
+    align-items: start;
+  }
+
+  .about__howGrid > :first-child {
+    position: sticky;
+    top: calc(var(--header-h) + 28px);
+  }
+}
+
+.about__how .about__h {
+  margin-bottom: 1.1rem;
+}
+
+/* The highlighter line, at Statement size: ink on amber. */
+.about__marked {
+  margin: 0;
+  font-size: clamp(1.2rem, 2.2vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--blue);
+}
+
+.about__steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--rule-leather);
+}
+
+.about__steps li {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  column-gap: 0.5rem;
+  row-gap: 0.35rem;
+  padding-block: 1.3rem;
+  border-bottom: 1px solid var(--rule-leather);
+}
+
+/* The sequence is information here, so the step is counted, in the measuring hand. */
+.about__n {
+  grid-row: 1 / span 2;
+  padding-top: 0.3em;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+}
+
+.about__steps h3 {
+  margin: 0;
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.about__steps p {
+  max-width: 52ch;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.62;
+  color: var(--on-leather-soft);
+  text-wrap: pretty;
+}
+
+.about__date {
+  max-width: var(--measure);
+  margin: 1.6rem 0 0;
+  font-size: 1rem;
+  line-height: 1.62;
+  color: var(--on-leather-soft);
+}
+
+/* ---- Visit us ---------------------------------------------------------- */
+
+.about__visit {
+  display: grid;
+  gap: clamp(2rem, 4vw, 3rem);
+}
+
+@media (min-width: 46rem) {
+  .about__visit {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(2.5rem, 5vw, 4.5rem);
+  }
+}
+
+.about__address {
+  font-style: normal;
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  line-height: 1.65;
+}
+
+.about__go {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  margin-top: 0.4rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.about__hours {
+  width: 100%;
+  max-width: 26rem;
+  margin-top: 1.2rem;
+  border-collapse: collapse;
+}
+
+.about__hours th,
+.about__hours td {
+  padding-block: 0.7rem;
+  border-block: 1px solid var(--rule-paper);
+  font-size: 1rem;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.about__hours th {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* Times are measures, so mono and tabular; a closed day is the exception, so it is full ink. */
+.about__hours td {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.about__hours [data-closed="true"] th {
+  color: var(--ink);
+}
+
+/* ---- What we promise --------------------------------------------------- */
+
+.about__promises .lede {
+  margin: 0 0 1.6rem;
+}
+
+.about__ledger {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.about__ledger li {
+  display: grid;
+  gap: 0.4rem;
+  padding-block: 1.3rem;
+  border-bottom: 1px solid var(--rule-paper);
+}
+
+@media (min-width: 46rem) {
+  .about__ledger li {
+    grid-template-columns: 14rem minmax(0, 1fr);
+    column-gap: 2rem;
+  }
+
+  .about__ledger h3 {
+    grid-row: 1 / span 2;
+  }
+}
+
+.about__ledger h3 {
+  margin: 0;
+  font-size: clamp(1.1rem, 1.6vw, 1.3rem);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.about__ledger p {
+  max-width: 62ch;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.62;
+  text-wrap: pretty;
+}
+
+.about__ledger a {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+}
+
+/* ---- Business details -------------------------------------------------- */
+
+.about__businessGrid {
+  display: grid;
+  gap: clamp(2rem, 4vw, 3rem);
+}
+
+@media (min-width: 62rem) {
+  .about__businessGrid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    column-gap: clamp(2.5rem, 5vw, 4.5rem);
+    align-items: start;
+  }
+}
+
+/* ---- A fact still to supply -------------------------------------------- */
+
+/* Development and previews only (see `Gap`). Drawn as an empty photo place is:
+   a dashed blue outline on a faint wash. */
+.about__gap {
+  max-width: var(--measure);
+  margin: 1rem 0;
+  padding: 0.9rem 1.1rem;
+  border: 1.5px dashed var(--blue);
+  border-radius: var(--radius-sm);
+  background: rgb(var(--blue-rgb) / 0.045);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.about__gap--photo {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  text-align: center;
+}
+
+.about__gap--dark {
+  border-color: rgb(255 255 255 / 0.55);
+  background: rgb(255 255 255 / 0.08);
+  color: var(--print);
+}
+
+@media (max-width: 45.99rem) {
+  .about__who > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.15rem;
+  }
+}

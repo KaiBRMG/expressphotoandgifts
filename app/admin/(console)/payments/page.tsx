@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
+import { requireAdmin } from "@/lib/admin/auth";
 import Link from "next/link";
-import { lastCheck, monthLedger, parseMonth, thisMonth, type CheckRecord, type Ledger, type LedgerRow, type Match, type Unrecorded } from "@/lib/admin/payments";
+import { canReview, lastCheck, monthLedger, parseMonth, thisMonth, type CheckRecord, type Ledger, type LedgerRow, type Match, type Review, type Unrecorded } from "@/lib/admin/payments";
 import { rands, signedRands } from "@/lib/catalog/listing";
 import { payfastSandbox } from "@/lib/checkout/payfast";
 import { payfastStatus } from "@/lib/checkout/payfastApi";
 import { fromShopTime } from "@/lib/shopTime";
 import { Alert, Check } from "@/app/site/icons";
 import { at, short, whenInline } from "../../when";
+import { Tip } from "../../Tip";
 import { MonthNav, monthName } from "../MonthNav";
 import { PayfastStatusNotice } from "../PayfastStatusNotice";
 import { CheckNow } from "./CheckNow";
+import { ReviewPayment } from "./ReviewPayment";
 
 export const metadata: Metadata = { title: "Payments" };
 
@@ -58,6 +61,7 @@ function reason(m: Match): { text: string; fix: string } | null {
  * exception on its order, as the daily check does.
  */
 export default async function PaymentsPage({ searchParams }: PageProps<"/admin/payments">) {
+  await requireAdmin();
   const current = thisMonth();
   const month = parseMonth((await searchParams).month) ?? current;
   const [read, check, status] = await Promise.all([monthLedger(month), lastCheck(), payfastStatus()]);
@@ -113,17 +117,32 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
                   <tr>
                     <th>When</th>
                     <th>Payment</th>
-                    <th className="plist__num">Paid</th>
-                    <th className="plist__num">Fee</th>
-                    <th className="plist__num">To the shop</th>
+                    <th className="plist__num">
+                      <span className="label-tip">
+                        Paid
+                        <Tip about="Paid">What the customer paid, as PayFast recorded it.</Tip>
+                      </span>
+                    </th>
+                    <th className="plist__num">
+                      <span className="label-tip">
+                        Fee
+                        <Tip about="Fee">What PayFast kept from that payment.</Tip>
+                      </span>
+                    </th>
+                    <th className="plist__num">
+                      <span className="label-tip">
+                        To the shop
+                        <Tip about="To the shop">What PayFast pays out to the shop: Paid less the Fee.</Tip>
+                      </span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {ledger.unrecorded.map((u) => (
-                    <UnrecordedRow key={u.ref} u={u} now={now} />
+                    <UnrecordedRow key={u.ref} u={u} now={now} month={month} />
                   ))}
                   {ledger.rows.map((r, i) => (
-                    <Row key={`${r.pfPaymentId}-${r.type}-${i}`} r={r} />
+                    <Row key={`${r.pfPaymentId}-${r.type}-${i}`} r={r} month={month} />
                   ))}
                 </tbody>
               </table>
@@ -141,9 +160,10 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
   );
 }
 
-function Row({ r }: { r: LedgerRow }) {
+function Row({ r, month }: { r: LedgerRow; month: string }) {
   const m = r.match;
   const why = reason(m);
+  const open = why && !r.review;
   const ref = "ref" in m ? m.ref : null;
   const name = "name" in m ? m.name : null;
   const kind = m.kind === "refund" ? "Refund" : m.kind === "outside" ? "Not from the shop’s checkout" : m.kind === "other" ? r.type.replace(/_/g, " ").toLowerCase() : null;
@@ -153,7 +173,7 @@ function Row({ r }: { r: LedgerRow }) {
   const how = r.funding ? funding(r.funding) : null;
 
   return (
-    <tr className={`plist__row ledger__row${why ? " ledger__row--look" : ""}${m.kind === "other" ? " ledger__row--quiet" : ""}`}>
+    <tr className={`plist__row ledger__row${open ? " ledger__row--look" : ""}${m.kind === "other" ? " ledger__row--quiet" : ""}`}>
       <td className="ledger__when">
         {when}
         {how ? <span className="ledger__how">{how}</span> : null}
@@ -178,6 +198,7 @@ function Row({ r }: { r: LedgerRow }) {
             <span className="ledger__fix">{why.fix}</span>
           </span>
         ) : null}
+        {r.review ? <Looked review={r.review} /> : canReview(m) ? <ReviewPayment month={month} k={r.key} /> : null}
       </td>
       <td className="plist__num ledger__amount" data-label="Paid">
         {signedRands(r.gross)}
@@ -192,9 +213,9 @@ function Row({ r }: { r: LedgerRow }) {
   );
 }
 
-function UnrecordedRow({ u, now }: { u: Unrecorded; now: string }) {
+function UnrecordedRow({ u, now, month }: { u: Unrecorded; now: string; month: string }) {
   return (
-    <tr className="plist__row ledger__row ledger__row--look">
+    <tr className={`plist__row ledger__row${u.review ? "" : " ledger__row--look"}`}>
       <td className="ledger__when">{whenInline(u.paidAt, now)}</td>
       <td className="plist__main">
         <Link href={`/admin/orders/${u.ref}`} className="plist__name">
@@ -210,6 +231,7 @@ function UnrecordedRow({ u, now }: { u: Unrecorded; now: string }) {
           </span>
           <span className="ledger__fix">The order is marked paid, but PayFast’s history has no such payment. Check it in PayFast before making it.</span>
         </span>
+        {u.review ? <Looked review={u.review} /> : <ReviewPayment month={month} k={u.key} />}
       </td>
       <td className="plist__num ledger__amount" data-label="Order">
         {rands(u.total)}
@@ -221,5 +243,15 @@ function UnrecordedRow({ u, now }: { u: Unrecorded; now: string }) {
         –
       </td>
     </tr>
+  );
+}
+
+/** Who looked at an exception, when, and what they did about it. */
+function Looked({ review }: { review: Review }) {
+  return (
+    <span className="ledger__looked">
+      <Check size={14} />
+      Looked at by {review.by}, {at(review.at)}: {review.note}
+    </span>
   );
 }

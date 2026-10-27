@@ -217,6 +217,8 @@
 /* ---- Console shell -------------------------------------------------------- */
 
 .console {
+  /* The brand blue pressed: the one hover for anything solid blue. */
+  --blue-deep: color-mix(in srgb, var(--blue) 86%, black);
   display: grid;
   grid-template-columns: 76px minmax(0, 1fr);
   min-height: 100dvh;
@@ -260,12 +262,120 @@
   color: var(--on-leather-soft);
 }
 
+/* The pages in groups by how often they're opened, a hairline between. */
+.sidebar__groups {
+  display: grid;
+  gap: 14px;
+}
+
 .sidebar__nav {
   display: grid;
   gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.sidebar__nav + .sidebar__nav {
+  padding-top: 14px;
+  border-top: 1px solid var(--rule-leather);
+}
+
+/* The phone's way round: hidden until the page is narrow enough to need it. */
+.tabbar {
+  display: none;
+}
+
+.tabbar__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 56px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--on-leather);
+  font: inherit;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.tabbar__item:hover {
+  background: rgb(255 255 255 / 0.1);
+}
+
+.tabbar__item[aria-current="page"] {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.tabbar__item:focus-visible {
+  outline: 3px solid var(--on-leather);
+  outline-offset: -3px;
+}
+
+.tabbar__item[aria-current="page"]:focus-visible {
+  outline-color: var(--blue);
+}
+
+/* The rest of the pages, in a sheet from the bottom. */
+.more__list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.more__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.more__item:hover {
+  background: rgb(1 38 186 / 0.05);
+}
+
+.more__item[aria-current="page"] {
+  background: rgb(1 38 186 / 0.08);
+  font-weight: 600;
+}
+
+.more__item:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: -3px;
+}
+
+.more__me {
+  display: grid;
+  gap: 2px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule-hair);
+}
+
+.more__email {
+  overflow: hidden;
+  padding: 0 12px;
+  color: var(--ink-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Positioned, so its hidden label stays inside it (and inside the phone's scrolling row) instead of widening the page. */
@@ -430,10 +540,66 @@
 
 /* ---- Dashboard ------------------------------------------------------------ */
 
-/* Widgets find their own columns; each keeps its own height. */
+/*
+ * The queue and what has stalled beside it, then the housekeeping cards in
+ * their own columns. One column on a phone, in reading order: the queue, the
+ * courier, what is held up, today, then stock, deals and hidden products.
+ */
 .dash {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+  gap: 20px;
+}
+
+.dash__top {
+  display: grid;
+  gap: 20px;
+  align-items: start;
+  min-width: 0;
+}
+
+/*
+ * From 75rem the courier, the tallest card, stands alone on the right and the
+ * queue, what is held up and today stack beside it, so neither column leaves a
+ * hole. On a phone the order is the markup's: queue, courier, held up, today.
+ */
+@media (min-width: 75rem) {
+  .dash__top {
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      "queue courier"
+      "held courier"
+      "today courier";
+  }
+
+  .dash__top--clear {
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "queue courier"
+      "today courier";
+  }
+
+  .dash__top > :nth-child(1) {
+    grid-area: queue;
+  }
+
+  .dash__top > :nth-child(2) {
+    grid-area: courier;
+  }
+
+  .dash__top > :nth-child(3) {
+    grid-area: held;
+  }
+
+  .dash__top > :nth-child(4) {
+    grid-area: today;
+  }
+}
+
+/* Each keeps its own height. */
+.dash__more {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
   align-items: start;
   gap: 20px;
 }
@@ -453,6 +619,7 @@
 .widget__head {
   display: flex;
   align-items: center;
+  min-height: 44px;
   justify-content: space-between;
   gap: 12px;
   padding: 0 8px 10px;
@@ -549,6 +716,15 @@
   color: var(--blue);
 }
 
+/* A line with no mark has nothing to hang its words under; a stage's ring is the one mark that is drawn in the title. */
+.hidden__row--bare .hidden__fix {
+  padding-left: 0;
+}
+
+.hidden__row--bare:has(.status) .hidden__fix {
+  padding-left: 17px;
+}
+
 /* Under the reason, lined up with its words rather than its mark. */
 .hidden__fix {
   grid-column: 1;
@@ -581,6 +757,124 @@
 
 .hidden__clear svg {
   color: var(--blue);
+}
+
+/* Orders that need a look sit above the queue, set off by a rule rather than a second card. */
+.queue__look {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule-card-inner);
+}
+
+/* The next job: the paid order waiting longest, named, with how long. The one tinted line on the card. */
+.queue__next {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: 16px;
+  margin: 0 0 8px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgb(1 38 186 / 0.06);
+  color: var(--ink);
+  transition: background-color 0.15s var(--ease-out);
+}
+
+.queue__next:hover {
+  background: rgb(1 38 186 / 0.11);
+}
+
+.queue__next:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.queue__main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.queue__lead {
+  color: var(--ink-soft);
+}
+
+.queue__who {
+  font-size: 1.1875rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+.queue__what {
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.queue__age {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.queue__age--late {
+  color: var(--mantine-color-red-8);
+}
+
+.queue__go {
+  transition: translate 0.2s var(--ease-out);
+}
+
+/* On a phone the name and the wait need the width; the whole card is the door, so the arrow can go. */
+@media (max-width: 46rem) {
+  .queue__next {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .queue__go {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widget__total svg,
+  .queue__go {
+    transition: none;
+  }
+
+  .widget__total:hover svg,
+  .queue__next:hover .queue__go {
+    translate: none;
+  }
+}
+
+.queue__next:hover .queue__go {
+  translate: 2px 0;
+}
+
+/* Paid today: the amount is the figure, the count a sentence after it. */
+.today {
+  display: grid;
+  gap: 2px;
+  padding: 0 8px;
+}
+
+.today__amount {
+  font-size: 1.75rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.today__orders {
+  color: var(--ink-soft);
+}
+
+.today__then {
+  padding: 8px 0 0;
 }
 
 /* ---- Products list -------------------------------------------------------- */
@@ -1414,7 +1708,7 @@
   overflow: hidden;
   width: 48px;
   aspect-ratio: 1;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid var(--rule-card);
   background: var(--print);
   color: var(--ink-faint);
@@ -1737,7 +2031,7 @@
   gap: 8px 12px;
   max-width: 44rem;
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--mantine-color-orange-0);
   color: var(--ink);
 }
@@ -1920,7 +2214,7 @@
   display: block;
   overflow: hidden;
   aspect-ratio: 1;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid var(--rule-card);
   background: var(--print);
 }
@@ -2025,7 +2319,7 @@
   overflow: hidden;
   width: 64px;
   aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 .pv__clamp {
@@ -2092,7 +2386,7 @@
   display: grid;
   place-items: center;
   border: 1.5px dashed var(--blue);
-  border-radius: 10px;
+  border-radius: 12px;
   background: rgb(1 38 186 / 0.045);
   font-size: 0.9375rem;
   font-weight: 600;
@@ -2414,34 +2708,36 @@
     flex: none;
   }
 
-  /* More pages than a phone is wide: the icons scroll sideways under the logo's edge. */
-  .sidebar__nav {
-    display: flex;
-    min-width: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .sidebar__item {
-    flex: none;
-    width: auto;
-    min-height: 44px;
-    padding: 0 10px;
-  }
-
-  /* The page in hand keeps its name; the other two are named by their icons' tooltips. */
-  .sidebar__item[aria-current="page"] .sidebar__label {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip-path: none;
-  }
-
+  /* The pages move to the tab bar at the thumb; the blue bar up here keeps the logo. */
+  .sidebar__groups,
   .sidebar__me {
-    margin-top: 0;
-    padding-top: 0;
-    border-top: 0;
+    display: none;
+  }
+
+  /* Room under the page for the tab bar, and the floating bars sit above it. */
+  .console {
+    --tabbar: calc(68px + env(safe-area-inset-bottom));
+  }
+
+  .console__main {
+    padding-bottom: calc(var(--tabbar) + 24px);
+  }
+
+  .savebar,
+  .bulkbar {
+    bottom: calc(var(--tabbar) + 12px);
+  }
+
+  .tabbar {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: var(--blue);
+    color: var(--on-leather);
   }
 
   .plist__status {
@@ -2574,6 +2870,150 @@
   display: block;
   font-size: 0.9375rem;
   color: var(--ink-soft);
+}
+
+/* What is in an order, under its customer's name, so the queue reads without opening each one. */
+.plist__what {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+
+/*
+ * Where an order stands, by how much of the mark is filled: New is an empty
+ * ring (waiting), Being made half, Ready full, and a finished order a quiet
+ * full dot. Shape carries it, so it reads without colour.
+ */
+.ostage--new {
+  font-weight: 600;
+}
+
+.ostage--making::before {
+  background: conic-gradient(var(--blue) 0 50%, transparent 0);
+}
+
+.ostage--ready::before {
+  background: var(--blue);
+}
+
+.ostage--done {
+  color: var(--ink-soft);
+}
+
+.ostage--done::before {
+  border-color: var(--ink-faint);
+  background: var(--ink-faint);
+}
+
+/* Cancelled and refunded: finished like Done, but the ring stays empty, since nothing was handed over. */
+.ostage--cancelled {
+  color: var(--ink-soft);
+}
+
+.ostage--cancelled::before {
+  border-color: var(--ink-faint);
+}
+
+/* The To do list narrowed to one stage, with how many wait at each. */
+.stagechips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -8px 0 20px;
+}
+
+.stagechip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--rule-hair);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
+}
+
+.stagechip:hover {
+  border-color: var(--blue);
+  background: rgb(1 38 186 / 0.05);
+}
+
+.stagechip:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.stagechip[aria-pressed="true"] {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: var(--on-leather);
+}
+
+.stagechip__n {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+/* On the blue of the chosen chip the stage's mark turns paper. */
+.stagechip[aria-pressed="true"] .status::before {
+  border-color: var(--on-leather);
+}
+
+.stagechip[aria-pressed="true"] .ostage--making::before {
+  background: conic-gradient(var(--on-leather) 0 50%, transparent 0);
+}
+
+.stagechip[aria-pressed="true"] .ostage--ready::before {
+  background: var(--on-leather);
+}
+
+/* The way on to the next order waiting, beside the way back. */
+.order__flip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 16px;
+}
+
+.back--next {
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.back--next:hover {
+  color: var(--ink);
+}
+
+@media (max-width: 46rem) {
+  /* An order's row has a name, a total and a stage, not the product list's checkbox and thumbnail. */
+  .olist__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "main main"
+      "total stage";
+    align-items: center;
+  }
+
+  .olist__row .plist__main {
+    grid-area: main;
+  }
+
+  .olist__row .olist__total {
+    grid-area: total;
+    text-align: left;
+  }
+
+  .olist__row .olist__stage {
+    grid-area: stage;
+    justify-self: end;
+  }
 }
 
 /*
@@ -2717,6 +3157,13 @@
   background: var(--paper);
 }
 
+/* Said in words where the steps would have to stack: shown on phones only. */
+.otrack__summary {
+  display: none;
+  margin: 0;
+  font-weight: 600;
+}
+
 .otrack__steps {
   display: grid;
   flex: 1 1 36rem;
@@ -2811,15 +3258,26 @@
   font-variant-numeric: tabular-nums;
 }
 
-.otrack__back {
+.otrack__change {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 6px 12px;
 }
 
 .otrack__ask {
+  display: grid;
   font-weight: 500;
+}
+
+.otrack__extra {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.otrack__confirm {
+  display: flex;
+  gap: 6px;
 }
 
 /* ---- The grid ---- */
@@ -2987,7 +3445,7 @@
 }
 
 .onext__btn:hover {
-  background: color-mix(in srgb, var(--blue) 86%, black);
+  background: var(--blue-deep);
 }
 
 .onext__btn:focus-visible {
@@ -3658,19 +4116,14 @@
     padding: 14px 16px;
   }
 
-  /* Five steps don't fit across a phone: they stack, the line running down. */
-  .otrack__steps {
-    grid-auto-flow: row;
-    row-gap: 10px;
+  /* Five steps don't fit across a phone, and stacked they bury the next step: one line says where the order is. */
+  .otrack__summary {
+    display: block;
+    flex: 1 1 auto;
   }
 
-  .otrack__step:not(:last-child)::after {
-    top: 30px;
-    bottom: -8px;
-    left: 11px;
-    right: auto;
-    width: 2px;
-    height: auto;
+  .otrack__steps {
+    display: none;
   }
 
   .sline__head {
@@ -3853,6 +4306,21 @@ a.pay__step:focus-visible {
   color: var(--ink-soft);
 }
 
+.ledger__looked {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 8px;
+  max-width: 60ch;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.ledger__review {
+  margin-top: 10px;
+  max-width: 420px;
+}
+
 .ledger__row--look {
   background: rgb(1 38 186 / 0.03);
 }
@@ -3867,7 +4335,7 @@ a.pay__step:focus-visible {
   text-decoration: none;
 }
 
-/* On the dashboard: the payments line under the orders it is about. */
+/* On the dashboard: a card's link to the page it summarises, under its rows. */
 .dash__pay {
   margin-top: 4px;
   border-top: 1px solid var(--rule-paper);
@@ -3998,6 +4466,8 @@ a.pay__step:focus-visible {
   .orow__state,
   .pay__checked,
   .pay__sandbox,
+  .hidden__deal,
+  .stk__hmeta,
   .mantine-InputWrapper-description {
     font-size: 1rem;
   }
@@ -4006,6 +4476,21 @@ a.pay__step:focus-visible {
   :root:root {
     --mantine-font-size-xs: 1rem;
     --mantine-font-size-sm: 1rem;
+  }
+}
+
+/* ---- Touch targets ------------------------------------------------------------
+   44px to press on a phone, whatever size the control is drawn at on a desk:
+   Mantine's xs and sm buttons (Move on, Download, Print) are 30 and 36px. */
+
+@media (max-width: 46rem) {
+  .mantine-Button-root,
+  .obtn,
+  .pv__kinds button,
+  .pv__layouts button,
+  .widget__total,
+  .hidden__row {
+    min-height: 44px;
   }
 }
 
@@ -4217,7 +4702,7 @@ a.pay__step:focus-visible {
   max-width: 62ch;
   margin-bottom: 20px;
   padding: 14px 18px;
-  border-radius: 14px;
+  border-radius: 12px;
   background: rgb(1 38 186 / 0.05);
   line-height: 1.55;
 }
@@ -4239,7 +4724,7 @@ a.pay__step:focus-visible {
 }
 
 .stk__numCol {
-  width: 7.5rem;
+  width: 9rem;
 }
 
 /* Each product leads its sizes: a quiet band, the photo small, the name a way to its editor. */
@@ -4263,7 +4748,7 @@ a.pay__step:focus-visible {
 .stk__thumb {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .stk__name {
@@ -4307,9 +4792,9 @@ a.pay__step:focus-visible {
   background: rgb(1 38 186 / 0.03);
 }
 
-/* Changed and not yet saved: the console's one use of amber, a mark at the row's edge. */
-.stk__row[data-changed] td:first-child {
-  box-shadow: inset 3px 0 0 var(--gold);
+/* Changed and not yet saved: the console's one use of amber, a wash across the row. */
+.stk__row[data-changed] {
+  background: color-mix(in srgb, var(--gold) 18%, var(--paper));
 }
 
 .stk__row[data-flagged] {
@@ -4539,15 +5024,6 @@ a.pay__step:focus-visible {
     align-self: end;
     justify-self: end;
   }
-
-  .stk__row[data-changed] td:first-child {
-    box-shadow: none;
-  }
-
-  .stk__row[data-changed] {
-    box-shadow: inset 3px 0 0 var(--gold);
-    padding-left: 12px;
-  }
 }
 
 /* ---- Campaigns ----------------------------------------------------------- */
@@ -4610,7 +5086,7 @@ a.pay__step:focus-visible {
 }
 
 .camps__new:hover {
-  background: #011f9c;
+  background: var(--blue-deep);
 }
 
 .camps__new:focus-visible,
@@ -4861,7 +5337,7 @@ a.pay__step:focus-visible {
   min-width: 6px;
   padding: 0 12px;
   border: 1px solid var(--blue);
-  border-radius: 10px;
+  border-radius: 12px;
   background: rgb(1 38 186 / 0.08);
   color: var(--ink);
   font-size: 14px;
@@ -4887,7 +5363,7 @@ a.pay__step:focus-visible {
 }
 
 .tline__bar--live:hover {
-  background: #011f9c;
+  background: var(--blue-deep);
 }
 
 .tline__bar--paused {
@@ -5156,12 +5632,14 @@ a.pay__step:focus-visible {
 /* What a side of a deal covers. */
 .tpick {
   display: grid;
+  /* Side by side, the shorter picker is stretched to the taller one's height; its rows must stay their own size, not share the extra. */
+  align-content: start;
   gap: 12px;
   min-width: 0;
   margin: 0;
   padding: 16px;
   border: 1px solid var(--rule-card);
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--paper);
 }
 
@@ -5202,7 +5680,7 @@ a.pay__step:focus-visible {
   width: 44px;
   height: 44px;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 12px;
   background: rgb(1 38 186 / 0.05);
 }
 
@@ -5323,7 +5801,7 @@ a.pay__step:focus-visible {
   margin: 8px 0 0;
   padding: 12px 14px;
   border: 1px solid var(--rule-card);
-  border-radius: 14px;
+  border-radius: 12px;
   list-style: none;
 }
 
@@ -5578,7 +6056,7 @@ a.pay__step:focus-visible {
 .pace__plot,
 .daily {
   position: relative;
-  border-radius: 8px;
+  border-radius: 12px;
   contain: inline-size;
 }
 
@@ -6328,5 +6806,209 @@ a.pay__step:focus-visible {
   .clist__tag,
   .calso__label {
     font-size: 1rem;
+  }
+}
+
+/* Email all: the email as customers get it, in a frame with the grey ground email clients give it. */
+.mailprev {
+  display: block;
+  width: 100%;
+  height: min(68vh, 680px);
+  border: 1px solid var(--rule-hair);
+  border-radius: 12px;
+  background: #e9edfa;
+}
+
+/* ---- Dashboard: the courier -------------------------------------------------
+   The card says whether a courier is coming before it says anything else; the
+   counts under it are the same rows as the queue's, and the one blue button
+   books the collection. Red only when the courier is overdue or not set up. */
+
+.courier__status {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 14px;
+  row-gap: 2px;
+  align-items: center;
+  margin: 0 0 8px;
+  padding: 4px 8px 14px;
+  border-bottom: 1px solid var(--rule-card-inner);
+}
+
+.courier__mark {
+  display: grid;
+  grid-row: 1 / span 2;
+  place-items: center;
+  align-self: start;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgb(1 38 186 / 0.07);
+  color: var(--blue);
+}
+
+.courier__status--bad .courier__mark {
+  background: color-mix(in srgb, var(--mantine-color-red-8) 9%, var(--paper));
+  color: var(--mantine-color-red-8);
+}
+
+.courier__lead {
+  margin: 0;
+  font-size: 1.1875rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+.courier__detail {
+  grid-column: 2;
+  margin: 0;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.courier__act {
+  display: grid;
+  gap: 8px;
+  padding: 12px 8px 4px;
+}
+
+.courier__why {
+  margin: 0;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.courier__labels {
+  margin: 10px 8px 0;
+  border-top: 1px solid var(--rule-card-inner);
+}
+
+.courier__labels summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.courier__labels summary:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.courier__list,
+.cbook__orders {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.courier__list li,
+.cbook__orders li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 0;
+}
+
+.courier__list li + li,
+.cbook__orders li + li {
+  border-top: 1px solid var(--rule-card-inner);
+}
+
+.courier__who,
+.cbook__who {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.courier__track,
+.cbook__what {
+  font-weight: 400;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.courier__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* The confirmation dialog: the orders it will book, scrolling when there are many. */
+.cbook__lead {
+  margin: 0;
+  font-size: 1.1875rem;
+  line-height: 1.35;
+}
+
+.cbook__orders {
+  max-height: 15rem;
+  overflow-y: auto;
+  padding: 0 12px;
+  border: 1px solid var(--rule-card);
+  border-radius: 12px;
+}
+
+.cbook__who svg {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: -3px;
+  color: var(--blue);
+}
+
+.cbook__bad .cbook__who svg {
+  color: var(--mantine-color-red-8);
+}
+
+.cbook__n {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cbook__skip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.cbook__skip svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--mantine-color-red-8);
+}
+
+.cbook__when {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.cbook__when > .osec__sub {
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+/* The 16px floor and the touch floor, as everywhere in the console. */
+@media (max-width: 46rem) {
+  .courier__detail,
+  .courier__why {
+    font-size: 1rem;
+  }
+
+  .courier__links .obtn,
+  .courier__links a {
+    min-height: 44px;
   }
 }
