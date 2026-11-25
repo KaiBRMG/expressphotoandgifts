@@ -1284,6 +1284,36 @@
   .tray__send {
     padding: 0.85rem 1.2rem;
   }
+
+  /* Before any photo is added the tray is one bar, Add photos beside the count,
+     so the places it will fill are the screen. Continue can't go anywhere yet,
+     and the places themselves say what they need. */
+  .tray[data-empty] {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .tray[data-empty] .tray__title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .tray[data-empty] .tray__hint,
+  .tray[data-empty] .tray__problems,
+  .tray[data-empty] .tray__send {
+    display: none;
+  }
+
+  .tray[data-empty] .tray__foot {
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: 0;
+    border-top: 0;
+  }
 }
 
 @media (max-width: 30rem) {

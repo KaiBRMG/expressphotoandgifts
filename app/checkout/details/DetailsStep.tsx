@@ -411,7 +411,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel-national"
-                  placeholder="076 491 2300"
+                  placeholder="082 123 4567"
                   maxLength={20}
                   value={contact.phone}
                   onChange={(e) => setContact({ ...contact, phone: e.target.value })}

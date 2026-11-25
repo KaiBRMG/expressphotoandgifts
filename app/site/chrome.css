@@ -1099,6 +1099,19 @@ button.inline-link {
   color: var(--on-leather-soft);
 }
 
+.footer__colophon a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color 0.25s var(--ease-out);
+}
+
+.footer__colophon a:hover {
+  color: var(--print);
+}
+
 /* ---- The order dock ---------------------------------------------------- */
 
 /*

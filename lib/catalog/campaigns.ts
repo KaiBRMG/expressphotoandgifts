@@ -390,7 +390,7 @@ export function dealLabel(r: LiveRule, side: "buy" | "get" = "buy"): string {
     case "bxgy":
       return `Buy ${r.buy}, get ${r.get} ${offWords(r.off)}`;
     case "pair":
-      return side === "get" ? `${cap(offWords(r.off))} with ${r.buyName}` : `With this: ${r.getName} ${offWords(r.off)}`;
+      return side === "get" ? `${cap(offWords(r.off))} with ${r.buyName}` : `${r.getName} ${offWords(r.off)} with this`;
     case "spend":
       return r.off.kind === "percent" ? `Spend ${rands(r.min)}, get ${r.off.value}% off` : `Spend ${rands(r.min)}, save ${rands(offValue(r.off))}`;
   }
@@ -731,6 +731,19 @@ export function campaignProblems(d: CampaignDraft, products: readonly DealProduc
   return out;
 }
 
+/** A rule's own generated words, ignoring any the shop wrote over them. */
+function meantLabel(r: Rule, products: readonly DealProduct[], names: Names): string | null {
+  const live = resolveRule({ ...r, label: "" }, products, names);
+  return live ? dealLabel(live, r.kind === "pair" ? "get" : "buy") : null;
+}
+
+/** The amounts `words` names that none of `meant` gives ("half" counts as 50). */
+function strayAmounts(words: string, meant: string[]): number[] {
+  const nums = (t: string) => (t.replace(/(\d)[\s,](?=\d{3}\b)/g, "$1").match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
+  const allowed = new Set(meant.flatMap((m) => [...nums(m), ...(m.includes("half") ? [50] : [])]));
+  return nums(words).filter((n) => !allowed.has(n));
+}
+
 /**
  * What may cost the shop money unmeant, for staff to confirm before it runs:
  * a deal that gives things away or takes over half off, a sale price that
@@ -769,15 +782,18 @@ export function campaignWarnings(d: CampaignDraft, products: readonly DealProduc
 
     // The shop's words against the deal's: every amount the words name must be one the deal gives.
     if (r.label) {
-      const live = resolveRule({ ...r, label: "" }, products, names);
-      if (!live) return;
-      const meant = dealLabel(live, r.kind === "pair" ? "get" : "buy");
-      const nums = (t: string) => (t.replace(/(\d)[\s,](?=\d{3}\b)/g, "$1").match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
-      const allowed = new Set([...nums(meant), ...(meant.includes("half") ? [50] : [])]);
-      const stray = nums(r.label).filter((n) => !allowed.has(n));
+      const meant = meantLabel(r, products, names);
+      if (!meant) return;
+      const stray = strayAmounts(r.label, [meant]);
       if (stray.length) say(`The words “${r.label}” name ${stray.join(", ")}, which the deal doesn’t give: it is “${meant}”.`);
     }
   });
+  // The storefront's line is held to the same: it may name only amounts some deal in the campaign gives.
+  if (d.featured && d.blurb.trim()) {
+    const meant = d.rules.map((r) => meantLabel(r, products, names)).filter((m): m is string => Boolean(m));
+    const stray = meant.length ? strayAmounts(d.blurb, meant) : [];
+    if (stray.length) out.push({ message: `The storefront line “${d.blurb.trim()}” names ${stray.join(", ")}, which no deal here gives: ${meant.map((m) => `“${m}”`).join(", ")}.` });
+  }
   // A deal that needs a code is never on the shop, so nothing there can lead with it.
   if (d.caps.code && d.featured) out.push({ message: "It needs a code, so it isn’t on the shop: the storefront’s specials band will not show it." });
   return out;

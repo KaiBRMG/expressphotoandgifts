@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { liveLines } from "@/lib/catalog/cart";
 import type { Needs } from "@/lib/catalog/checkout";
@@ -32,6 +32,9 @@ export function PhotoStep({ needs }: { needs: Needs }) {
   const store = usePhotos();
   const [chooser, setChooser] = useState<Target | null>(null);
   const [editing, setEditing] = useState<{ t: Target; photo?: string } | null>(null);
+  // An empty place tapped before any photo is added opens the phone's own picker; the first photo chosen goes there.
+  const picker = useRef<HTMLInputElement>(null);
+  const pickFor = useRef<Target | null>(null);
   const ready = useHydrated();
 
   useEffect(() => {
@@ -86,12 +89,15 @@ export function PhotoStep({ needs }: { needs: Needs }) {
     );
   }
 
-  /** A tap on a slot places the photo in hand, or opens the editor on a filled slot, or the chooser on an empty one. */
+  /** A tap on a slot places the photo in hand, or opens the editor on a filled slot, or the chooser on an empty one (the phone's own picker while there are no photos to choose from). */
   const onSlot = (t: Target, action: SlotAction) => {
     const filled = Boolean(store.lines[t.sku]?.sets[t.set]?.[t.slot]);
     if (action === "tap" && store.armed) photos.place(store.armed, [t]);
     else if (action === "edit" || (action === "tap" && filled)) setEditing({ t });
-    else setChooser(t);
+    else if (store.photos.length === 0 && picker.current) {
+      pickFor.current = t;
+      picker.current.click();
+    } else setChooser(t);
   };
 
   const issues = problems(prog);
@@ -172,6 +178,25 @@ export function PhotoStep({ needs }: { needs: Needs }) {
           }}
         />
       ) : null}
+
+      <input
+        ref={picker}
+        type="file"
+        multiple
+        accept="image/*,.heic,.heif"
+        className="visually-hidden"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(e) => {
+          const t = pickFor.current;
+          pickFor.current = null;
+          if (e.target.files) {
+            const [first] = photos.add(e.target.files);
+            if (first && t) photos.place(first, [t]);
+          }
+          e.target.value = "";
+        }}
+      />
 
       <p className="visually-hidden" aria-live="polite" key={store.said.n}>
         {store.said.text}

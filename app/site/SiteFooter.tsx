@@ -147,7 +147,11 @@ export async function SiteFooter() {
 
       <div className="shell footer__end">
         <p className="footer__colophon">
-          &copy;{new Date().getFullYear()} {SHOP.name}
+          &copy;{new Date().getFullYear()} {SHOP.name} | All rights reserved |
+          Built &amp; Maintained By{" "}
+          <a href="https://www.neoforge.systems" target="_blank" rel="noopener noreferrer">
+            NEOFORGE
+          </a>
         </p>
       </div>
     </footer>

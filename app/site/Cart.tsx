@@ -16,6 +16,7 @@ import { ProductImage } from "./ProductImage";
 import { QuantityStepper } from "./QuantityStepper";
 import { StockLimit } from "./StockLimit";
 import { useWhatsApp } from "./ContactContext";
+import { SEND_TIME } from "./data";
 
 /**
  * The dock's pill. With something in the cart it is the cart, with the count
@@ -196,7 +197,7 @@ export function CartDrawer() {
                 <>
                   <Deals priced={priced} onGo={cart.close} />
                   <p className="cart__note cart__assure">
-                    You review the whole order before you pay, and payment is secure, through PayFast. Need it by a date?{" "}
+                    Orders are sent within {SEND_TIME}. You review the whole order before you pay, and payment is secure, through PayFast. Need it sooner?{" "}
                     <a className="inline-link" href={dateAsk} target="_blank" rel="noopener">
                       Ask the shop
                     </a>
@@ -311,7 +312,7 @@ function Deals({ priced, onGo }: { priced: DealPriced; onGo: () => void }) {
       ) : null}
       {priced.nudges.map((n) => (
         <p key={`${n.campaign}/${n.rule}`} className="deals__nudge">
-          <strong>{n.label}</strong> {n.text}{" "}
+          <strong>{/[.!?]$/.test(n.label) ? n.label : `${n.label}.`}</strong> {n.text}{" "}
           {n.href ? (
             <Link className="inline-link" href={n.href} onClick={onGo}>
               Find it

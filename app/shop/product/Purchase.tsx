@@ -22,7 +22,7 @@ import { maxFor, type Availability } from "@/lib/catalog/stock";
 import type { ProductVariant } from "@/lib/catalog/types";
 import { cart, useCart } from "@/app/site/cartStore";
 import { useWhatsApp } from "@/app/site/ContactContext";
-import { DELIVERY_TIME, HOURS, SHOP } from "@/app/site/data";
+import { HOURS, SEND_TIME, SHOP } from "@/app/site/data";
 import { Cart, Clock, Parcel, Pin, Tag, Truck, WhatsApp, YourPhoto } from "@/app/site/icons";
 import { QuantityStepper } from "@/app/site/QuantityStepper";
 import { StockLimit } from "@/app/site/StockLimit";
@@ -316,7 +316,7 @@ function Getting({ name, personal }: { name: string; personal: boolean }) {
         <Clock size={20} />
         <p>
           <strong>Need it by a date?</strong>
-          <span>Delivery takes {DELIVERY_TIME}. Check with the shop for anything sooner.</span>
+          <span>Orders are sent within {SEND_TIME}. Check with the shop for anything sooner.</span>
         </p>
         <a
           className="getting__ask"

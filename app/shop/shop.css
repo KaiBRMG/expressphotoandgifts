@@ -295,13 +295,39 @@
   left: 10px;
   /* It carries the deal's words now, so a long one wraps rather than running off the photo. */
   max-width: calc(100% - 20px);
-  padding: 0.2rem 0.7rem;
-  border-radius: 14px;
+  padding: 0.3rem 0.75rem;
+  border-radius: 12px;
   background: var(--gold);
   color: var(--ink);
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.3;
+}
+
+/* The same words in the card's body, shown only on a phone (below). */
+.pcard__deal {
+  display: none;
+  align-self: flex-start;
+  margin-top: 0.3rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 12px;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* A card two-up on a phone is about 165px wide: a deal's words over the photo
+   would wrap to three lines and hide the product, so they move under the price. */
+@media (max-width: 45.99rem) {
+  .pcard__special {
+    display: none;
+  }
+
+  .pcard__deal {
+    display: block;
+  }
 }
 
 /* White on the photo's corner, opposite a Special, so the two never cover each other. */
@@ -1438,4 +1464,12 @@
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.015em;
+}
+
+/* The Gift Wrapping shelf: the shop's words and photograph, then on to choosing a gift. */
+.wrapshelf {
+  display: grid;
+  justify-items: start;
+  gap: clamp(1.5rem, 3vw, 2.25rem);
+  padding-block: clamp(1.5rem, 4vw, 3rem);
 }

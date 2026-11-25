@@ -58,6 +58,8 @@ export function ProductCard({
             </s>
           ) : null}
         </span>
+        {/* On a phone the photo is too small to carry the deal's words, so they sit here instead; only one of the two is ever shown. */}
+        {special ? <span className="pcard__deal">{deals[0] ?? "Special"}</span> : null}
         {hint ? <span className="pcard__hint">{hint}</span> : null}
         {personalisable && yours ? (
           <span className="pcard__yours">

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { GiftWrapStory } from "@/app/site/GiftWrap";
 import { ArrowRight, WhatsApp } from "@/app/site/icons";
 import { SHOP } from "@/app/site/data";
 import { share } from "@/lib/share";
@@ -13,6 +14,9 @@ import { ShelfJsonLd } from "../ShelfJsonLd";
 import { ShelfRail } from "../ShelfRail";
 import { getListings, getShelf, shelfSlugs, type Shelf } from "../shelves";
 import { getVocabulary } from "@/lib/catalog/queries";
+
+/** The homepage's Gift Wrapping tile: wrapping is a tick at checkout, not a product, so its shelf explains it. */
+const WRAP_SLUG = "gift-wrapping";
 
 /** Five minutes: a campaign starts and ends on its own time, so the prices it sets can't wait an hour. */
 export const revalidate = 300;
@@ -28,7 +32,9 @@ export async function generateMetadata({ params }: PageProps<"/shop/[category]">
   const description =
     shelf.listings.length > 0
       ? `${shelf.name} at ${SHOP.name}, ${SHOP.town}: ${shelf.listings.length} products with prices, to collect in store or have delivered.`
-      : `${shelf.name} at ${SHOP.name}, ${SHOP.town}.`;
+      : shelf.slug === WRAP_SLUG
+        ? `Gift wrapping at ${SHOP.name}, ${SHOP.town}: brown paper, an organza bow and a tag with your message, added to any item at checkout.`
+        : `${shelf.name} at ${SHOP.name}, ${SHOP.town}.`;
   return {
     title: shelf.name,
     // Its filters, sort and search are views of the same shelf.
@@ -93,6 +99,7 @@ export default async function ShelfPage({ params }: PageProps<"/shop/[category]"
  * people here — so it says what is true and hands over to what works today.
  */
 async function EmptyShelf({ shelf }: { shelf: Shelf }) {
+  if (shelf.slug === WRAP_SLUG) return <WrapShelf />;
   const contact = await shopContact();
   const specials = shelf.kind === "specials";
   return (
@@ -122,6 +129,19 @@ async function EmptyShelf({ shelf }: { shelf: Shelf }) {
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Gift wrapping is added to any item at checkout, so its shelf says how, and sends people on to choose the gift. */
+function WrapShelf() {
+  return (
+    <div className="catalog__main wrapshelf">
+      <GiftWrapStory id="gift-wrapping" title="Any gift, wrapped and tagged" />
+      <Link className="btn btn--gold on-gold wrapshelf__go" href="/shop/all">
+        Choose a gift to wrap
+        <ArrowRight size={17} />
+      </Link>
     </div>
   );
 }

@@ -336,7 +336,7 @@ export const ABOUT: {
   story: null,
   visit: null,
   shopPhoto: null,
-  makeTime: null,
+  makeTime: "Orders are sent within 3\u20135 business days.",
   businessCustomers: null,
 };
 
@@ -349,8 +349,8 @@ export const HOURS: { days: string; time: string; closed?: boolean; weekdays: We
   { days: "Sunday", time: "Closed", closed: true, weekdays: ["Sunday"] },
 ];
 
-/** The standard delivery time the product page states under Add to cart. */
-export const DELIVERY_TIME = "3\u20135 business days";
+/** How soon a paid order is sent, as the owner states it (2026-11-25): the product page, the cart and the homepage say it. */
+export const SEND_TIME = "3\u20135 business days";
 
 /**
  * Every verified product photograph, for the cover wall. Order is deliberate:

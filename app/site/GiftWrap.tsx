@@ -8,9 +8,10 @@ import { GIFT_WRAP, WRAP_STORY } from "@/lib/catalog/wrap";
  * on every product page, and once at checkout, where the tick is. The
  * picture's ground is white, so it sits on white and never on the blue.
  * `level` is the heading's, which differs between a page section and a
- * disclosure inside a form.
+ * disclosure inside a form. `title` stands in where the page is already
+ * called Gift Wrapping.
  */
-export function GiftWrapStory({ level = 2, id }: { level?: 2 | 3; id: string }) {
+export function GiftWrapStory({ level = 2, id, title = "Gift wrapping" }: { level?: 2 | 3; id: string; title?: string }) {
   const Heading = level === 2 ? "h2" : "h3";
   return (
     <div className="wrapstory">
@@ -27,7 +28,7 @@ export function GiftWrapStory({ level = 2, id }: { level?: 2 | 3; id: string }) 
       />
       <div className="wrapstory__copy">
         <Heading id={id} className={level === 2 ? "h2" : "wrapstory__title"}>
-          Gift wrapping
+          {title}
         </Heading>
         <p className="wrapstory__text">{WRAP_STORY}</p>
         <ul className="wrapstory__how">

@@ -124,7 +124,7 @@ function DetailsForm({ email, saved, onDone, onCancel }: { email: string; saved:
         <div className="fields">
           {you("firstName", "First name", { autoComplete: "given-name" })}
           {you("lastName", "Surname", { autoComplete: "family-name" })}
-          {you("phone", "Mobile number", { autoComplete: "tel-national", type: "tel", inputMode: "tel", placeholder: "076 491 2300", maxLength: 20 })}
+          {you("phone", "Mobile number", { autoComplete: "tel-national", type: "tel", inputMode: "tel", placeholder: "082 123 4567", maxLength: 20 })}
         </div>
       </fieldset>
       <fieldset className="account__set">

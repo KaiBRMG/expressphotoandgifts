@@ -15,14 +15,10 @@ import { SiteFooter } from "./site/SiteFooter";
 import { SiteHeader, type NavItem } from "./site/SiteHeader";
 import { ArrowRight, Parcel, Pin } from "./site/icons";
 import { OrganizationJsonLd } from "./site/OrganizationJsonLd";
-import { MARQUEE_WORDS, SHOP, WALL_ROWS } from "./site/data";
+import { MARQUEE_WORDS, SEND_TIME, SHOP, WALL_ROWS } from "./site/data";
 
-/**
- * The gift wrapping page does not exist yet. The link is live in the markup
- * so the prose is already wired; repoint this at the real route when that
- * page ships. "#" keeps it inert rather than sending anyone to a 404.
- */
-const WRAPPING_HREF = "#";
+/** The Gift Wrapping shelf, which explains wrapping and how it's added at checkout. */
+const WRAPPING_HREF = "/shop/gift-wrapping";
 
 /**
  * The colophon reads the current year, and this page is prerendered — without
@@ -222,8 +218,8 @@ export default function Home() {
                 </span>
                 <h3 className="way__name">We send it</h3>
                 <p className="way__blurb">
-                  Wrapped at the counter and handed to the courier for the last
-                  leg, to your door or to theirs.
+                  Sent within {SEND_TIME}: packed at the counter and handed to
+                  the courier for the last leg, to your door or to theirs.
                 </p>
                 {/* The courier's own mark: the evidence behind the sentence
                     above it. */}

@@ -106,6 +106,8 @@ export function Tray({
       className="tray on-dark"
       aria-labelledby="tray-title"
       data-dropping={dropping || undefined}
+      // Nothing added yet but places to fill: on a phone the tray is one bar, so the places stay in view.
+      data-empty={(store.photos.length === 0 && prog.total > 0) || undefined}
       onDragOver={onDragOver}
       onDragLeave={() => setDropping(false)}
       onDrop={onDrop}
