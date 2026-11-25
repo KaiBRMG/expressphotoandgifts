@@ -11,6 +11,7 @@ import { customerKey } from "@/lib/campaigns";
 import { passwordError, type Address, type Contact } from "@/lib/checkout/details";
 import { checkEmail, sendWelcome } from "@/lib/checkout/emails";
 import { siteUrl } from "@/lib/checkout/site";
+import { POLICIES_VERSION } from "@/lib/legal";
 import { shopContact } from "@/lib/settings";
 import type { Order } from "@/lib/checkout/order";
 import { claimGuestOrders, releaseOrders } from "./orders";
@@ -57,13 +58,29 @@ export const detailsFrom = (order: Pick<Order, "contact" | "fulfilment">): Saved
 });
 
 /**
+ * What a customer agrees to in making an account. `policies` is the
+ * `POLICIES_VERSION` they ticked the terms and privacy policy at, or "" when
+ * they didn't; an account is never made without it. `marketing` is the second,
+ * separate tick: specials and campaigns by email, which is never a condition.
+ */
+export type Agreement = { policies: string; marketing: boolean };
+
+export const NEEDS_POLICIES = "Tick the box to agree to our Terms & Conditions and Privacy Policy to make an account.";
+const POLICIES_CHANGED = "Our terms have been updated since this page opened. Reload it to see them, then tick and try again.";
+
+/**
  * Makes an account and signs the customer in: from checkout as they pay or
  * from the receipt after (with the details from their order), or from the
  * sign-in page with only an email. Says plainly when the email already
  * has one (`exists`); each caller adds what to do next in its own place.
+ *
+ * Nothing is made without the customer's agreement to the policies as they
+ * stand; the version and time are kept on `customers/{uid}.terms`. Marketing
+ * consent is recorded (`marketing/{uid}`, source "signup") only when ticked.
  */
-export async function createAccount(rawEmail: string, password: string, details: SavedDetails | null): Promise<{ error: string; exists?: true } | { uid: string }> {
+export async function createAccount(rawEmail: string, password: string, details: SavedDetails | null, agreement: Agreement): Promise<{ error: string; exists?: true } | { uid: string }> {
   const email = rawEmail.trim().toLowerCase();
+  if (agreement.policies !== POLICIES_VERSION) return { error: agreement.policies ? POLICIES_CHANGED : NEEDS_POLICIES };
   const weak = passwordError(password);
   if (weak) return { error: weak };
   if (isStaffEmail(email)) return { error: "This email can’t be used for a shop account." };
@@ -85,7 +102,15 @@ export async function createAccount(rawEmail: string, password: string, details:
     console.error("Account not made", e);
     return { error: "We couldn’t make your account just now. Try again in a little while." };
   }
-  const [, signedIn] = await Promise.all([details ? saveDetails(uid, details) : null, signIn(email, password), adoptSubscription(email, uid).catch((e) => console.error("Subscription not carried to the account", uid, e))]);
+  const [, , signedIn] = await Promise.all([
+    (details ? saveDetails(uid, details) : Promise.resolve()).then(() => customers().doc(uid).set({ terms: { version: agreement.policies, at: new Date().toISOString() } }, { merge: true })).catch((e) => console.error("Agreement not recorded", uid, e)),
+    // An email-only subscription carries across first, so its date and source stand as the first agreement; the ticked box then adds nothing it already has.
+    adoptSubscription(email, uid)
+      .catch((e) => console.error("Subscription not carried to the account", uid, e))
+      .then(() => (agreement.marketing ? setMarketing(uid, true, "signup") : null))
+      .catch((e) => console.error("Marketing consent not recorded", uid, e)),
+    signIn(email, password),
+  ]);
   // The welcome goes after the response, so signing up doesn't wait on the mail.
   after(() => sendWelcome(email, details?.contact.firstName.trim() || null, uid));
   return "error" in signedIn ? signedIn : { uid };
@@ -108,8 +133,8 @@ export async function accountUid(email: string): Promise<string | null> {
   }
 }
 
-/** Where a customer can change their mind about marketing email: the footer's sign-up, their account page, or the unsubscribe link in an email. */
-export type ConsentSource = "footer" | "account" | "email";
+/** Where a customer can change their mind about marketing email: the footer's sign-up, the box ticked when they made their account, their account page, or the unsubscribe link in an email. */
+export type ConsentSource = "footer" | "account" | "email" | "signup";
 
 /** One change of mind about marketing email: when, which way, and where it was made. */
 export type ConsentChange = { at: string; optedIn: boolean; source: ConsentSource };
@@ -226,8 +251,8 @@ const customers = () => db().collection("customers");
 /** The email link's token, by its hash, and when it stops working. */
 type EmailCheck = { hash: string; until: string };
 
-/** `customers/{uid}`: the saved details, and the proof the account's email is the customer's. */
-type CustomerRecord = Partial<SavedDetails> & { emailCheck?: EmailCheck; verifiedEmail?: string; verifiedAt?: string };
+/** `customers/{uid}`: the saved details, the policies agreed to in making the account (`terms`), and the proof the account's email is the customer's. */
+type CustomerRecord = Partial<SavedDetails> & { emailCheck?: EmailCheck; verifiedEmail?: string; verifiedAt?: string; terms?: { version: string; at: string } };
 
 const read = async (uid: string) => (await customers().doc(uid).get()).data() as CustomerRecord | undefined;
 

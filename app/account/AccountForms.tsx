@@ -7,6 +7,7 @@ import { PASSWORD_MIN } from "@/lib/checkout/details";
 import { Alert, Check, SignOut } from "@/app/site/icons";
 import { Field, inputProps } from "@/app/checkout/Field";
 import { clearDraft } from "@/app/checkout/draft";
+import { AccountAgreements } from "./AccountAgreements";
 import { makeAccountAction, resetPasswordAction, signInAction, signOutAction, type AccountState } from "./actions";
 
 export function SignInForm() {
@@ -62,6 +63,8 @@ export function SignInForm() {
 /** Make an account with no order: an email and a password, and the customer is signed in. */
 export function MakeAccountForm() {
   const [state, action, pending] = useActionState(makeAccountAction, null);
+  const [terms, setTerms] = useState(false);
+  const [marketing, setMarketing] = useState(false);
   return (
     <form className="signin" action={action}>
       <div className="fields">
@@ -72,6 +75,7 @@ export function MakeAccountForm() {
           <input {...inputProps("ma-password", undefined)} name="password" type="password" autoComplete="new-password" minLength={PASSWORD_MIN} />
         </Field>
       </div>
+      <AccountAgreements id="ma" named terms={terms} onTerms={setTerms} marketing={marketing} onMarketing={setMarketing} />
       {state?.error ? (
         <p className="field__error" role="alert">
           <Alert size={18} />

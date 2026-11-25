@@ -94,12 +94,13 @@ export type PlaceResult =
  *
  * A `password` means the customer ticked "Save my details": their account is
  * made (and they are signed in) before the order is saved, so the order
- * carries it. The password goes to Firebase only, never into the order. If
+ * carries it. `marketing` is the optional second tick beside the password.
+ * The password goes to Firebase only, never into the order. If
  * the account can't be made, nothing is saved and the customer is told why.
  * A customer already signed in (say, paying again after closing PayFast)
  * keeps the account they have.
  */
-export async function placeOrder(raw: unknown, onsite: boolean, password?: unknown): Promise<PlaceResult> {
+export async function placeOrder(raw: unknown, onsite: boolean, password?: unknown, marketing?: unknown): Promise<PlaceResult> {
   if (!payfastReady()) return { ok: false, error: PAYMENT_OFF };
   if (!payAllowed(callerIp(await headers()) ?? "unknown")) return { ok: false, error: "That’s a lot of tries at once. Wait a few minutes, then pay again." };
   const input = readOrderInput(raw);
@@ -126,7 +127,8 @@ export async function placeOrder(raw: unknown, onsite: boolean, password?: unkno
 
   let uid = customer?.uid ?? null;
   if (!uid && typeof password === "string" && password) {
-    const made = await createAccount(priced.order.contact.email, password, detailsFrom(priced.order));
+    // The order's own tick (checked above) is the agreement to the policies; the marketing tick beside the password is the separate one.
+    const made = await createAccount(priced.order.contact.email, password, detailsFrom(priced.order), { policies: input.accepted, marketing: marketing === true });
     if ("error" in made) {
       const next = made.exists ? "Sign in above, or untick “Save my details” to pay without one." : "Or untick “Save my details” to pay without one.";
       return { ok: false, error: `${made.error} ${next}`, field: "password" };

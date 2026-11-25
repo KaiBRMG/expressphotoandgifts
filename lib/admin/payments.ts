@@ -125,7 +125,8 @@ export async function matchHistory(rows: HistoryRow[], window?: { from: string; 
   const seen = new Set(rows.filter(isPayment).map((r) => r.pfPaymentId));
   const graceEnds = Date.now() - DAY_MS;
   const unrecorded: Unrecorded[] = paidInWindow
-    .filter((o) => o.payment && !seen.has(o.payment.pfPaymentId) && Date.parse(o.paidAt!) < graceEnds)
+    // A payment staff accepted from PayFast's history is in it by definition, but its `paidAt` is the day it was accepted, which can fall in a window that starts after PayFast took it.
+    .filter((o) => o.payment && !o.payment.acceptedBy && !seen.has(o.payment.pfPaymentId) && Date.parse(o.paidAt!) < graceEnds)
     .map((o) => ({ ref: o.ref, name: customer(o), total: o.total, paidAt: o.paidAt!, pfPaymentId: o.payment!.pfPaymentId, key: unrecordedKey(o.payment!.pfPaymentId) }));
 
   // Reviews are read only for the lines that could have one.

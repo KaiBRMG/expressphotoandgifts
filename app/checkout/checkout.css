@@ -510,6 +510,29 @@
   line-height: 1.55;
 }
 
+/* The two ticks for making an account: sentences at body weight, the box on
+   the first line. The second (marketing) is optional and says so. */
+.agrees {
+  display: grid;
+  gap: 0.2rem;
+  max-width: 62ch;
+}
+
+.check.agrees__row {
+  display: flex;
+  align-items: flex-start;
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+.agrees__row input {
+  margin-top: 0.1rem;
+}
+
+.agrees__soft {
+  color: var(--ink-soft);
+}
+
 /* The blockers under Pay link here: clear of the sticky header when it lands. */
 .check.coagree input {
   margin-top: 0.1rem;
@@ -2368,6 +2391,77 @@ html:has(.editor[open]) {
 .review__change {
   padding-top: 0.6rem;
   font-size: 1rem;
+}
+
+/* Gift wrapping, told once above the lines and asked for on each. */
+.wrapinfo {
+  margin-bottom: 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--rule-paper);
+}
+
+.wrapinfo__sum {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wrapinfo[open] > .wrapinfo__sum {
+  margin-bottom: 0.4rem;
+}
+
+/* Smaller than on the product page: it sits inside the form. */
+.wrapinfo .wrapstory {
+  grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
+  gap: 1rem 1.4rem;
+  align-items: start;
+  padding-bottom: 0.9rem;
+}
+
+.wrapinfo .wrapstory__pic {
+  width: 100%;
+}
+
+.wrapinfo .wrapstory__text {
+  font-size: 1rem;
+}
+
+@media (max-width: 30rem) {
+  .wrapinfo .wrapstory {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wrapinfo .wrapstory__pic {
+    width: 7rem;
+  }
+}
+
+/* The tick for one line sits under its photos, its price under the line's own. */
+.review__line > .wrapline {
+  grid-column: 2;
+  justify-self: start;
+  margin-block: -0.2rem;
+}
+
+.wrapline__each {
+  font-weight: 400;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.wrapline__price {
+  grid-column: 3;
+  justify-self: end;
+}
+
+@media (max-width: 30rem) {
+  .review__line > .wrapline {
+    grid-column: 1 / 3;
+  }
 }
 
 /* A note to the shop under a line: a quiet offer until it is taken up. */

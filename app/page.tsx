@@ -130,6 +130,8 @@ export default function Home() {
                         photo &amp;{" "}
                         <span className="cover__gold">gift shop</span>
                       </span>
+                      {/* The sign is the design; the place is for the page's outline and for a screen reader. */}
+                      <span className="visually-hidden"> in {SHOP.town}, KwaZulu-Natal</span>
                     </h1>
                     <p className="cover__lede">
                       From personalised photo gifts to professional prints and

@@ -12,7 +12,7 @@ const stageName = (s: OrderStage, method: Fulfilment["method"]) => (s === "new" 
 
 /** What the change will do beyond moving the order, said before staff confirm it. */
 function consequence(o: { to: OrderStage; method: Fulfilment["method"]; readyEmailed: boolean; waybill: boolean }) {
-  if (o.to === "ready" && o.method === "collect" && !o.readyEmailed) return "Emails the customer that it’s ready.";
+  if (o.to === "ready" && o.method === "collect" && !o.readyEmailed) return "Emails the customer that it’s ready, with the collection code.";
   if (o.to === "done" && o.method === "courier" && !o.waybill) return "No waybill is booked, so it’s marked sent without tracking.";
   return null;
 }

@@ -4,8 +4,10 @@ import { memo, useId, useState, type CSSProperties } from "react";
 import { placedArea } from "@/lib/catalog/checkout";
 import { rands } from "@/lib/catalog/listing";
 import { cmLabel } from "@/lib/catalog/sizes";
+import { GIFT_WRAP } from "@/lib/catalog/wrap";
 import { LIMITS } from "@/lib/checkout/details";
-import { Plus } from "@/app/site/icons";
+import { GiftWrapStory } from "@/app/site/GiftWrap";
+import { GiftBox, Plus } from "@/app/site/icons";
 import { useUnitPrice } from "@/app/site/cartStore";
 import { ProductImage } from "@/app/site/ProductImage";
 import { Cropped } from "../Cropped";
@@ -19,12 +21,21 @@ import { photos as photoActions, type Photo } from "../photoStore";
  * The order once more before paying: each line at its price, and under a
  * line that takes photos, every place as a small print cut exactly as it
  * will be made, so the last thing the customer sees is their own pictures.
- * Every line can carry a short note to the shop.
+ * Every line can be gift wrapped, per unit, and carry a short note to the
+ * shop, which on a wrapped line is what goes on the gift tag.
  */
 export const Review = memo(function Review({ rows, photos }: { rows: Row[]; photos: Photo[] }) {
   const byId = new Map(photos.map((p) => [p.id, p]));
   const unit = useUnitPrice();
   return (
+    <>
+    <details className="wrapinfo">
+      <summary className="wrapinfo__sum">
+        <GiftBox size={20} />
+        About gift wrapping
+      </summary>
+      <GiftWrapStory level={3} id="wrap-info-title" />
+    </details>
     <ul className="review">
       {rows.map(({ line, needs, state }) => {
         const photo = needs?.photo;
@@ -76,7 +87,8 @@ export const Review = memo(function Review({ rows, photos }: { rows: Row[]; phot
               <p className="review__note">You&rsquo;ve asked us to quote a {cmLabel(frame.size)} print to go in it.</p>
             ) : null}
 
-            <LineNote sku={line.sku} name={line.name} value={state.note ?? ""} />
+            <WrapTick sku={line.sku} name={line.name} quantity={line.quantity} checked={Boolean(state.wrap)} />
+            <LineNote sku={line.sku} name={line.name} value={state.note ?? ""} wrapped={Boolean(state.wrap)} />
           </li>
         );
       })}
@@ -88,15 +100,38 @@ export const Review = memo(function Review({ rows, photos }: { rows: Row[]; phot
         </li>
       ) : null}
     </ul>
+    </>
   );
 });
+
+/**
+ * Gift wrapping for one line: a tick, and its price under the line's own. It
+ * wraps every unit, so a line of three costs three times as much; the price
+ * is the shop's (`GIFT_WRAP`), and the server charges it again from its own.
+ */
+function WrapTick({ sku, name, quantity, checked }: { sku: string; name: string; quantity: number; checked: boolean }) {
+  return (
+    <>
+      <label className="check wrapline">
+        <input type="checkbox" checked={checked} onChange={(e) => photoActions.flag(sku, { wrap: e.target.checked })} />
+        <span>
+          Gift wrap<span className="visually-hidden"> {name}</span>
+          <span className="wrapline__each"> {quantity > 1 ? `${rands(GIFT_WRAP)} each` : rands(GIFT_WRAP)}</span>
+        </span>
+      </label>
+      <p className="review__price wrapline__price" aria-live="polite">
+        {checked ? `+${rands(GIFT_WRAP * quantity)}` : ""}
+      </p>
+    </>
+  );
+}
 
 /**
  * A note to the shop about one line, behind a quiet "Add a note" so a
  * customer with nothing to say passes it by. It opens on its own when a
  * note is already there, and folds away again when left empty.
  */
-function LineNote({ sku, name, value }: { sku: string; name: string; value: string }) {
+function LineNote({ sku, name, value, wrapped }: { sku: string; name: string; value: string; wrapped: boolean }) {
   const id = useId();
   // Opened just now by the customer: shown while still empty, and takes the focus as it appears.
   const [asked, setAsked] = useState(false);
@@ -106,7 +141,8 @@ function LineNote({ sku, name, value }: { sku: string; name: string; value: stri
       <p className="memo">
         <button type="button" className="inline-link memo__add" onClick={() => setAsked(true)}>
           <Plus size={18} />
-          Add a note<span className="visually-hidden"> about {name}</span>
+          {wrapped ? "Add a gift tag message" : "Add a note"}
+          <span className="visually-hidden"> about {name}</span>
         </button>
       </p>
     );
@@ -114,14 +150,14 @@ function LineNote({ sku, name, value }: { sku: string; name: string; value: stri
 
   return (
     <div className="memo">
-      <Field id={id} label="Note for the shop" hint="read by us, not printed">
+      <Field id={id} label={wrapped ? "Gift tag message" : "Note for the shop"} hint={wrapped ? "we’ll write it on the tag" : "read by us, not printed"}>
         <textarea
           id={id}
           autoFocus={asked}
           className="field__input memo__input"
           rows={2}
           maxLength={LIMITS.lineNote}
-          placeholder="Anything we should know about this one"
+          placeholder={wrapped ? "Dear James, Happy Birthday, Love Mary" : "Anything we should know about this one"}
           value={value}
           onChange={(e) => photoActions.flag(sku, { note: e.target.value })}
           onBlur={() => {

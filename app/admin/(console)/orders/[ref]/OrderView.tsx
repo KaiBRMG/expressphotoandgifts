@@ -6,6 +6,7 @@ import { customerKey } from "@/lib/campaigns";
 import { cartSavings } from "@/lib/catalog/campaigns";
 import { formatCode } from "@/lib/catalog/codes";
 import { rands, signedRands } from "@/lib/catalog/listing";
+import { wrapTotal } from "@/lib/catalog/wrap";
 import { addressLine, deliveryPrice } from "@/lib/checkout/details";
 import { EMAIL_NAMES, type OrderEmail } from "@/lib/checkout/emails";
 import { COURIER_TROUBLE, fileCount, lineWhat, refundedOf, statusText, type NoticeRecord, type Order, type OrderStage } from "@/lib/checkout/order";
@@ -51,7 +52,7 @@ function sheetLines(o: Order, specs: (PrintSpec | null)[]): SheetLine[] {
     sku: l.sku,
     // What it really cost after every deal, which is what refunding it alone gives back.
     price: l.paid !== undefined ? `${rands(l.paid)} after deals (listed ${rands(l.price * l.quantity)})` : rands(l.price * l.quantity),
-    notes: [...(o.photosDeletedAt && fileCount(l) > 0 ? ["Customer photos deleted"] : []), ...(l.frame?.empty ? ["Frame only, no print"] : []), ...(l.frame?.quote ? ["Quote the print"] : []), ...(l.note ? [`“${l.note}”`] : [])],
+    notes: [...(o.photosDeletedAt && fileCount(l) > 0 ? ["Customer photos deleted"] : []), ...(l.frame?.empty ? ["Frame only, no print"] : []), ...(l.frame?.quote ? ["Quote the print"] : []), ...(l.wrap ? [`Gift wrap ${l.quantity === 1 ? "this" : `all ${l.quantity}`}`] : []), ...(l.note ? [l.wrap ? `Gift tag: “${l.note}”` : `“${l.note}”`] : [])],
     print: specs[i]?.print ?? null,
     shape: specs[i]?.shape ?? null,
     sets: l.sets.map((s, si) => ({
@@ -227,7 +228,15 @@ export function OrderView({ order: o, notices, boxes, specs, next }: { order: Or
               {f.method === "collect" ? "Collect" : "Deliver"}
             </h2>
             {f.method === "collect" ? (
-              <p className="glance__lines">At the counter</p>
+              <>
+                <p className="glance__lines">At the counter</p>
+                {o.collectCode ? (
+                  <p className="glance__code">
+                    <span>Collection code</span>
+                    <strong>{o.collectCode}</strong>
+                  </p>
+                ) : null}
+              </>
             ) : (
               <>
                 <p className="glance__lines">
@@ -286,6 +295,12 @@ export function OrderView({ order: o, notices, boxes, specs, next }: { order: Or
                   <dd>{signedRands(-s.amount)}</dd>
                 </div>
               ))}
+              {wrapTotal(o.lines) > 0 ? (
+                <div>
+                  <dt>Gift wrapping</dt>
+                  <dd>{rands(wrapTotal(o.lines))}</dd>
+                </div>
+              ) : null}
               {o.code ? (
                 <div>
                   <dt>One-time code</dt>

@@ -5,7 +5,7 @@ import { CATCH_UP_DAYS, lastCheck } from "@/lib/admin/payments";
 import { db } from "@/lib/firebase";
 import { shopDate } from "@/lib/shopTime";
 import { changeOrder, orders } from "./orders";
-import { DAY_MS, GUEST_PHOTO_DAYS, holdsPhotos, orderFolder, REF, SWEEP_AFTER_DAYS, type Order } from "./order";
+import { ACCOUNT_PHOTO_DAYS, DAY_MS, GUEST_PHOTO_DAYS, holdsPhotos, orderFolder, photoIds, REF, SWEEP_AFTER_DAYS, type Order } from "./order";
 
 /**
  * The sweep of customer photos no order paid for: Cloudinary's free plan
@@ -23,9 +23,10 @@ import { DAY_MS, GUEST_PHOTO_DAYS, holdsPhotos, orderFolder, REF, SWEEP_AFTER_DA
  * them. A paid order's photos lose the tag instead, so the listing stays the
  * size of the last fortnight's uploads, not every photo the shop has kept.
  *
- * A paid order's photos then stay until their owner deletes them, except
- * those of an order on no account, which `sweepGuestPhotos` deletes
- * `GUEST_PHOTO_DAYS` after payment. An account's are never swept.
+ * A paid order's photos then stay until `sweepPaidPhotos` deletes them:
+ * `GUEST_PHOTO_DAYS` after payment for an order on no account,
+ * `ACCOUNT_PHOTO_DAYS` for one on an account, whose customer may delete them
+ * sooner.
  */
 
 /** Pages of 500 listed per run, well within the free plan's 500 Admin API calls an hour. */
@@ -137,35 +138,55 @@ export async function deleteOrderPhotos(ref: string, placed: readonly string[] =
 /** Orders whose photos are deleted at once. */
 export const AT_ONCE = 5;
 
+type Swept = Pick<Order, "ref" | "uid" | "lines" | "photosDeletedAt" | "paidAt">;
+
+/** The two kinds of paid order whose photos are swept, each with its own age and its own mark in `settings/photoSweep`. */
+const KEPT = {
+  guest: { days: GUEST_PHOTO_DAYS, mark: "through", holds: (o: Swept) => !o.uid, why: "as the order is on no account" },
+  account: { days: ACCOUNT_PHOTO_DAYS, mark: "accountThrough", holds: (o: Swept) => !!o.uid, why: "the longest the shop keeps an account’s photos" },
+} as const;
+
 /**
- * Deletes the photos of every paid order on no account paid more than
- * `GUEST_PHOTO_DAYS` ago. `settings/photoSweep.through` is the payment time
- * swept to, so each run reads only the orders paid since. It moves on to the
- * earliest order that failed, if any, so one that keeps failing is tried
- * again without the rest being read again; a retry is harmless.
+ * Deletes the photos of every paid order of one kind paid more than its
+ * `days` ago. Its mark in `settings/photoSweep` is the payment time swept to,
+ * so each run reads only the orders paid since. It moves on to the earliest
+ * order that failed, if any, so one that keeps failing is tried again without
+ * the rest being read again; a retry is harmless.
+ *
+ * An account's order keeps any photo a newer order on the account still
+ * places (Order again), as the customer's own delete does; that one goes
+ * when the newer order's photos do.
  */
-export async function sweepGuestPhotos(): Promise<{ orders: number }> {
-  const cutoff = new Date(Date.now() - GUEST_PHOTO_DAYS * DAY_MS).toISOString();
+async function sweepPaidPhotos(kind: keyof typeof KEPT): Promise<{ orders: number }> {
+  const { days, mark: field, holds, why } = KEPT[kind];
+  const cutoff = new Date(Date.now() - days * DAY_MS).toISOString();
   const mark = db().collection("settings").doc("photoSweep");
-  const through = ((await mark.get()).data() as { through?: string } | undefined)?.through;
+  const through = ((await mark.get()).data() as Record<string, string | undefined> | undefined)?.[field];
   const due = orders().where("paidAt", "<", cutoff);
   const snap = await (through ? due.where("paidAt", ">=", through) : due).select("ref", "uid", "lines", "photosDeletedAt", "paidAt").get();
-  const guests = snap.docs.map((d) => d.data() as Pick<Order, "ref" | "uid" | "lines" | "photosDeletedAt" | "paidAt">).filter((o) => !o.uid && holdsPhotos(o));
+  const swept = snap.docs.map((d) => d.data() as Swept).filter((o) => holds(o) && holdsPhotos(o));
 
   const failed: { ref: string; paidAt: string }[] = [];
-  for (let i = 0; i < guests.length; i += AT_ONCE) {
+  for (let i = 0; i < swept.length; i += AT_ONCE) {
     await Promise.all(
-      guests.slice(i, i + AT_ONCE).map(async ({ ref, paidAt }) => {
+      swept.slice(i, i + AT_ONCE).map(async ({ ref, paidAt }) => {
         try {
-          // Read again just before: an account may have claimed the order since the listing, and then its photos are kept.
-          if ((await orders().doc(ref).get()).data()?.uid) return;
-          await deleteOrderPhotos(ref);
+          // Read again just before: an account may have claimed the order since the listing, or been deleted with its photos.
+          const order = (await orders().doc(ref).get()).data() as Order | undefined;
+          if (!order || !holds(order) || !holdsPhotos(order)) return;
+          if (order.uid) {
+            const others = await orders().where("uid", "==", order.uid).select("ref", "lines", "photosDeletedAt").get();
+            const keep = new Set(others.docs.map((d) => d.data() as Swept).filter((o) => o.ref !== ref && holdsPhotos(o)).flatMap(photoIds));
+            await deleteOrderPhotos(ref, photoIds(order), keep);
+          } else {
+            await deleteOrderPhotos(ref);
+          }
           await changeOrder(ref, "Automatic clean-up", () => ({
             update: { photosDeletedAt: new Date().toISOString() },
-            log: `Photos deleted automatically, ${GUEST_PHOTO_DAYS} days after payment, as the order is on no account. The order is kept for the shop’s records.`,
+            log: `Photos deleted automatically, ${days} days after payment, ${why}. The order is kept for the shop’s records.`,
           }));
         } catch (e) {
-          console.error("Guest photos not deleted", ref, e);
+          console.error("Paid order photos not deleted", kind, ref, e);
           failed.push({ ref, paidAt: paidAt! });
         }
       }),
@@ -173,15 +194,16 @@ export async function sweepGuestPhotos(): Promise<{ orders: number }> {
   }
   // Moved on to the earliest that failed, so the next run tries it again without reading every order since the last good run.
   const oldest = failed.map((f) => f.paidAt).sort()[0];
-  await mark.set({ through: oldest ?? cutoff, at: new Date().toISOString() });
-  if (failed.length) throw new Error(`Guest photos not deleted for ${failed.map((f) => f.ref).join(", ")}`);
-  return { orders: guests.length };
+  await mark.set({ [field]: oldest ?? cutoff, at: new Date().toISOString() }, { merge: true });
+  if (failed.length) throw new Error(`Photos not deleted for ${failed.map((f) => f.ref).join(", ")}`);
+  return { orders: swept.length };
 }
 
-/** The daily clean-up: unpaid orders' photos, then a year-old guest order's. One failing doesn't hold up the other. */
+/** The daily clean-up: unpaid orders' photos, then paid orders' once kept long enough. One failing doesn't hold up the others. */
 export async function sweepUploads() {
-  const [unpaid, guests] = await Promise.allSettled([sweepUnpaidUploads(), sweepGuestPhotos()]);
+  const [unpaid, guests, accounts] = await Promise.allSettled([sweepUnpaidUploads(), sweepPaidPhotos("guest"), sweepPaidPhotos("account")]);
   if (unpaid.status === "rejected") throw unpaid.reason;
   if (guests.status === "rejected") throw guests.reason;
-  return { unpaid: unpaid.value, guests: guests.value };
+  if (accounts.status === "rejected") throw accounts.reason;
+  return { unpaid: unpaid.value, guests: guests.value, accounts: accounts.value };
 }

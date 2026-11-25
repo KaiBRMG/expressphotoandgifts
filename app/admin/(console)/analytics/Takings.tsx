@@ -27,6 +27,7 @@ export function Takings({ r, month, today, current }: { r: Revenue; month: strin
 
   const steps: Step[] = [
     { label: "Items at catalogue prices", amount: r.catalogue, kind: "add" },
+    ...(r.wrapping > 0 ? [{ label: "Gift wrapping charged", amount: r.wrapping, kind: "add" as const }] : []),
     { label: "Deals", amount: r.deals, kind: "less" },
     { label: "Delivery charged", amount: r.delivery, kind: "add" },
     { label: "Customers paid", amount: r.paid, kind: "total" },

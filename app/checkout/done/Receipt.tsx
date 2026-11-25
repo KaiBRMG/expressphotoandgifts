@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { cart } from "@/app/site/cartStore";
 import { Check } from "@/app/site/icons";
 import { createAccountFromOrder, type AccountState } from "@/app/account/actions";
+import { AccountAgreements } from "@/app/account/AccountAgreements";
+import { POLICIES_VERSION } from "@/lib/legal";
 import { clearDraft, forgetPaid } from "../draft";
 import { NewPasswordField } from "../Field";
 import { photos, usePhotos } from "../photoStore";
@@ -124,6 +126,8 @@ export function LiveTracking({ ref_, token, stamp }: { ref_: string; token: stri
 /** One field: a password, to save this order's details for next time. */
 export function SaveAccount({ ref_, token, email }: { ref_: string; token: string; email: string }) {
   const [password, setPassword] = useState("");
+  const [terms, setTerms] = useState(false);
+  const [marketing, setMarketing] = useState(false);
   const [state, setState] = useState<AccountState>(null);
   const [busy, setBusy] = useState(false);
 
@@ -152,12 +156,13 @@ export function SaveAccount({ ref_, token, email }: { ref_: string; token: strin
           e.preventDefault();
           if (busy) return;
           setBusy(true);
-          setState(await createAccountFromOrder(ref_, token, password).catch(() => ({ error: "That didn’t work. Check your connection and try again." })));
+          setState(await createAccountFromOrder(ref_, token, password, terms ? POLICIES_VERSION : "", marketing).catch(() => ({ error: "That didn’t work. Check your connection and try again." })));
           setBusy(false);
         }}
       >
         <input type="email" name="username" autoComplete="username" value={email} readOnly hidden />
         <NewPasswordField id="new-password" label="Password" value={password} error={state?.error} onChange={setPassword} />
+        <AccountAgreements id="receipt" terms={terms} onTerms={setTerms} marketing={marketing} onMarketing={setMarketing} />
         <button type="submit" className="btn btn--blue" aria-disabled={busy || undefined}>
           {busy ? "Saving…" : "Save my details"}
         </button>

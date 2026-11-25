@@ -878,24 +878,24 @@ button.inline-link {
   color: var(--on-leather-soft);
 }
 
-/* The sign-up: one line to write on, with the button on its end. The rule under
-   the field is the field's edge, so it is strong enough to find: 60% white on
-   the blue is 4.6:1, where the footer's hairline (22%) was under 2:1. */
+/* The sign-up: one pill-shaped field with the button seated inside its end, so
+   the two read as one control instead of a button hung on a rule. The edge is
+   60% white on the blue (4.6:1, where the footer's hairline at 22% was under
+   2:1); it goes amber on focus. The 4px inset keeps the button's curve
+   concentric with the field's. */
 .newsletter__line {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 0.75rem;
-  min-height: 48px;
-  border-bottom: 2px solid var(--rule-leather-strong);
+  gap: 0.5rem;
+  padding: 4px 4px 4px 1.25rem;
+  border: 2px solid var(--rule-leather-strong);
+  border-radius: 999px;
   transition: border-color 0.2s;
 }
 
 .newsletter__line:focus-within {
   border-color: var(--gold);
-  /* Thicker as well as gold: the unfocused rule is a light periwinkle, close to
-     the gold in lightness, so the hue alone would be the whole difference. */
-  box-shadow: 0 2px 0 var(--gold);
 }
 
 .newsletter__error {
@@ -949,37 +949,32 @@ button.inline-link {
   caret-color: var(--gold);
 }
 
-/* An outlined pill at rest, so the line reads as a field with a button and
-   not as a bare arrow; gold under the pointer, the footer's one accent. */
+/* The footer's one amber action, seated in the field. White under the pointer:
+   the field's edge is already amber while it has focus. */
 .newsletter__submit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 0 1.25rem;
-  border: 1.5px solid var(--print);
+  padding: 0 1.4rem;
+  border: 0;
   border-radius: 999px;
-  background: none;
-  color: var(--print);
+  background: var(--gold);
+  color: var(--ink);
   font: inherit;
   font-size: var(--fs-ui);
   font-weight: 600;
   cursor: pointer;
-  transition:
-    background-color 0.2s,
-    border-color 0.2s,
-    color 0.2s;
+  transition: background-color 0.2s;
 }
 
 .newsletter__submit:hover {
-  border-color: var(--gold);
-  background: var(--gold);
-  color: var(--ink);
+  background: var(--print);
 }
 
 .newsletter__submit:focus-visible {
-  outline: 2px solid var(--gold);
-  outline-offset: 3px;
+  outline: 2px solid var(--print);
+  outline-offset: 2px;
 }
 
 /* Waiting on the server: the button stays put but stops inviting a press. */
@@ -989,9 +984,7 @@ button.inline-link {
 }
 
 .newsletter__submit[aria-disabled]:hover {
-  border-color: var(--print);
-  background: none;
-  color: var(--print);
+  background: var(--gold);
 }
 
 /* The consent line under the rule. */
@@ -1902,4 +1895,79 @@ html:has(.cart[open]) {
 
 .skip:focus {
   left: 0;
+}
+
+/* ---- Gift wrapping: the shop's words beside its photograph -------------- */
+
+/* The picture's ground is white, so it needs no frame: it simply sits on the
+   page. Stacked on a phone, two columns from 48rem. */
+.wrapstory {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(1.2rem, 4vw, 3.5rem);
+  align-items: center;
+}
+
+.wrapstory__pic {
+  display: block;
+  width: min(100%, 20rem);
+  height: auto;
+  aspect-ratio: 1;
+  /* The photograph's near-white ground drops out against the white page, so no edge shows. */
+  mix-blend-mode: multiply;
+}
+
+.wrapstory__copy {
+  display: grid;
+  gap: 1.1rem;
+  max-width: var(--measure);
+}
+
+.wrapstory__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.wrapstory__text {
+  font-size: 1.125rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+/* What it costs and how it's asked for, as plain lines between hairlines. */
+.wrapstory__how {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.wrapstory__how li {
+  padding-block: 0.6rem;
+  border-top: 1px solid var(--rule-paper);
+}
+
+.wrapstory__how strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+@media (min-width: 48rem) {
+  .wrapstory {
+    grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  }
+
+  .wrapstory__pic {
+    width: 100%;
+  }
+}
+
+/* On a product page: a white section between the details and what goes with
+   it, with the room the other sections have. */
+.wrapsection {
+  padding-block: clamp(48px, 7vw, 96px);
 }

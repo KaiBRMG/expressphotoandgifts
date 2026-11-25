@@ -112,7 +112,7 @@ export function trackOrder(o: Order): Tracking | null {
       [
         paid,
         { key: "making", label: "Being made", at: at.making, note: "The shop is printing and making your order. We’ll email you when it’s ready." },
-        { key: "ready", label: "Ready to collect", at: at.ready, note: "Waiting at the counter. Give your order number when you come in." },
+        { key: "ready", label: "Ready to collect", at: at.ready, note: "Waiting at the counter. Show the collection code from our email when you come in." },
         { key: "done", label: "Collected", at: at.done },
       ],
       [true, making, made, stage === "done"],

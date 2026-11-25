@@ -4,6 +4,7 @@ import { HOURS, SHOP } from "@/app/site/data";
 import type { ShopContact } from "@/lib/contact";
 import { cartSavings } from "@/lib/catalog/campaigns";
 import { photoCount, rands, signedRands } from "@/lib/catalog/listing";
+import { noteLabel, wrapDetail, wrapTotal } from "@/lib/catalog/wrap";
 import { escapeHtml as esc, sendEmail, type Mail } from "@/lib/email";
 import { addressLine, deliveryLabel, deliveryPrice } from "./details";
 import { refundLineWhat } from "./refunds";
@@ -36,7 +37,8 @@ function lineDetails(l: OrderLine): string[] {
     files > 0 ? photoCount(files) + (l.sets.some((s) => s.words) ? ", with words" : "") : "",
     l.frame?.empty ? "Frame only, no print" : "",
     l.frame?.quote ? "Print to be quoted" : "",
-    l.note ? `Note: “${l.note}”` : "",
+    wrapDetail(l, rands),
+    l.note ? `${noteLabel(l)}: “${l.note}”` : "",
     l.base ? `${rands(l.price)} each, on special from ${rands(l.base)}` : "",
   ].filter(Boolean);
 }
@@ -58,6 +60,7 @@ const fulfilmentText = (o: Order) => {
 function summary(o: Order) {
   const delivery = deliveryLabel(o.fulfilment);
   const price = deliveryPrice(o.delivery);
+  const wrapping = wrapTotal(o.lines);
   const cell = `font:400 16px/1.45 Arial,Helvetica,sans-serif;color:${C.ink}`;
   const html = `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;${cell}">
@@ -78,6 +81,7 @@ function summary(o: Order) {
       ${cartSavings(o)
         .map((s) => `<tr><td style="padding:2px 0;${cell};color:${C.soft}">${esc(s.label)}</td><td style="padding:2px 0;text-align:right;${cell}">${signedRands(-s.amount)}</td></tr>`)
         .join("")}
+      ${wrapping > 0 ? `<tr><td style="padding:2px 0;${cell};color:${C.soft}">Gift wrapping</td><td style="padding:2px 0;text-align:right;${cell}">${rands(wrapping)}</td></tr>` : ""}
       <tr><td style="padding:2px 0;${cell};color:${C.soft}">${esc(delivery)}</td><td style="padding:2px 0;text-align:right;${cell}">${price}</td></tr>
       <tr><td style="padding:12px 0 0;border-top:2px solid ${C.blue};font:700 18px/1.3 Arial,Helvetica,sans-serif;color:${C.blue}">Paid</td><td style="padding:12px 0 0;border-top:2px solid ${C.blue};text-align:right;font:700 18px/1.3 Arial,Helvetica,sans-serif;color:${C.blue}">${rands(o.total)}</td></tr>
     </table>`;
@@ -86,6 +90,7 @@ function summary(o: Order) {
     "",
     `Subtotal  ${rands(o.subtotal)}`,
     ...cartSavings(o).map((s) => `${s.label}  ${signedRands(-s.amount)}`),
+    ...(wrapping > 0 ? [`Gift wrapping  ${rands(wrapping)}`] : []),
     `${delivery}  ${price}`,
     `Paid  ${rands(o.total)}`,
   ].join("\n");
@@ -221,10 +226,12 @@ function shippedEmail(o: Order, reach: ShopContact): Mail {
   };
 }
 
-/** To a customer collecting, when the shop marks the order ready. Sent once; the shop can resend it. */
+/** To a customer collecting, when the shop marks the order ready, with the pick-up code the shop checks at the counter. Sent once; the shop can resend it. */
 function readyEmail(o: Order, reach: ShopContact): Mail {
   const receipt = receiptUrl(o);
   const contact = questions(o, reach);
+  const code = o.collectCode ?? "";
+  const show = "Show this code at the counter when you collect. Sending someone else? Give them the code: we hand the order to whoever shows it, so keep it to yourself until then.";
   return {
     to: o.contact.email,
     replyTo: reach.email,
@@ -233,11 +240,12 @@ function readyEmail(o: Order, reach: ShopContact): Mail {
     html: shell({
       base: site(),
       contact: reach,
-      preheader: `Come in any time we’re open, and give your order number, ${o.ref}.`,
+      preheader: `Come in any time we’re open, and show your collection code.`,
       body: [
         heading(`Ready for you, ${o.contact.firstName}`),
-        para(`Your order <strong>${esc(o.ref)}</strong> is made and waiting at the shop. Give your order number at the counter when you come in.`, { html: true }),
-        panel(figure("Order number", o.ref)),
+        para(`Your order <strong>${esc(o.ref)}</strong> is made and waiting at the shop.`, { html: true }),
+        panel(figure("Collection code", code) + `<div style="height:14px;font-size:0;line-height:0">&nbsp;</div>` + fact("Order number", [o.ref])),
+        para(show),
         subheading("Where and when"),
         panel(fact("The shop", [...shopAddress()]) + `<p style="margin:12px 0 0;font:400 16px/1.55 Arial,Helvetica,sans-serif">${hoursHtml()}</p>`),
         button(SHOP.mapsUrl, "Get directions"),
@@ -245,7 +253,7 @@ function readyEmail(o: Order, reach: ShopContact): Mail {
         help(reach, o.ref),
       ].join(""),
     }),
-    text: [`Ready for you, ${o.contact.firstName}`, `Your order ${o.ref} is made and waiting at the shop. Give your order number at the counter when you come in.`, "", ...shopAddress(), ...hoursText(), "", `Directions: ${SHOP.mapsUrl}`, `Your order online: ${receipt}`, "", contact].join("\n"),
+    text: [`Ready for you, ${o.contact.firstName}`, `Your order ${o.ref} is made and waiting at the shop.`, "", `Collection code: ${code}`, show, "", ...shopAddress(), ...hoursText(), "", `Directions: ${SHOP.mapsUrl}`, `Your order online: ${receipt}`, "", contact].join("\n"),
   };
 }
 

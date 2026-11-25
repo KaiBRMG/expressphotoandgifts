@@ -2,6 +2,7 @@ import "server-only";
 
 import { countingSince, funnelDays } from "@/lib/analytics";
 import { getCategories, getProducts } from "@/lib/catalog/queries";
+import { wrapTotal } from "@/lib/catalog/wrap";
 import { orders } from "@/lib/checkout/orders";
 import type { Order, Refund } from "@/lib/checkout/order";
 import { courierReady } from "@/lib/checkout/courier";
@@ -29,6 +30,8 @@ export type Revenue = {
   orders: number;
   /** The lines at the catalogue's prices, before any deal. */
   catalogue: number;
+  /** Gift wrapping charged, on top of the goods. */
+  wrapping: number;
   /** Everything campaigns took off: price deals, item deals and spend thresholds. */
   deals: number;
   delivery: number;
@@ -120,8 +123,8 @@ async function refundsBetween(start: string, end: string) {
 
 const catalogueValue = (o: Order) => o.lines.reduce((n, l) => n + (l.base ?? l.price) * l.quantity, 0);
 
-/** What campaigns took off an order: its lines at catalogue prices and its delivery, less what was paid. */
-const dealsOf = (o: Order) => catalogueValue(o) + o.delivery - o.total;
+/** What campaigns took off an order: its lines at catalogue prices, its gift wrapping and its delivery, less what was paid. */
+const dealsOf = (o: Order) => catalogueValue(o) + wrapTotal(o.lines) + o.delivery - o.total;
 
 /** A source that isn't set up, in the shape its reader answers with. */
 const unset = (message: string) => Promise.resolve({ ok: false as const, message });
@@ -226,6 +229,7 @@ export async function monthReport(month: string): Promise<Report> {
 
   const total = (os: Order[], f: (o: Order) => number) => os.reduce((n, o) => n + f(o), 0);
   const catalogue = total(paid, catalogueValue);
+  const wrapping = total(paid, (o) => wrapTotal(o.lines));
   const delivery = total(paid, (o) => o.delivery);
   const paidSum = total(paid, (o) => o.total);
   const refundSum = refunds.reduce((n, r) => n + r.amount, 0);
@@ -264,6 +268,7 @@ export async function monthReport(month: string): Promise<Report> {
   const revenue: Revenue = {
     orders: paid.length,
     catalogue,
+    wrapping,
     deals: total(paid, dealsOf),
     delivery,
     paid: paidSum,
@@ -406,6 +411,7 @@ export async function monthCsv(month: string): Promise<string> {
       ...who(o),
       o.fulfilment.method,
       randsCell(catalogueValue(o)),
+      randsCell(wrapTotal(o.lines)),
       randsCell(dealsOf(o)),
       randsCell(o.delivery),
       randsCell(o.total),
@@ -413,8 +419,8 @@ export async function monthCsv(month: string): Promise<string> {
       o.payment && feeOf.has(o.payment.pfPaymentId) ? randsCell(feeOf.get(o.payment.pfPaymentId)!) : "",
     ],
   }));
-  for (const { order: o, refund: r } of refunds) lines.push({ at: r.at, cells: ["Refund", sast(r.at), o.ref, ...who(o), o.fulfilment.method, "", "", "", "", randsCell(r.amount), ""] });
+  for (const { order: o, refund: r } of refunds) lines.push({ at: r.at, cells: ["Refund", sast(r.at), o.ref, ...who(o), o.fulfilment.method, "", "", "", "", "", randsCell(r.amount), ""] });
   lines.sort((a, b) => a.at.localeCompare(b.at));
-  const head = ["Type", "Date (SAST)", "Order", "Customer", "Email", "Collect or courier", "Items at catalogue prices", "Deals", "Delivery", "Paid", "Refunded", "PayFast fee"];
+  const head = ["Type", "Date (SAST)", "Order", "Customer", "Email", "Collect or courier", "Items at catalogue prices", "Gift wrapping", "Deals", "Delivery", "Paid", "Refunded", "PayFast fee"];
   return toCsv([head, ...lines.map((l) => l.cells)]);
 }

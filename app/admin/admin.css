@@ -3817,6 +3817,21 @@
   line-height: 1.45;
 }
 
+.glance__code {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gold) 22%, var(--paper));
+}
+
+.glance__code strong {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 1.75rem;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+}
+
 .glance__chips {
   display: flex;
   flex-wrap: wrap;

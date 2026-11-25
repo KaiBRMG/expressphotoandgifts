@@ -6,6 +6,7 @@ import { FieldValue, type DocumentReference, type Transaction } from "firebase-a
 import { priceDeals } from "@/lib/catalog/campaigns";
 import { buildNeeds, WORDS_MAX } from "@/lib/catalog/checkout";
 import { rands } from "@/lib/catalog/listing";
+import { GIFT_WRAP, wrapTotal } from "@/lib/catalog/wrap";
 import type { Availability } from "@/lib/catalog/stock";
 import { clampQuantity } from "@/lib/catalog/purchase";
 import { getProducts } from "@/lib/catalog/queries";
@@ -112,6 +113,8 @@ export async function priceOrder(input: OrderInput, owner: Promise<string | null
         : [],
       ...(needs[l.sku]?.frame && l.frame ? { frame: l.frame } : {}),
       ...(note ? { note } : {}),
+      // The price is the shop's, never the browser's: a tick only asks for it.
+      ...(l.wrap ? { wrap: GIFT_WRAP } : {}),
     });
   }
 
@@ -140,7 +143,8 @@ export async function priceOrder(input: OrderInput, owner: Promise<string | null
   // The courier's cover is for what the goods sold for.
   const priced = await priceFulfilment(input.fulfilment, dealt.total, items);
   if (!priced.ok) return priced;
-  const total = dealt.total + priced.delivery;
+  // Wrapping is a service on top of the goods: no deal or spend threshold counts it, and the courier's cover is for the goods alone.
+  const total = dealt.total + wrapTotal(lines) + priced.delivery;
   if (total < MIN_PAYMENT) return { ok: false, error: `Orders paid online start at ${rands(MIN_PAYMENT)}. Add something to your cart, or call the shop.`, field: "cart" };
 
   return {
@@ -394,7 +398,7 @@ export async function applyNotice(n: Notice, opts: { refused?: string; acceptedB
     const { contact, fulfilment, lines, subtotal, delivery, total } = attempt;
     // The order takes on exactly what was paid for, deals included; an attempt from before campaigns had none.
     const deals = { discount: attempt.discount ?? FieldValue.delete(), savings: attempt.savings ?? FieldValue.delete(), code: attempt.code ?? FieldValue.delete() };
-    const payment: Payment = { provider: "payfast", ...n, at: now };
+    const payment: Payment = { provider: "payfast", ...n, at: now, ...(acceptedBy ? { acceptedBy } : {}) };
     const took = takeStock(tx, shelf, lines, order.ref, now);
     const { stock } = took;
     soldOutChanged = took.soldOutChanged;

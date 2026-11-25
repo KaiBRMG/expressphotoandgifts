@@ -10,7 +10,7 @@ web
 
 Next.js 16 (App Router, React 19) with TypeScript. **Mantine v9 is the primary UI foundation** for the app flows still to come (upload, configure, checkout), with Tailwind v4 available alongside it for layout and utility styling. The homepage is hand-built CSS on the project's own tokens and does not use Mantine. Motion is GSAP with ScrollTrigger. E-commerce is built end-to-end in this codebase — no Shopify, no commerce SaaS. Payments go through **PayFast (payfast.io)**, a South African payment provider, via its API (not built yet).
 
-**Product photography is served from Cloudinary** (`products/<code>`) through `next-cloudinary`, on the free tier, which must stay free. Assets are stored no larger than they are shown and delivered at a small fixed set of widths. The logo and the courier's mark are the only images kept in `public/`.
+**Product photography is served from Cloudinary** (`products/<code>`) through `next-cloudinary`, on the free tier, which must stay free. Assets are stored no larger than they are shown and delivered at a small fixed set of widths. Beyond product photography, `public/` holds only the logo, the courier's mark, and the gift-wrapping photograph (`gift-wrap.webp`, cut to its display size and served as it is, so it costs Cloudinary nothing).
 
 ## Users
 

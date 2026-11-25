@@ -22,6 +22,8 @@ import type { Product } from "@/lib/catalog/types";
 import { getSoldOut } from "@/lib/stock";
 import { getLiveDeals } from "@/lib/campaigns";
 import { SHOP } from "@/app/site/data";
+import { share } from "@/lib/share";
+import { GiftWrapStory } from "@/app/site/GiftWrap";
 import { JsonLdScript } from "@/app/site/JsonLdScript";
 import { ProductImage } from "@/app/site/ProductImage";
 import { Shelf } from "../../ProductCard";
@@ -58,17 +60,11 @@ export async function generateMetadata({
     title: product.name,
     description: product.description,
     alternates: { canonical: `/shop/product/${product.slug}` },
-    openGraph: {
-      title: `${product.name} | ${SHOP.name}`,
+    ...share({
+      title: product.name,
       description: product.description,
-      ...(image
-        ? {
-            images: [
-              { url: image, width: 640, height: 640, alt: product.name },
-            ],
-          }
-        : {}),
-    },
+      ...(image ? { images: [{ url: image, width: 640, height: 640, alt: product.name }] } : {}),
+    }),
   };
 }
 
@@ -190,6 +186,10 @@ export default async function ProductPage({
 
       <Details product={product} diagram={diagram} />
 
+      <section className="shell wrapsection" aria-labelledby="wrap-title">
+        <GiftWrapStory id="wrap-title" />
+      </section>
+
       {/* What it physically goes with, where "fits:" meets "holds:": a
           frame's easel, a tile's holder, a print's album. */}
       {goes.length > 0 ? (
@@ -305,7 +305,26 @@ function JsonLd({
   const range = paid ?? product.priceRange;
   const price = (cents: number) => (cents / 100).toFixed(2);
   const image = imageUrl(product);
-  const sold = { availability, itemCondition: "https://schema.org/NewCondition", seller: { "@id": `${base}/#organization` }, url };
+  // The terms' cooling-off (9.6): seven days to cancel goods not made to the
+  // customer's photo or words, who pays to send them back. Said only for those,
+  // since a personalised item has no change-of-mind return and a faulty one has
+  // the statutory remedy whatever the markup says. Delivery is quoted per
+  // address by the courier, so no rate is stated here.
+  const returns =
+    product.personalisation === null
+      ? {
+          hasMerchantReturnPolicy: {
+            "@type": "MerchantReturnPolicy",
+            applicableCountry: "ZA",
+            returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+            merchantReturnDays: 7,
+            returnMethod: ["https://schema.org/ReturnByMail", "https://schema.org/ReturnInStore"],
+            returnFees: "https://schema.org/ReturnShippingFees",
+            merchantReturnLink: `${base}/terms#returns`,
+          },
+        }
+      : {};
+  const sold = { availability, itemCondition: "https://schema.org/NewCondition", seller: { "@id": `${base}/#organization` }, url, ...returns };
 
   const data = [
     {

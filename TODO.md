@@ -28,7 +28,7 @@ The core purchase flow is complete and unusually solid: server-side re-pricing, 
 - No custom 404 page and no customer-side `error.tsx`. Visitors get Next's default pages, and a server error on checkout is unstyled.
 - No `Organization` or `LocalBusiness` schema, so hours, address and phone aren't machine-readable. The product pages do have good Product and Breadcrumb JSON-LD and canonicals.
 - The root layout's OG tags have no image, so shared links show no preview. Category and shop pages have no canonical for filtered URLs (`?type=&sort=`), which creates duplicate-content risk.
-- No Google Analytics, Search Console or Meta pixel. Only Vercel Analytics plus the shop's own funnel counters exist, so you can't run ads or measure conversion properly.
+- No Google Analytics, Search Console or Meta pixel. Only the shop's own funnel counters exist (Vercel Web Analytics was removed, and the privacy policy says no third-party analytics are used: change `/privacy` before adding any), so you can't run ads or measure conversion properly.
 
 **Missing pages.** There is no About, Contact or FAQ page, and no dedicated "How it works" page. The footer's contact details are the only way in. The header's Cart icon links to `#` (`SiteHeader.tsx:25`), a dead link by design that only works through the dock.
 
@@ -129,7 +129,7 @@ A source-only audit of the whole codebase (reduced, lighter pass at the owner's 
 - Staff cannot record an out-of-band marketing opt-out (reply or in person) in the admin; the emails do link to the account switch.
 - `lib/checkout/packing.ts`: a cart of unmeasured products is quoted as one standard box whatever the quantity. Add real measures to every courier product.
 - Run `npm audit` against `package-lock.json`.
-- Fill `LEGAL` in `app/site/data.ts` (registered name, legal form, registration and VAT numbers if any, Information Officer). The terms and privacy pages now leave unset facts out instead of showing "[to be supplied by the shop]", so nothing on them says the page is incomplete; ECTA s43 expects the registered name and legal form. Better: move `LEGAL` into Settings (`settings/shop`) with a dashboard note while it is empty.
+- ~~Fill `LEGAL` in `app/site/data.ts`~~ Done from the shop's legal documents of 20 November 2026. Still to confirm with the shop: the registration number's format (`K2023239827` is the CIPC filing reference; the registration number usually reads `2023/239827/07`), and that the Information Officer (D. Hutchinson, Shop Manager) is authorised in writing by the head of the company and registered with the Information Regulator.
 - Marketing consent lives in two places, `marketing/{uid}` (accounts) and `subscribers/{customerKey}` (email-only, `lib/subscribers.ts`), kept in step by hand (confirm, withdraw, `adoptSubscription`). One doc per address, `marketing/{customerKey(email)}`, would remove `accountUid` lookups and the merge in `lib/admin/customers.ts`. Confirm links could be signed instead of stored, which removes the pending records and their sweep.
 - The unsubscribe links are signed with a key derived from `FIREBASE_SERVICE_ACCOUNT_KEY` (`lib/unsubscribe.ts`): rotating that credential breaks the links in emails already delivered. Give them their own `LINK_SECRET`, and consider signing the `customerKey` hash so no address is in the URL.
 - The legal pages' contents list sits above the first clause on phones under 34rem; fold it behind "On this page".

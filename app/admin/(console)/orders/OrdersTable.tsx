@@ -161,6 +161,7 @@ export function OrdersTable({ rows, initial, now }: { rows: OrderRow[]; initial:
                     <span className="plist__code">
                       {r.ref} · {itemCount(r.units)}
                       {r.photos ? ` · ${plural(r.photos, "photo", "photos")}` : ""}
+                      {r.wrapped ? ` · ${r.wrapped} to gift wrap` : ""}
                     </span>
                     {r.flagged ? (
                       <span className="plist__flags">

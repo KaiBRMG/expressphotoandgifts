@@ -25,8 +25,10 @@ export type LineInput = {
   quantity: number;
   sets: LineSet[];
   frame?: FrameChoice;
-  /** The customer's note to the shop about this line: read by staff, never printed. */
+  /** The customer's note to the shop about this line: read by staff, never printed; on a wrapped line, the words for the gift tag too. */
   note: string;
+  /** Every unit of the line is to be gift wrapped (`lib/catalog/wrap.ts`). */
+  wrap?: boolean;
 };
 
 
@@ -90,8 +92,10 @@ export type OrderLine = {
   /** One set when the units are the same, one per unit otherwise; empty for a line that takes nothing. */
   sets: LineSet[];
   frame?: FrameChoice;
-  /** Trimmed; absent when the customer left none. */
+  /** Trimmed; absent when the customer left none. On a wrapped line, what goes on the gift tag. */
   note?: string;
+  /** Cents charged to gift wrap each unit, when the customer ticked it: the line's units are all wrapped, and it is not part of `price`, `paid` or any deal. */
+  wrap?: number;
 };
 
 export type OrderStatus = "pending" | "paid";
@@ -127,8 +131,12 @@ export type Agreed = { version: string; at: string };
 /** A PayFast notice's facts: which attempt it is for (`m_payment_id`), PayFast's payment, and the amounts in rands ("123.45"). */
 export type Notice = { attempt: string; pfPaymentId: string; status: string; amountGross: string; amountFee: string; amountNet: string };
 
-/** The payment that paid an order, as its notice reported it. */
-export type Payment = Notice & { provider: "payfast"; at: string };
+/**
+ * The payment that paid an order, as its notice reported it. `at` is when the
+ * shop recorded it, which for `acceptedBy` (a payment staff accepted from
+ * PayFast's history, found there by definition) is later than PayFast took it.
+ */
+export type Payment = Notice & { provider: "payfast"; at: string; acceptedBy?: string };
 
 /**
  * What became of a notice: paid the order, or why it didn't. `missed` and
@@ -193,7 +201,7 @@ export type Order = {
   /** The one-time code (normalised, `lib/campaignCodes.ts`) whose deal is in these savings; used up when the order is paid. Absent when none, or when the code saved nothing on this order. */
   code?: string;
   delivery: number;
-  /** Subtotal, less discount, plus delivery. */
+  /** Subtotal, less discount, plus gift wrapping (`wrapTotal`), plus delivery. */
   total: number;
   /** The signed-in customer who placed it, if any. */
   uid: string | null;
@@ -211,6 +219,8 @@ export type Order = {
   stage?: OrderStage;
   /** When staff moved it to each stage, latest move kept; for the customer's tracking. Orders from before it was kept have none. */
   stagedAt?: Partial<Record<OrderStage, string>>;
+  /** A collection order's six-digit pick-up code, made when it first goes to Ready (`lib/admin/orders.ts`): in the ready email, and on the admin's order page to check at the counter. Kept for good once made, so a resend says the same code. */
+  collectCode?: string;
   /** True while something on the order waits for the shop to look at it (`issues`). */
   flagged?: boolean;
   issues?: Issue[];
@@ -450,8 +460,14 @@ export const refundedOf = (o: Pick<Order, "refunds">) => (o.refunds ?? []).reduc
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** How long the shop keeps the photos of a paid order that no account holds, counted from payment; an account's are kept until its customer deletes them. */
-export const GUEST_PHOTO_DAYS = 365;
+/** How long the shop keeps the photos of a paid order that no account holds, counted from payment (six months). */
+export const GUEST_PHOTO_DAYS = 183;
+
+/** How long the shop keeps the photos of a paid order on an account, counted from payment (twelve months), unless its customer deletes them sooner. */
+export const ACCOUNT_PHOTO_DAYS = 365;
+
+/** When the sweep deletes the photos of a paid order on an account, as an ISO time. */
+export const accountPhotosUntil = (o: Pick<Order, "paidAt" | "createdAt">) => new Date(Date.parse(o.paidAt ?? o.createdAt) + ACCOUNT_PHOTO_DAYS * DAY_MS).toISOString();
 
 /** Whether the shop still holds photos for the order: it took some, and none has been deleted. */
 export const holdsPhotos = (o: Pick<Order, "lines" | "photosDeletedAt">) => !o.photosDeletedAt && orderPhotos(o) > 0;
@@ -503,11 +519,12 @@ function readSet(x: unknown): LineSet | null {
 }
 
 function readLine(x: unknown): LineInput | null {
-  const l = x as { sku?: unknown; quantity?: unknown; sets?: unknown; frame?: { empty?: unknown; quote?: unknown }; note?: unknown } | null;
+  const l = x as { sku?: unknown; quantity?: unknown; sets?: unknown; frame?: { empty?: unknown; quote?: unknown }; note?: unknown; wrap?: unknown } | null;
   if (!l || typeof l.sku !== "string" || typeof l.quantity !== "number" || !Array.isArray(l.sets)) return null;
   const sets = l.sets.map(readSet);
   if (!sets.every(Boolean)) return null;
   const line: LineInput = { sku: l.sku, quantity: l.quantity, sets: sets as LineSet[], note: str(l.note) };
+  if (l.wrap === true) line.wrap = true;
   if (l.frame) line.frame = { empty: l.frame.empty === true, quote: l.frame.quote === true };
   return line;
 }

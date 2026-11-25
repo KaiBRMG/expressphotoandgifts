@@ -272,10 +272,9 @@ export const SHOP = {
 
 /**
  * The business behind the shop, as the law asks a shop selling online to
- * state it (ECTA s43) and a privacy policy to name who answers for it
- * (POPIA's Information Officer). NOT YET SUPPLIED BY THE SHOP: each null shows
- * on `/terms` and `/privacy` as a marked gap naming what is missing, never as
- * a guess. Fill them in from the shop's CIPC and SARS records.
+ * state it (ECTA s43) and a privacy policy and PAIA manual to name who answers
+ * for it (POPIA's Information Officer). As the shop supplied them in its legal
+ * documents of 20 November 2026; a null is left off the pages.
  */
 export const LEGAL: {
   /** The registered name, e.g. "Express Photo and Gifts (Pty) Ltd", or the owner's name for a sole proprietor. */
@@ -284,16 +283,22 @@ export const LEGAL: {
   legalForm: string | null;
   /** CIPC registration number; none for a sole proprietor. */
   registrationNumber: string | null;
-  /** Only when VAT registered. */
+  /** Only when VAT registered; the pages say "Not VAT registered" while it is null. */
   vatNumber: string | null;
+  /** The directors or office bearers, as the terms name them. */
+  directors: string | null;
   /** The person POPIA makes responsible: by default the owner or head of the business. */
   informationOfficer: string | null;
+  /** The shop's landline, beside the mobile that Settings keeps. Not editable in Settings. */
+  landline: { display: string; e164: string } | null;
 } = {
-  registeredName: null,
-  legalForm: null,
-  registrationNumber: null,
+  registeredName: "ExpressPhoto (Pty) Ltd",
+  legalForm: "Private company",
+  registrationNumber: "K2023239827",
   vatNumber: null,
-  informationOfficer: null,
+  directors: "T. Hutchinson",
+  informationOfficer: "D. Hutchinson (Shop Manager)",
+  landline: { display: "039 978 1089", e164: "27399781089" },
 };
 
 /**

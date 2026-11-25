@@ -172,7 +172,7 @@ export function RefundForm({ order }: { order: Refundable }) {
           <NumberInput
             key={i}
             label={`${lineWhat(l)}${isPersonalised(l) ? " · personalised" : ""}`}
-            description={`${rands(linePaid(l))} paid for the line${done[i] ? `, ${done[i]} already refunded` : ""}`}
+            description={`${rands(linePaid(l))} paid for the line${l.wrap ? ", with its gift wrapping" : ""}${done[i] ? `, ${done[i]} already refunded` : ""}`}
             min={0}
             max={l.quantity - done[i]}
             allowDecimal={false}

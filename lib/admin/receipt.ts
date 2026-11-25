@@ -8,6 +8,7 @@ import { shopContact } from "@/lib/settings";
 import { at } from "@/app/admin/when";
 import { cartSavings } from "@/lib/catalog/campaigns";
 import { photoCount, rands, signedRands } from "@/lib/catalog/listing";
+import { noteLabel, wrapDetail, wrapTotal } from "@/lib/catalog/wrap";
 import { orderWhat } from "@/lib/catalog/purchase";
 import { deliveryLabel, deliveryPrice } from "@/lib/checkout/details";
 import { fileCount, refundedOf, stageLabel, statusText, type Order, type OrderLine } from "@/lib/checkout/order";
@@ -63,7 +64,8 @@ function lineDetails(l: OrderLine): string[] {
     ...words.map((w, i) => (words.length > 1 ? `Words ${i + 1}: “${w}”` : `Words: “${w}”`)),
     l.frame?.empty ? "Frame only, no print" : "",
     l.frame?.quote ? "Print to be quoted" : "",
-    l.note ? `Note: “${l.note}”` : "",
+    wrapDetail(l, rands),
+    l.note ? `${noteLabel(l)}: “${l.note}”` : "",
     l.base ? `On special from ${rands(l.base)} each` : "",
     l.paid !== undefined && l.paid !== l.price * l.quantity ? `${rands(l.paid)} after deals` : "",
   ].filter(Boolean);
@@ -322,6 +324,7 @@ export async function receiptPdf(o: Order): Promise<Uint8Array> {
   const sums: { label: string; value: string; st: Style; line?: boolean }[] = [
     { label: "Subtotal", value: rands(o.subtotal), st: T.body },
     ...cartSavings(o).map((v) => ({ label: v.label || v.name, value: signedRands(-v.amount), st: T.body })),
+    ...(wrapTotal(o.lines) > 0 ? [{ label: "Gift wrapping", value: rands(wrapTotal(o.lines)), st: T.body }] : []),
     { label: deliveryLabel(f), value: deliveryPrice(o.delivery), st: T.body },
     { label: paid ? "Total paid" : "Total due", value: rands(o.total), st: T.total, line: true },
     ...refunds.map((r) => ({ label: `Refunded ${whole(at(r.at))}`, value: signedRands(-r.amount), st: { ...T.body, color: SOFT } })),

@@ -285,8 +285,8 @@ export default async function AboutPage() {
             <div className="about__prose">
               <h3 className="about__h3">Collecting an order</h3>
               <p>
-                Collection is free, during trading hours. We email you when your order is ready. Bring your order number: someone you send can collect it with the
-                number too.
+                Collection is free, during trading hours. When your order is ready we email you a collection code. Show it at the counter: someone you send can collect it
+                with the code too.
               </p>
               <h3 className="about__h3">Not near {SHOP.town}?</h3>
               <p>
@@ -348,8 +348,8 @@ export default async function AboutPage() {
               <li>
                 <h3>Your photos</h3>
                 <p>
-                  They stay yours. We use them only to make, deliver and support your order. Without an account we delete them a year after you pay. With an account,
-                  they stay until you delete them.
+                  They stay yours. We use them only to make, deliver and support your order. Without an account we delete them six months after you pay. With an account,
+                  they stay twelve months, unless you delete them sooner.
                 </p>
                 <Link className="inline-link" href="/privacy#keeping">
                   How long we keep them

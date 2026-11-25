@@ -4,7 +4,6 @@ import "./globals.css";
 import { SHOP } from "./site/data";
 import { shopContact } from "@/lib/settings";
 import { ContactProvider } from "./site/ContactContext";
-import { SiteAnalytics } from "./site/SiteAnalytics";
 
 const archivo = Archivo({
   variable: "--font-archivo",
@@ -21,7 +20,7 @@ const mono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: `${SHOP.name} — photo printing and personalised gifts`,
+    default: `${SHOP.name} — photo printing and gifts, ${SHOP.town}`,
     template: `%s — ${SHOP.name}`,
   },
   description:
@@ -64,7 +63,6 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full">
         <ContactProvider contact={contact}>{children}</ContactProvider>
-        <SiteAnalytics />
       </body>
     </html>
   );

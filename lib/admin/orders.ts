@@ -1,5 +1,7 @@
 import "server-only";
 
+import { randomInt } from "node:crypto";
+
 import { cartUnits } from "@/lib/catalog/cart";
 import { EMAIL_NAMES, orderEmails, type OrderEmail } from "@/lib/checkout/emails";
 import { contactName } from "@/lib/checkout/details";
@@ -35,6 +37,8 @@ export type OrderRow = {
   what: string;
   /** The customer's photos the shop still holds for printing; 0 once they are deleted. */
   photos: number;
+  /** Units to gift wrap, so the list shows which orders need paper and a bow. */
+  wrapped: number;
   total: number;
   refunded: number;
   /** When it was paid, or for an unpaid order, last changed. */
@@ -61,6 +65,7 @@ export const orderRow = (o: Order): OrderRow => ({
   units: cartUnits(o.lines),
   what: linesWhat(o.lines),
   photos: holdsPhotos(o) ? orderPhotos(o) : 0,
+  wrapped: o.lines.reduce((n, l) => n + (l.wrap ? l.quantity : 0), 0),
   total: o.total,
   refunded: refundedOf(o),
   at: o.paidAt ?? o.updatedAt,
@@ -112,19 +117,27 @@ export const cleanNote = (note: unknown) => {
   return s.length >= 3 ? s : null;
 };
 
+/** A collection order's pick-up code, the first time it goes to Ready: six random digits, kept for good once made. */
+const collectCode = (o: Order) => (o.fulfilment.method === "collect" && !o.collectCode ? { collectCode: String(randomInt(1_000_000)).padStart(6, "0") } : {});
+
 /** Sets a paid order's stage (new, being made, ready, done): on with the work, or back or across by hand when the record is wrong. */
 export async function setStage(ref: string, stage: unknown, by: string): Promise<OrderActionResult> {
+  let minted = false;
   const done = await changeOrder(ref, by, (o) => {
     if (!(STAGES as readonly unknown[]).includes(stage)) return { error: "That isn’t a stage an order can be at." };
     if (o.status !== "paid") return { error: "Only a paid order can be worked on." };
     if (o.stage === "cancelled") return { error: "This order was cancelled and refunded in full, so there’s no more work on it." };
     if (o.stage === stage) return { error: "The order is already there." };
-    return { update: stageUpdate(stage as OrderStage), log: `Moved to ${stageLabel(stage as OrderStage, o.fulfilment.method)}` };
+    const code = stage === "ready" ? collectCode(o) : {};
+    minted = "collectCode" in code;
+    return { update: { ...stageUpdate(stage as OrderStage), ...code }, log: `Moved to ${stageLabel(stage as OrderStage, o.fulfilment.method)}` };
   });
-  // A customer collecting hears when it's ready; a delivery is announced by its waybill instead.
+  // A customer collecting hears when it's ready, with the code; a delivery is announced by its waybill instead.
+  // An order emailed before codes were kept is emailed again once it has one, under a new key so Resend sends it.
   if ("ok" in done && stage === "ready") {
     const order = await getOrder(ref);
-    if (order?.fulfilment.method === "collect" && !order.emails?.ready?.ok) await mailCustomer(ref, "ready", by);
+    const emailed = !!order?.emails?.ready?.ok;
+    if (order?.fulfilment.method === "collect" && (!emailed || minted)) await mailCustomer(ref, "ready", by, emailed);
   }
   return done;
 }
@@ -144,7 +157,12 @@ export const resolveIssues = (ref: string, note: unknown, by: string) =>
  * sends it even within a day of the first.
  */
 export async function mailCustomer(ref: string, who: OrderEmail, by: string, again = false): Promise<OrderActionResult> {
-  const order = await getOrder(ref);
+  let order = await getOrder(ref);
+  // An order made ready before codes were kept gets its code before the email that carries it.
+  if (who === "ready" && order?.status === "paid" && order.fulfilment.method === "collect" && !order.collectCode) {
+    await changeOrder(ref, by, (o) => (o.collectCode ? { error: "Has one." } : { update: collectCode(o), log: "Made the collection code" }));
+    order = await getOrder(ref);
+  }
   if (!order) return { error: "There’s no such order." };
   if (order.status !== "paid") return { error: "Only a paid order has emails to send." };
   if (who === "shipped" && !order.shipment?.tracking) return { error: "The order has no waybill to tell the customer about." };

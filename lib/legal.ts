@@ -10,9 +10,11 @@ import { fromShopTime, SHOP_TZ } from "./shopTime";
  * with the customer's tick, the server refuses an order without it, and each
  * order and payment attempt keeps the version that was agreed to, so the shop
  * can show which terms an order was placed under. Change it whenever either
- * page changes in substance.
+ * page changes in substance. 2026-11-24 is when the shop's legal documents of
+ * 20 November 2026 went live. The PAIA manual (`/paia-manual`) is not a policy
+ * customers agree to: it is not listed here and keeps its own version line.
  */
-export const POLICIES_VERSION = "2026-10-27";
+export const POLICIES_VERSION = "2026-11-24";
 
 export const POLICY_LINKS = [
   { href: "/terms", label: "Terms & Conditions" },

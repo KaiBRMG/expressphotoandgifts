@@ -44,15 +44,26 @@ function arranged(sections: LegalSection[]) {
 }
 
 /**
- * One of the shop's three policies: the header's blue carried into a title
- * band that links all three, then the contents beside one 62ch column of
+ * One of the shop's policies: the header's blue carried into a title band
+ * that links both, then the contents beside one 62ch column of
  * numbered sections. The contents list holds still on a wide screen; on a
  * phone it is a list at the top. Each section is its own anchor, so an email
  * or the checkout can link straight to the clause it means. A long agreement
  * can be set in parts (`LegalSection.part`), each numbered from 1, and open
  * with an unnumbered `intro`.
+ *
+ * A legal page that isn't one of the policies (the PAIA manual) passes no
+ * `path` but its own `title` and `dated` line, so it is in no list of
+ * policies and keeps its own date.
  */
-export function LegalPage({ path, lede, intro, sections }: { path: PolicyPath; lede: ReactNode; intro?: ReactNode; sections: LegalSection[] }) {
+export function LegalPage({
+  path,
+  title,
+  dated,
+  lede,
+  intro,
+  sections,
+}: { lede: ReactNode; intro?: ReactNode; sections: LegalSection[] } & ({ path: PolicyPath; title?: never; dated?: never } | { path?: never; title: string; dated: ReactNode })) {
   const parts = arranged(sections);
   return (
     <>
@@ -71,10 +82,16 @@ export function LegalPage({ path, lede, intro, sections }: { path: PolicyPath; l
                 ))}
               </ul>
             </nav>
-            <h1 className="shelfhead__title">{policyTitle(path)}</h1>
+            <h1 className="shelfhead__title">{path ? policyTitle(path) : title}</h1>
             <p className="legalhead__lede">{lede}</p>
             <p className="legalhead__date">
-              Last updated <time dateTime={POLICIES_VERSION}>{policiesDate()}</time>
+              {path ? (
+                <>
+                  Last updated <time dateTime={POLICIES_VERSION}>{policiesDate()}</time>
+                </>
+              ) : (
+                dated
+              )}
             </p>
           </div>
         </header>
@@ -163,13 +180,38 @@ export async function PhoneLink() {
   );
 }
 
+/** The shop's landline, as a link, beside the mobile; nothing when there is none. */
+export function LandlineLink() {
+  const line = LEGAL.landline;
+  return line ? (
+    <a className="inline-link" href={`tel:+${line.e164}`}>
+      {line.display}
+    </a>
+  ) : null;
+}
+
+/** Both numbers, as the legal documents give them: "076 491 2300 / 039 978 1089". */
+export function Phones() {
+  return (
+    <>
+      <PhoneLink />
+      {LEGAL.landline ? (
+        <>
+          {" / "}
+          <LandlineLink />
+        </>
+      ) : null}
+    </>
+  );
+}
+
 /** The close of every policy: a real person at a real counter. */
 function Questions() {
   return (
     <aside className="legal__ask" aria-label="Questions about this policy">
       <p className="legal__ask-title">Questions about any of this?</p>
       <p>
-        Email <EmailLink />, call or WhatsApp <PhoneLink />, or come and see us at {SHOP.street}, {SHOP.town}.
+        Email <EmailLink />, call <Phones /> (WhatsApp on <PhoneLink />), or come and see us at {SHOP.street}, {SHOP.town}.
       </p>
     </aside>
   );
@@ -206,18 +248,21 @@ export function Facts({ rows }: { rows: [label: string, value: ReactNode][] }) {
   );
 }
 
-/** The business, as ECTA s43 asks for it. Registration and VAT numbers show only once there are some. */
+/** The business, as ECTA s43 asks for it. A particular the shop hasn't supplied is left out. */
 export function WhoWeAre({ extra = [] }: { extra?: [label: string, value: ReactNode][] }) {
   return (
     <Facts
       rows={[
+        ["Legal name", LEGAL.registeredName],
         ["Trading name", SHOP.name],
-        ["Registered name", LEGAL.registeredName],
         ["Legal form", LEGAL.legalForm],
-        ["Registration number", LEGAL.registrationNumber],
-        ["VAT number", LEGAL.vatNumber],
-        ["Shop and address for legal notices", `${SHOP.street}, ${SHOP.town}, ${SHOP.province}, ${SHOP.postcode}, ${SHOP.country}`],
-        ["Phone and WhatsApp", <PhoneLink key="phone" />],
+        ["Company registration number", LEGAL.registrationNumber],
+        ["Place of registration", LEGAL.registrationNumber ? "South Africa" : null],
+        ["Directors / office bearers", LEGAL.directors],
+        ["VAT registration number", LEGAL.vatNumber ?? (LEGAL.registeredName ? "Not VAT registered" : null)],
+        ["Registered office, shop and address for legal notices", `${SHOP.street}, ${SHOP.town}, ${SHOP.province}, ${SHOP.postcode}, ${SHOP.country}`],
+        ["Phone", <Phones key="phones" />],
+        ["WhatsApp", <PhoneLink key="phone" />],
         ["Email", <EmailLink key="email" />],
         ["Website", "expressphotoandgifts.com"],
         ...extra,

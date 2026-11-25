@@ -85,7 +85,7 @@ export function nextStep(o: Order): Next {
     return {
       tone: "wait",
       title: `Waiting for ${o.contact.firstName} to collect`,
-      facts: [o.emails?.ready?.ok ? `Ready email sent ${at(o.emails.ready.at)}` : "Ready email not sent"],
+      facts: [...(o.collectCode ? [`Hand over to whoever shows code ${o.collectCode}`] : []), o.emails?.ready?.ok ? `Ready email sent ${at(o.emails.ready.at)}` : "Ready email not sent"],
       acts: [{ stage: "done", label: "Mark collected" }],
     };
   }

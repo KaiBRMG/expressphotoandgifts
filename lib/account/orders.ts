@@ -11,7 +11,7 @@ import { maxFor } from "@/lib/catalog/stock";
 import { liveAvailability } from "@/lib/stock";
 import { changeOrder, orders } from "@/lib/checkout/orders";
 import { AT_ONCE, deleteOrderPhotos } from "@/lib/checkout/uploads";
-import { holdsPhotos, lineWhat, photoIds, receiptPath, refundedOf, type LogEntry, type Order } from "@/lib/checkout/order";
+import { accountPhotosUntil, holdsPhotos, lineWhat, photoIds, receiptPath, refundedOf, type LogEntry, type Order } from "@/lib/checkout/order";
 import { orderSettled, trackOrder, type Tracking } from "@/lib/checkout/tracking";
 import type { Customer } from "./auth";
 import { photosStillNeeded, stillOnTheWay } from "./words";
@@ -48,6 +48,8 @@ export type AccountOrder = {
   /** How many different photos the shop holds for it, and whether they have been deleted. */
   kept: number;
   deleted: boolean;
+  /** When the shop deletes the kept photos itself, unless the customer does sooner. */
+  keptUntil: string;
   /** The first line's product photograph, when the order holds none of the customer's. */
   product: string | null;
   /** Still to reach the customer: tracked live at the top of the page. */
@@ -118,6 +120,7 @@ export async function accountOrders(uid: string): Promise<AccountOrder[]> {
       prints: printsOf(o),
       kept: keptOf(o),
       deleted: !!o.photosDeletedAt,
+      keptUntil: accountPhotosUntil(o),
       product: photoOf.get(o.lines[0]?.slug) ?? null,
       live: !orderSettled(o, tracking),
       tracking,

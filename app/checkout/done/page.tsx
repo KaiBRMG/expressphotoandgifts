@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { currentCustomer } from "@/lib/account/auth";
 import { cartSavings } from "@/lib/catalog/campaigns";
 import { photoCount, rands, signedRands } from "@/lib/catalog/listing";
+import { wrapTotal } from "@/lib/catalog/wrap";
 import { addressLine, deliveryLabel, deliveryPrice } from "@/lib/checkout/details";
 import { fileCount, lineWhat, orderPhotos, reportedAt, type OrderLine } from "@/lib/checkout/order";
 import { fittedUrl, THUMB } from "@/lib/checkout/photoUrls";
@@ -96,7 +97,8 @@ export default async function DonePage({ searchParams }: PageProps<"/checkout/do
                   ) : null}
                   {l.frame?.empty ? <small>Frame only, no print</small> : null}
                   {l.frame?.quote ? <small>We&rsquo;ll quote you for the print</small> : null}
-                  {l.note ? <small>Your note: &ldquo;{l.note}&rdquo;</small> : null}
+                  {l.wrap ? <small>Gift wrapped, {rands(l.wrap)} each</small> : null}
+                  {l.note ? <small>Your {l.wrap ? "gift tag message" : "note"}: &ldquo;{l.note}&rdquo;</small> : null}
                   {l.base ? <small>On special, was {rands(l.base * l.quantity)}</small> : null}
                   {order.photosDeletedAt ? null : <Proofs line={l} />}
                 </span>
@@ -115,6 +117,12 @@ export default async function DonePage({ searchParams }: PageProps<"/checkout/do
                 <dd>{signedRands(-s.amount)}</dd>
               </div>
             ))}
+            {wrapTotal(order.lines) > 0 ? (
+              <div>
+                <dt>Gift wrapping</dt>
+                <dd>{rands(wrapTotal(order.lines))}</dd>
+              </div>
+            ) : null}
             <div>
               <dt>{deliveryLabel(order.fulfilment)}</dt>
               <dd>{deliveryPrice(order.delivery)}</dd>

@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: PageProps<"/admin/customers/[
 }
 
 /** Where a change of mind about marketing email was made, as `setMarketing`'s callers name it. */
-const SOURCES: Record<ConsentSource, string> = { footer: "the footer’s sign-up (confirmed by email)", account: "their account page", email: "an email’s unsubscribe link" };
+const SOURCES: Record<ConsentSource, string> = { footer: "the footer’s sign-up (confirmed by email)", account: "their account page", signup: "the box they ticked making their account", email: "an email’s unsubscribe link" };
 
 /** A WhatsApp chat with a South African mobile, or null for anything else. */
 function chat(phone: string): string | null {

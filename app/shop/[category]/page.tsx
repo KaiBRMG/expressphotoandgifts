@@ -5,6 +5,7 @@ import { Suspense } from "react";
 
 import { ArrowRight, WhatsApp } from "@/app/site/icons";
 import { SHOP } from "@/app/site/data";
+import { share } from "@/lib/share";
 import { shopContact } from "@/lib/settings";
 import { whatsappLink } from "@/lib/contact";
 import { Catalogue, CatalogueFallback } from "../Catalogue";
@@ -24,14 +25,16 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<"/shop/[category]">): Promise<Metadata> {
   const shelf = await getShelf((await params).category);
   if (!shelf) return {};
+  const description =
+    shelf.listings.length > 0
+      ? `${shelf.name} at ${SHOP.name}, ${SHOP.town}: ${shelf.listings.length} products with prices, to collect in store or have delivered.`
+      : `${shelf.name} at ${SHOP.name}, ${SHOP.town}.`;
   return {
     title: shelf.name,
     // Its filters, sort and search are views of the same shelf.
     alternates: { canonical: `/shop/${shelf.slug}` },
-    description:
-      shelf.listings.length > 0
-        ? `${shelf.name} at ${SHOP.name}, ${SHOP.town}: ${shelf.listings.length} products with prices, to collect in store or have delivered.`
-        : `${shelf.name} at ${SHOP.name}, ${SHOP.town}.`,
+    description,
+    ...share({ title: shelf.name, description }),
   };
 }
 

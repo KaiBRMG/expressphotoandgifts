@@ -109,7 +109,7 @@ export function OrderList({ orders }: { orders: OrderRow[] }) {
                 {o.standing.label}
               </p>
               {o.deleted ? <p className="aorder__items">Photos deleted. The order is kept as the shop’s record.</p> : null}
-              {o.kept > 0 ? <p className="aorder__items">The shop is keeping {photosWord(o.kept)} for this order until you delete them.</p> : null}
+              {o.kept > 0 ? <p className="aorder__items">The shop is keeping {photosWord(o.kept)} for this order until {o.keptUntil}, unless you delete them sooner.</p> : null}
             </div>
             <p className="aorder__total">{rands(o.total)}</p>
             <div className="aorder__acts">

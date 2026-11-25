@@ -64,7 +64,9 @@ const accountsMade = rateLimit(5, 60 * 60_000);
  * The sign-in page's "Make an account": an email and a password, and the
  * customer is signed in. The footer's sign-up no longer makes accounts (it
  * subscribes to specials, `app/subscription`); this is the one place to make
- * one without an order, besides ticking "Save my details" at checkout.
+ * one without an order, besides ticking "Save my details" at checkout. It
+ * needs the terms tick (`terms`, the policies' version); `marketing` is the
+ * separate, optional one.
  */
 export async function makeAccountAction(_: AccountState, form: FormData): Promise<AccountState> {
   const email = String(form.get("email") ?? "").trim();
@@ -72,7 +74,8 @@ export async function makeAccountAction(_: AccountState, form: FormData): Promis
   if (!isEmail(email) || !password) return NEEDS_BOTH;
   const ip = callerIp(await headers());
   if (ip && !accountsMade(ip)) return BUSY;
-  const made = await createAccount(email, password, null);
+  // The ticks: the terms box carries the version it was shown at, so a page opened before the policies changed is refused.
+  const made = await createAccount(email, password, null, { policies: String(form.get("terms") ?? ""), marketing: form.get("marketing") === "yes" });
   if ("error" in made) return { error: made.exists ? `${made.error} Sign in above with its password.` : made.error };
   redirect("/account");
 }
@@ -85,11 +88,11 @@ export async function signOutAction(): Promise<void> {
  * Makes an account from a paid order, for whoever holds its receipt link:
  * the details from the order, and the password they choose.
  */
-export async function createAccountFromOrder(ref: string, token: string, password: string): Promise<AccountState> {
+export async function createAccountFromOrder(ref: string, token: string, password: string, policies: string, marketing: boolean): Promise<AccountState> {
   const order = await orderForReceipt(String(ref), String(token));
   if (!order || order.status !== "paid") return { error: "Accounts can be made once the payment has gone through." };
   if (order.uid) return { notice: "This order is already saved to an account." };
-  const made = await createAccount(order.contact.email, String(password), detailsFrom(order));
+  const made = await createAccount(order.contact.email, String(password), detailsFrom(order), { policies: String(policies), marketing: marketing === true });
   if ("error" in made) return { error: made.exists ? `${made.error} Sign in at checkout next time and your details will be filled in.` : made.error };
   await attachCustomer(order.ref, made.uid).catch(() => {});
   return { notice: "Saved. Next time, sign in at checkout and your details will be filled in." };

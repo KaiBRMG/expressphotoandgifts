@@ -69,8 +69,10 @@ export type LineState = {
   empty?: boolean;
   /** A frame whose print is not on sale online, which the customer asked the shop to quote for. */
   quote?: boolean;
-  /** The customer's note to the shop about this line, left at the details step. */
+  /** The customer's note to the shop about this line, left at the details step; on a wrapped line, it is also what goes on the gift tag. */
   note?: string;
+  /** The customer ticked gift wrapping for every unit of this line (`lib/catalog/wrap.ts`), at the details step. */
+  wrap?: boolean;
 };
 
 /** An edited place's own file: being rendered and sent, sent, or failed. */
@@ -546,8 +548,8 @@ export const photos = {
     writeLine(sku, (l) => ({ ...l, words: l.words.map((w, i) => (i === set ? text : w)) }), quantity, slots);
   },
 
-  /** A frame's choice (take it empty, or ask for a quote on its print), or the line's note to the shop. */
-  flag(sku: string, patch: Pick<LineState, "empty" | "quote" | "note">) {
+  /** A frame's choice (take it empty, or ask for a quote on its print), the line's note to the shop, or whether it is gift wrapped. */
+  flag(sku: string, patch: Pick<LineState, "empty" | "quote" | "note" | "wrap">) {
     const lines = current().lines;
     set({ lines: { ...lines, [sku]: { ...(lines[sku] ?? EMPTY_LINE), ...patch } } });
   },

@@ -113,6 +113,9 @@ const parcelOf = (p: SizedParcel) => ({ submitted_length_cm: p.length, submitted
 
 type Rate = Omit<DeliveryOption, "cover" | "full">;
 
+/** Added to every delivery price quoted to the customer (cents), on top of TCG's rate. The booking side (`priceWaybill`) and TCG's own charges stay at TCG's price. */
+const DELIVERY_ADD = 2_000;
+
 /** TCG's services for one declared value, or why there are none. */
 async function rates(address: Address, parcels: SizedParcel[], cover: number): Promise<{ ok: true; rates: Rate[] } | Extract<Quote, { ok: false }>> {
   const declared = wholeRands(cover);
@@ -136,7 +139,7 @@ async function rates(address: Address, parcels: SizedParcel[], cover: number): P
   const found = list.flatMap((r): Rate[] => {
     const { rate, service_level: s } = (r ?? {}) as { rate?: unknown; service_level?: { code?: unknown; name?: unknown; description?: unknown } };
     if (typeof s?.code !== "string" || !s.code || typeof rate !== "number" || !(rate > 0)) return [];
-    return [{ code: s.code, name: str(s.name).trim() || s.code, description: str(s.description).trim() || null, price: Math.round(rate * 100) }];
+    return [{ code: s.code, name: str(s.name).trim() || s.code, description: str(s.description).trim() || null, price: Math.round(rate * 100) + DELIVERY_ADD }];
   });
   if (found.length === 0) {
     if (body?.no_rates_reason) console.warn("Courier has no rates", body.no_rates_reason);

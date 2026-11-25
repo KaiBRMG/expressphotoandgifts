@@ -1,4 +1,5 @@
 import { rands } from "@/lib/catalog/listing";
+import { lineWrap } from "@/lib/catalog/wrap";
 import { hasLeftShop, lineWhat, refundedOf, type Order, type OrderLine, type RefundLine } from "./order";
 
 /**
@@ -83,8 +84,8 @@ export type RefundPlan = {
   beforeSent: boolean;
 };
 
-/** What the whole line came to after every deal. */
-export const linePaid = (l: Pick<OrderLine, "paid" | "price" | "quantity">) => l.paid ?? l.price * l.quantity;
+/** What the whole line came to: its goods after every deal, and its gift wrapping, which goes back with each unit. */
+export const linePaid = (l: Pick<OrderLine, "paid" | "price" | "quantity" | "wrap">) => (l.paid ?? l.price * l.quantity) + lineWrap(l);
 
 /** What the first `units` of a line come to: shares rounded so that all its units come to exactly what it was paid. */
 const share = (l: OrderLine, units: number) => Math.round((linePaid(l) * units) / l.quantity);

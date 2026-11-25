@@ -8,6 +8,7 @@ import { comingUp } from "@/lib/catalog/seasons";
 import type { Product } from "@/lib/catalog/types";
 import { getLiveDeals } from "@/lib/campaigns";
 import { SHOP_TZ } from "@/lib/shopTime";
+import { share } from "@/lib/share";
 import { tag, termCounts } from "@/lib/catalog/tags";
 import { ProductImage } from "@/app/site/ProductImage";
 import { ArrowRight, WhatsApp } from "@/app/site/icons";
@@ -21,11 +22,13 @@ import { getListings } from "./shelves";
 /** Five minutes: the catalogue is cached for an hour, but a campaign starts and ends on its own time. */
 export const revalidate = 300;
 
+const SHOP_DESCRIPTION = "Mugs, puzzles, keyrings, snow globes and more printed with your own photo, plus frames, easels and albums — from a real photo shop in Scottburgh.";
+
 export const metadata: Metadata = {
   title: "Shop",
   alternates: { canonical: "/shop" },
-  description:
-    "Mugs, puzzles, keyrings, snow globes and more printed with your own photo, plus frames, easels and albums — from a real photo shop in Scottburgh.",
+  description: SHOP_DESCRIPTION,
+  ...share({ title: "Shop", description: SHOP_DESCRIPTION }),
 };
 
 /** The sample customer portrait the homepage already uses as "your" picture. */

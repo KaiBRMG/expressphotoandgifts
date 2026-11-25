@@ -27,6 +27,7 @@ import { MIN_PAYMENT, receiptPath, type DeliveryOption, type OrderInput, type Qu
 import type { SavedDetails } from "@/lib/account/auth";
 import { POLICIES_VERSION, policyTitle, type PolicyPath } from "@/lib/legal";
 import { cart, useCart, usePricedCart } from "@/app/site/cartStore";
+import { GIFT_WRAP, wrapTotal } from "@/lib/catalog/wrap";
 import { HOURS, SHOP } from "@/app/site/data";
 import { Alert, ArrowRight, Parcel, Pin } from "@/app/site/icons";
 import { track } from "@/app/site/track";
@@ -120,6 +121,8 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
   const [paidAlready, setPaidAlready] = useState(false);
   // "Save my details": an account made as they pay. The password is never kept on this device.
   const [saveAccount, setSaveAccount] = useState(false);
+  // The account's second tick, apart from the terms (the order's own tick at the end agrees to those): marketing email, optional and never remembered on the device.
+  const [marketing, setMarketing] = useState(false);
   // The slip's breakdown, docked on a phone: closed until asked for.
   const [breakdown, setBreakdown] = useState(false);
   const [password, setPassword] = useState("");
@@ -185,10 +188,12 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
   // The full value insured only where it costs more than the free cover, and only when the customer ticks it.
   const insured = insure && chosen?.full ? chosen.full : null;
   const delivery = method === "collect" ? 0 : chosen ? (insured ?? chosen).price : null;
-  const shown = delivery === null ? null : priced.total + delivery;
+  // Gift wrapping is on top of the goods and their deals, per wrapped unit; the server charges it again from its own price.
+  const wrapping = useMemo(() => wrapTotal(rows.map((r) => ({ quantity: r.line.quantity, ...(r.state.wrap ? { wrap: GIFT_WRAP } : {}) }))), [rows]);
+  const shown = delivery === null ? null : priced.total + wrapping + delivery;
   // The server's total for exactly this order, once it has said it differs: what is shown and paid, until the order changes.
   const [checked, setChecked] = useState<{ key: string; total: number } | null>(null);
-  const orderKey = JSON.stringify([quoteKey, method, chosen?.code ?? null, insured !== null]);
+  const orderKey = JSON.stringify([quoteKey, method, chosen?.code ?? null, insured !== null, wrapping]);
   const confirmed = checked?.key === orderKey && shown !== null && checked.total !== shown ? checked.total : null;
   const total = confirmed ?? shown;
 
@@ -247,7 +252,7 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
       code: code?.code ?? null,
       accepted: agreed ? POLICIES_VERSION : "",
     };
-    const placed = await placeOrder(input, onsite && window.location.protocol === "https:", makingAccount ? password : undefined).catch(() => null);
+    const placed = await placeOrder(input, onsite && window.location.protocol === "https:", makingAccount ? password : undefined, makingAccount ? marketing : undefined).catch(() => null);
     if (!placed) {
       setBusy(false);
       setError("We couldn’t reach the shop’s server. Check your connection and try again.");
@@ -428,6 +433,17 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
                 Save my details for next time
               </label>
             )}
+            {makingAccount ? (
+              <>
+                <label className="check agrees__row">
+                  <input id="account-marketing" type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} />
+                  <span>
+                    Email me specials and campaigns. <span className="agrees__soft">Optional: you can switch it off at any time, and order emails always come.</span>
+                  </span>
+                </label>
+                <p className="receipt__soft">Saving your details means you agree to the Terms &amp; Conditions and Privacy Policy, which you tick under your order below.</p>
+              </>
+            ) : null}
           </section>
 
           <section className="costep" aria-labelledby="co-way">
@@ -659,6 +675,12 @@ function Details({ needs, account: initialAccount, courier, payments, onsite, sa
                 <dd>{signedRands(-s.amount)}</dd>
               </div>
             ))}
+            {wrapping > 0 ? (
+              <div>
+                <dt>Gift wrapping</dt>
+                <dd>{rands(wrapping)}</dd>
+              </div>
+            ) : null}
             <div>
               <dt>{method === "collect" ? "Collect from the shop" : chosen ? `Delivery, ${chosen.name}${insured ? ", insured" : ""}` : "Delivery"}</dt>
               <dd>{delivery === null ? "—" : delivery === 0 ? "Free" : rands(delivery)}</dd>
