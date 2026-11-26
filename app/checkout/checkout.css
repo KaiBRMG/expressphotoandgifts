@@ -1184,6 +1184,18 @@
     box-shadow: 0 -18px 40px -24px rgb(1 38 186 / 0.9);
   }
 
+  /* While the on-screen keyboard is up the bar steps aside rather than ride on the keys
+     (KeyboardWatch); it keeps its size, so the page never jumps under the field. */
+  html[data-keyboard] {
+    scroll-padding-bottom: 16px;
+  }
+
+  html[data-keyboard] .tray,
+  html[data-keyboard] .coslip {
+    visibility: hidden;
+    transform: translateY(100%);
+  }
+
   .tray__title {
     font-size: 1.1rem;
   }

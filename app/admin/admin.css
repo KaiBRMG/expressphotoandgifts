@@ -2758,6 +2758,12 @@
     bottom: calc(var(--tabbar) + 12px);
   }
 
+  /* While the keyboard is up (KeyboardWatch) the bars at the foot step aside rather than
+     ride on the keys; they keep their room, so the field being typed in never moves. */
+  html[data-keyboard] :is(.tabbar, .savebar, .bulkbar) {
+    visibility: hidden;
+  }
+
   .tabbar {
     position: fixed;
     inset: auto 0 0;

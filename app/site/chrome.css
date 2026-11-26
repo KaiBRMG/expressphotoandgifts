@@ -1148,7 +1148,17 @@ button.inline-link {
     visibility 0s 0.35s;
 }
 
+/* And while a phone's keyboard is up (KeyboardWatch), so it never rides on the keys:
+   the footer's sign-up, search and the account forms all type with it on screen. */
+html[data-keyboard] .dock {
+  opacity: 0;
+  transform: translateY(calc(100% + 1rem));
+  visibility: hidden;
+  transition: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  html[data-keyboard] .dock,
   .dock,
   .dock--away {
     transform: none;

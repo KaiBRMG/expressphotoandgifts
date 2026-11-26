@@ -4,6 +4,7 @@ import "./globals.css";
 import { SHOP } from "./site/data";
 import { shopContact } from "@/lib/settings";
 import { ContactProvider } from "./site/ContactContext";
+import { KeyboardWatch } from "./site/KeyboardWatch";
 
 const archivo = Archivo({
   variable: "--font-archivo",
@@ -63,6 +64,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full">
         <ContactProvider contact={contact}>{children}</ContactProvider>
+        <KeyboardWatch />
       </body>
     </html>
   );

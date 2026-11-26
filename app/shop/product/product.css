@@ -565,6 +565,11 @@
   }
 }
 
+/* Out of the way while the quantity is typed, rather than riding on the phone's keyboard (KeyboardWatch). */
+html[data-keyboard] .fab {
+  visibility: hidden;
+}
+
 /* One floating action at a time: the dock is out of the way while Add to cart is drawn. */
 body:has(.fab) .dock {
   visibility: hidden;
