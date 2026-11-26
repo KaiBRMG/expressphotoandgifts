@@ -83,14 +83,17 @@ export function progress(rows: Row[], photos: Photo[], bakes: Record<string, Bak
  * What still stands between the customer and sending the order, in the
  * order it should be dealt with; each names the first place it applies to.
  */
-export function problems(prog: Progress): { text: string; t: Target }[] {
+export function problems(prog: Progress): Problem[] {
   const places = (n: number) => (n === 1 ? "1 place needs" : `${n} places need`);
   return [
     prog.empty.length > 0 && { text: `${places(prog.empty.length)} a photo`, t: prog.empty[0] },
     prog.failed.length > 0 && { text: `${photoCount(prog.failed.length)} didn’t upload`, t: prog.failed[0] },
-    prog.pending.length > 0 && { text: "Photos still uploading…", t: prog.pending[0] },
-  ].filter((p): p is { text: string; t: Target } => Boolean(p));
+    prog.pending.length > 0 && { text: "Photos still uploading…", t: prog.pending[0], waiting: true },
+  ].filter((p): p is Problem => Boolean(p));
 }
+
+/** One thing between the customer and sending the order; `waiting` when it clears by itself once uploads finish. */
+export type Problem = { text: string; t: Target; waiting?: boolean };
 
 /** What a tray photo carries when it is dragged onto a slot. */
 export const DRAG_TYPE = "application/x-epg-photo";

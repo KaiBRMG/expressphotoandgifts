@@ -9,6 +9,7 @@ import {
   freshEdit,
   isUntouched,
   type Edit,
+  type PhotoNeeds,
   type Pixels,
   type SlotNeed,
 } from "@/lib/catalog/checkout";
@@ -44,8 +45,6 @@ export type Photo = {
   /** Upright pixel size; null until known. */
   px: Pixels | null;
   status: "reading" | "uploading" | "done" | "error";
-  /** Upload progress, 0 to 1. */
-  progress: number;
   error?: string;
   publicId?: string;
   version?: number;
@@ -193,7 +192,7 @@ function flush() {
 
 function set(next: Partial<PhotoState>) {
   state = { ...current(), ...next };
-  // Saved a moment after the last change, so typing and upload progress do not write on every tick.
+  // Saved a moment after the last change, so typing and a run of uploads do not write on every change.
   if (next.photos || next.lines || next.ref || next.bakes) {
     clearTimeout(saving);
     saving = setTimeout(save, 300);
@@ -264,16 +263,15 @@ function pump() {
       continue;
     }
     running++;
-    patchPhoto(id, { status: "uploading", progress: 0, error: undefined });
-    // Progress in 5% steps: each step redraws the tray and the places using the photo.
-    upload(current().ref, blob, photo.name, (p) => {
-      const progress = Math.floor(p * 20) / 20;
-      if (photoById(id)?.progress !== progress) patchPhoto(id, { progress });
-    })
+    patchPhoto(id, { status: "uploading", error: undefined });
+    upload(current().ref, blob, photo.name)
       .then((done) => {
         if (!photoById(id)) return;
         // The local reading wins where there is one: it is the pixels the crop was set on.
-        patchPhoto(id, { status: "done", progress: 1, publicId: done.publicId, version: done.version, px: photoById(id)?.px ?? done.px });
+        const read = photoById(id)?.px;
+        patchPhoto(id, { status: "done", publicId: done.publicId, version: done.version, px: read ?? done.px });
+        // A photo this browser couldn't read (a HEIC outside Safari) learns its size from Cloudinary.
+        if (!read && done.px) fitWaiting(id, done.px);
         // The file stays for this visit: an edit is rendered from it, not from a preview.
       })
       .catch((e: Error) => {
@@ -308,9 +306,32 @@ function writeLine(sku: string, fn: (l: LineState) => LineState, quantity: numbe
 /** A slot's target: where, what it needs, and the line's shape, so a placement can be made on its own. */
 export type Target = At & { need: SlotNeed; kind: "gift" | "print"; quantity: number; slots: number };
 
+/**
+ * Places made before their photo's size was read (a photo added from a slot
+ * goes straight in), fitted by `fitWaiting` once it is. Kept for this visit
+ * only: a photo still being read when the page goes is lost anyway.
+ */
+const waiting = new Map<string, Target[]>();
+
 function placeIn(l: LineState, t: Target, photo: Photo): LineState {
+  if (!photo.px) waiting.set(photo.id, [...(waiting.get(photo.id) ?? []), t]);
   const edit = photo.px ? freshEdit(photo.px, t.need, t.kind) : DEFAULT_EDIT;
   return withSlot(l, t, () => ({ photo: photo.id, edit }));
+}
+
+/** A read photo's waiting places, fitted as if placed now; any the customer has since moved or edited are left alone. */
+function fitWaiting(id: string, px: Pixels) {
+  const targets = waiting.get(id);
+  waiting.delete(id);
+  if (!targets) return;
+  const lines = { ...current().lines };
+  for (const t of targets) {
+    const p = lines[t.sku]?.sets[t.set]?.[t.slot];
+    if (p?.photo !== id || p.edit !== DEFAULT_EDIT) continue;
+    const sets = lines[t.sku].sets.map((s, i) => (i === t.set ? s.map((q, j) => (j === t.slot ? { photo: id, edit: freshEdit(px, t.need, t.kind) } : q)) : s));
+    lines[t.sku] = { ...lines[t.sku], sets };
+  }
+  set({ lines });
 }
 
 /** One set per unit, so each unit keeps the photos it has when two lines become one. */
@@ -354,7 +375,7 @@ async function runBakes() {
       const source = await sourceFor(files.get(photo.id), photo.publicId, photo.version);
       const blob = await bake(source, photo.px, job.need, job.edit);
       const name = `${photo.name.replace(/\.[^.]+$/, "")}-edited.jpg`;
-      const done = await upload(current().ref, blob, name, () => {});
+      const done = await upload(current().ref, blob, name);
       setBake(job.key, { status: "done", publicId: done.publicId, version: done.version });
     } catch (e) {
       setBake(job.key, { status: "error", error: (e as Error).message });
@@ -392,7 +413,7 @@ export const photos = {
         continue;
       }
       known.add(key);
-      added.push({ id: newId(), name: file.name, key, px: null, status: "reading", progress: 0 });
+      added.push({ id: newId(), name: file.name, key, px: null, status: "reading" });
       files.set(added[added.length - 1].id, file);
     }
     const notes = [
@@ -417,6 +438,7 @@ export const photos = {
           }
           files.set(p.id, blob);
           patchPhoto(p.id, { px, preview: preview ?? undefined });
+          if (px) fitWaiting(p.id, px);
         })
         .finally(() => {
           queue.push(p.id);
@@ -554,11 +576,21 @@ export const photos = {
     set({ lines: { ...lines, [sku]: { ...(lines[sku] ?? EMPTY_LINE), ...patch } } });
   },
 
-  /** Carries a line's photos across to another variant of it (one photo to two), in slot order. */
-  move(from: string, to: string) {
+  /**
+   * Carries a line's photos across to another variant of it (one photo to
+   * two), in slot order, each fitted afresh to its new place (whose area may
+   * face the other way), keeping only black and white.
+   */
+  move(from: string, to: string, next?: PhotoNeeds) {
     const lines = { ...current().lines };
     if (!lines[from]) return;
-    lines[to] = { ...lines[from], sets: lines[from].sets.map((s) => s.map((p) => (p ? { ...p, edit: { ...p.edit, zoom: 0, x: 0.5, y: 0.5 } } : p))) };
+    const refit = (p: Placed, j: number): Placed => {
+      const px = photoById(p.photo)?.px;
+      const slot = next?.slots[j];
+      if (!px || !slot || !next) return { ...p, edit: { ...p.edit, zoom: 0, x: 0.5, y: 0.5 } };
+      return { ...p, edit: { ...freshEdit(px, slot, next.kind), grey: p.edit.grey } };
+    };
+    lines[to] = { ...lines[from], sets: lines[from].sets.map((s) => s.map((p, j) => (p ? refit(p, j) : p))) };
     delete lines[from];
     set({ lines });
   },
@@ -579,7 +611,7 @@ export const photos = {
       const key = `reuse|${f.publicId}`;
       let photo = byKey.get(key);
       if (!photo) {
-        photo = { id: newId(), name: f.name, key, px: f.px, status: "done", progress: 1, publicId: f.publicId, version: f.version };
+        photo = { id: newId(), name: f.name, key, px: f.px, status: "done", publicId: f.publicId, version: f.version };
         fresh.push(photo);
       }
       byPublicId.set(f.publicId, photo);

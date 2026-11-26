@@ -403,23 +403,38 @@
   background: rgb(255 183 42 / 0.26);
 }
 
-.slot__bar,
-.thumb__bar {
-  position: absolute;
-  inset: auto 0 0;
-  height: 4px;
-  background: rgb(255 255 255 / 0.6);
-}
-
-.slot__bar::after,
-.thumb__bar::after {
-  content: "";
+/* A photo still on its way to the shop: dimmed under a turning ring and the
+   word, white on the blue so it reads over any photo. The word needs about
+   86px at 16px; a narrower box (a phone's tray, a crowded row of places)
+   keeps only the ring. */
+.uploading {
   position: absolute;
   inset: 0;
-  background: var(--blue);
-  transform: scaleX(var(--p));
-  transform-origin: left;
-  transition: transform 0.3s var(--ease-out);
+  container-type: inline-size;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.4rem;
+  /* Dark enough that the white word holds 5:1 over a white photo. */
+  background: rgb(1 22 112 / 0.66);
+  color: var(--print);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+  pointer-events: none;
+}
+
+.uploading .services__spin {
+  width: 22px;
+  height: 22px;
+  border-color: rgb(255 255 255 / 0.3);
+  border-top-color: var(--print);
+}
+
+@container (max-width: 85px) {
+  .uploading__word {
+    display: none;
+  }
 }
 
 .slot__label {
@@ -1096,6 +1111,18 @@
   color: var(--print);
   font-size: 1rem;
   text-align: left;
+}
+
+/* Uploads still going: a turning ring says it will clear by itself. */
+.tray__problems button[data-waiting] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tray__problems .services__spin {
+  border-color: rgb(255 255 255 / 0.3);
+  border-top-color: var(--print);
 }
 
 .tray__excl {

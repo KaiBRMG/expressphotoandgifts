@@ -217,23 +217,25 @@ export function clampEdit(px: Pixels, slot: SlotNeed, edit: Edit): Edit {
 export const wholePhoto = (px: Pixels, slot: SlotNeed, edit: Edit): Edit => clampEdit(px, slot, { ...edit, zoom: 0 });
 
 /**
- * A new placement: the whole photo, exactly as uploaded, never cropped on
- * the customer's behalf; most customers never edit, and what they took is
- * what they get. A print follows the photo's orientation, the way a lab
- * prints a landscape shot landscape; a gift's print area is fixed by the
- * object.
+ * A new placement: the whole photo, never cropped on the customer's behalf;
+ * most customers never edit, and what they took is what they get. When the
+ * photo and the print area face different ways, it is set to fill: a
+ * rectangular print turns with the photo, the way a lab prints a landscape
+ * shot landscape, and anywhere else, where the object fixes the area (a
+ * landscape puzzle), the photo is turned a quarter to match.
  */
 export function freshEdit(px: Pixels, slot: SlotNeed, kind: "gift" | "print"): Edit {
   const area = slot.print;
-  const turned =
-    kind === "print" && slot.shape === "rect" && area !== null && area.w !== area.h && px.w > px.h !== area.w > area.h;
-  return clampEdit(px, slot, { ...DEFAULT_EDIT, turned });
+  const across = area !== null && area.w !== area.h && px.w > px.h !== area.w > area.h;
+  if (across && kind === "print" && slot.shape === "rect") return clampEdit(px, slot, { ...DEFAULT_EDIT, turned: true });
+  if (across && px.w !== px.h) return clampEdit(px, slot, { ...DEFAULT_EDIT, rotate: 90 });
+  return clampEdit(px, slot, DEFAULT_EDIT);
 }
 
 /**
- * True while the customer has changed nothing that alters the picture: the
- * whole photo shows, unturned and in colour. Such a place goes to the shop
- * as the original upload; any other is rendered and uploaded as edited.
+ * True while nothing alters the picture: the whole photo shows, unturned and
+ * in colour. Such a place goes to the shop as the original upload; any other,
+ * a photo `freshEdit` turned to fit included, is rendered and uploaded as edited.
  */
 export function isUntouched(px: Pixels, slot: SlotNeed, edit: Edit): boolean {
   const b = cropBox(px, slot, edit);

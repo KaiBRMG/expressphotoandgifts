@@ -136,6 +136,7 @@ export function PhotoStep({ needs }: { needs: Needs }) {
               row={row}
               store={store}
               onSlot={onSlot}
+              needs={needs}
             />
           ))}
 

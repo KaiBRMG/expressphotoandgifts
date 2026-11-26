@@ -147,8 +147,8 @@ async function sign(ref: string): Promise<UploadTicket> {
 
 type Uploaded = { publicId: string; version: number; px: Pixels };
 
-/** Sends one photo to the order's folder under the name its signature gives, reporting progress from 0 to 1. */
-export async function upload(ref: string, blob: Blob, name: string, onProgress: (p: number) => void): Promise<Uploaded> {
+/** Sends one photo to the order's folder under the name its signature gives. */
+export async function upload(ref: string, blob: Blob, name: string): Promise<Uploaded> {
   const ticket = await sign(ref);
   const form = new FormData();
   for (const [k, v] of Object.entries(ticket.fields)) form.append(k, v);
@@ -157,7 +157,6 @@ export async function upload(ref: string, blob: Blob, name: string, onProgress: 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", ticket.url);
-    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
     xhr.onerror = () => reject(new Error("The connection dropped."));
     xhr.onload = () => {
       try {

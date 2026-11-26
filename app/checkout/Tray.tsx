@@ -9,8 +9,9 @@ import { ArrowRight, Pencil, Trash, Upload } from "@/app/site/icons";
 import { THUMB } from "@/lib/checkout/photoUrls";
 import { photoSrc } from "./images";
 import { useDockHeight } from "./draft";
-import { DRAG_TYPE, type Progress } from "./model";
+import { DRAG_TYPE, type Problem, type Progress } from "./model";
 import { photos, type Photo, type PhotoState, type Target } from "./photoStore";
+import { Uploading } from "./Uploading";
 
 /** How long the tray shows what just happened. */
 const SAID_MS = 8000;
@@ -55,7 +56,7 @@ export function Tray({
   store: PhotoState;
   prog: Progress;
   /** What still stands in the way, from `problems`. */
-  issues: { text: string; t: Target }[];
+  issues: Problem[];
   /** Opens the editor on a photo; absent when nothing on the order takes one. */
   onEdit?: (id: string) => void;
   onSend: () => void;
@@ -225,7 +226,8 @@ export function Tray({
           <ul className="tray__problems">
             {issues.map((p) => (
               <li key={p.text}>
-                <button type="button" className="inline-link" onClick={() => onShow(p.t)}>
+                <button type="button" className="inline-link" data-waiting={p.waiting || undefined} onClick={() => onShow(p.t)}>
+                  {p.waiting ? <span className="services__spin" aria-hidden="true" /> : null}
                   {p.text}
                 </button>
               </li>
@@ -294,18 +296,17 @@ function Thumb({
           // eslint-disable-next-line @next/next/no-img-element -- a local blob or one fixed Cloudinary size
           <img src={src} alt="" draggable={false} />
         ) : (
-          <span className="thumb__none">{photo.status === "reading" ? "Reading…" : "No preview yet"}</span>
+          busy ? null : <span className="thumb__none">No preview yet</span>
         )}
         {uses > 0 ? (
           <span className="thumb__uses" aria-hidden="true">
             ×{uses}
           </span>
         ) : null}
-        {busy ? (
-          <span className="thumb__bar" style={{ "--p": photo.progress } as CSSProperties} aria-hidden="true" />
-        ) : null}
+        {busy ? <Uploading /> : null}
       </button>
-      {onEdit && photo.px && photo.status !== "error" ? (
+      {/* Kept off while it uploads, so the loader has the photo to itself; the place it is in can still be edited. */}
+      {onEdit && photo.px && photo.status === "done" ? (
         <button type="button" className="thumb__edit" aria-label={`Edit ${photo.name}`} onClick={() => onEdit(photo.id)}>
           <Pencil size={17} />
         </button>

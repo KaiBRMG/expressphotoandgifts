@@ -2,7 +2,7 @@
 
 import { useId, useState, type CSSProperties, type DragEvent } from "react";
 
-import { areaLabel, DEFAULT_EDIT, fit, framePrint, freshEdit, placedArea, TRIM_NOTE, wholePhoto, WORDS_MAX } from "@/lib/catalog/checkout";
+import { areaLabel, DEFAULT_EDIT, fit, framePrint, freshEdit, placedArea, TRIM_NOTE, wholePhoto, WORDS_MAX, type Needs } from "@/lib/catalog/checkout";
 import { rands } from "@/lib/catalog/listing";
 import { MAX_QUANTITY } from "@/lib/catalog/purchase";
 import { cmLabel } from "@/lib/catalog/sizes";
@@ -11,6 +11,7 @@ import { Alert, Check, Plus } from "@/app/site/icons";
 import { ProductImage } from "@/app/site/ProductImage";
 import { QuantityStepper } from "@/app/site/QuantityStepper";
 import { Cropped } from "./Cropped";
+import { Uploading } from "./Uploading";
 import { CharsLeft } from "./Field";
 import { WORKING } from "@/lib/checkout/photoUrls";
 import { photoSrc } from "./images";
@@ -75,10 +76,13 @@ export function PhotoItem({
   row,
   store,
   onSlot,
+  needs,
 }: {
   row: Row;
   store: PhotoState;
   onSlot: (t: Target, action: SlotAction) => void;
+  /** Every variant's needs, so a switch of layout fits the photos to the new places. */
+  needs: Needs;
 }) {
   const titleId = useId();
   const unit = useUnitPrice();
@@ -95,7 +99,7 @@ export function PhotoItem({
   const switchLayout = (sku: string) => {
     const next = photo.layouts.find((l) => l.sku === sku);
     if (!next) return;
-    photos.move(line.sku, sku);
+    photos.move(line.sku, sku, needs[sku]?.photo);
     cart.swap(line.sku, next.line);
   };
 
@@ -268,6 +272,9 @@ function Slot({
   const src = photo ? photoSrc(photo, WORKING) : null;
   const filled = Boolean(placed && photo);
   const render = placed && photo ? renderOf(photo, need, placed.edit, bakes) : null;
+  // As `progress` counts it: the photo, or the render of this place's edit, still on its way to the shop.
+  const failed = photo?.status === "error" || render?.bake?.status === "error";
+  const uploading = filled && !failed && (photo!.status !== "done" || (render != null && render.bake?.status !== "done"));
 
   const onDragOver = (e: DragEvent) => {
     if (e.dataTransfer.types.includes(DRAG_TYPE) || e.dataTransfer.types.includes("Files")) {
@@ -287,7 +294,7 @@ function Slot({
   const label = armed
     ? `Put the photo here: ${name}`
     : filled
-      ? `${name}: ${photo!.name}. Edit or replace`
+      ? `${name}: ${photo!.name}${uploading ? ", uploading" : ""}. Edit or replace`
       : `${name}: empty. Choose a photo`;
 
   return (
@@ -305,16 +312,14 @@ function Slot({
         {filled && src && photo?.px ? (
           <Cropped src={src} px={photo.px} need={need} edit={placed!.edit} />
         ) : filled ? (
-          <span className="slot__wait">Preparing preview…</span>
+          uploading ? null : <span className="slot__wait">Preparing preview…</span>
         ) : (
           <span className="slot__add" aria-hidden="true">
             {armed ? <Check size={22} /> : <Plus size={22} />}
             {armed ? "Place here" : "Add photo"}
           </span>
         )}
-        {photo && photo.status !== "done" && photo.status !== "error" ? (
-          <span className="slot__bar" style={{ "--p": photo.progress } as CSSProperties} aria-hidden="true" />
-        ) : null}
+        {uploading ? <Uploading /> : null}
       </button>
 
       <p className="slot__label">
